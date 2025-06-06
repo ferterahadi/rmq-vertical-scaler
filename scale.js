@@ -1,8 +1,7 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-var-requires */
-const axios = require('axios');
-const k8s = require('@kubernetes/client-node');
-const fs = require('fs');
+import axios from 'axios';
+import * as k8s from '@kubernetes/client-node';
+import fs from 'fs';
 
 class RabbitMQVerticalScaler {
     constructor() {
@@ -14,6 +13,11 @@ class RabbitMQVerticalScaler {
         this.rmqPort = this.config.rmq.port;
         this.rmqUser = process.env.RMQ_USER || 'guest';
         this.rmqPass = process.env.RMQ_PASS || 'guest';
+
+        // Dynamic resource names from environment
+        this.scalerName = process.env.SCALER_NAME || 'rmq';
+        this.namespace = process.env.NAMESPACE || 'prod';
+        this.configMapName = `${this.scalerName}-config`;
 
         // Load configuration values
         this.thresholds = this.config.thresholds;
@@ -182,7 +186,7 @@ class RabbitMQVerticalScaler {
     async getCurrentProfile() {
         try {
             const response = await this.customApi.getNamespacedCustomObject(
-                'rabbitmq.com', 'v1beta1', 'prod', 'rabbitmqclusters', 'rmq'
+                'rabbitmq.com', 'v1beta1', this.namespace, 'rabbitmqclusters', this.scalerName
             );
             const currentCpu = response.body.spec?.resources?.requests?.cpu || '0';
 
@@ -201,7 +205,7 @@ class RabbitMQVerticalScaler {
 
     async getStabilityState() {
         try {
-            const response = await this.k8sApi.readNamespacedConfigMap('rmq-scaler-state', 'prod');
+            const response = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
             return {
                 stableProfile: response.body.data?.stable_profile || '',
                 stableSince: parseInt(response.body.data?.stable_since || '0')
@@ -213,60 +217,63 @@ class RabbitMQVerticalScaler {
 
     async updateStabilityTracking(profile) {
         const currentTime = Math.floor(Date.now() / 1000);
-        const configMapData = {
-            stable_profile: profile,
-            stable_since: currentTime.toString()
-        };
-
+        
         try {
-            // Try to get existing configmap to preserve other data
-            try {
-                const existing = await this.k8sApi.readNamespacedConfigMap('rmq-scaler-state', 'prod');
-                Object.assign(configMapData, existing.body.data);
-                configMapData.stable_profile = profile;
-                configMapData.stable_since = currentTime.toString();
-            } catch (e) {
-                // ConfigMap doesn't exist, will create new one
-            }
+            // Get existing configmap (should exist from deployment)
+            const existing = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
+            const configMapData = { ...existing.body.data };
+            
+            // Update stability tracking fields
+            configMapData.stable_profile = profile;
+            configMapData.stable_since = currentTime.toString();
 
             const configMap = {
-                metadata: { name: 'rmq-scaler-state', namespace: 'prod' },
+                metadata: { name: this.configMapName, namespace: this.namespace },
                 data: configMapData
             };
 
-            try {
-                await this.k8sApi.replaceNamespacedConfigMap('rmq-scaler-state', 'prod', configMap);
-            } catch (e) {
-                await this.k8sApi.createNamespacedConfigMap('prod', configMap);
-            }
+            await this.k8sApi.replaceNamespacedConfigMap(this.configMapName, this.namespace, configMap);
+            console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
+            // Fallback: try to create the configmap if it doesn't exist
+            try {
+                const configMap = {
+                    metadata: { name: this.configMapName, namespace: this.namespace },
+                    data: {
+                        stable_profile: profile,
+                        stable_since: currentTime.toString(),
+                        last_scaled_profile: '',
+                        last_scale_time: '0'
+                    }
+                };
+                await this.k8sApi.createNamespacedConfigMap(this.namespace, configMap);
+                console.log(`📝 Created new stability tracking configmap`);
+            } catch (createError) {
+                console.error('Failed to create stability tracking configmap:', createError.message);
+            }
         }
     }
 
     async updateScaleState(newProfile) {
         const currentTime = Math.floor(Date.now() / 1000);
-        let configMapData = {
-            last_scaled_profile: newProfile,
-            last_scale_time: currentTime.toString()
-        };
 
         try {
-            // Preserve stability tracking
-            const stability = await this.getStabilityState();
-            configMapData.stable_profile = stability.stableProfile;
-            configMapData.stable_since = stability.stableSince.toString();
+            // Get existing configmap and preserve all data
+            const existing = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
+            const configMapData = { ...existing.body.data };
+            
+            // Update scale state fields
+            configMapData.last_scaled_profile = newProfile;
+            configMapData.last_scale_time = currentTime.toString();
 
             const configMap = {
-                metadata: { name: 'rmq-scaler-state', namespace: 'prod' },
+                metadata: { name: this.configMapName, namespace: this.namespace },
                 data: configMapData
             };
 
-            try {
-                await this.k8sApi.replaceNamespacedConfigMap('rmq-scaler-state', 'prod', configMap);
-            } catch (e) {
-                await this.k8sApi.createNamespacedConfigMap('prod', configMap);
-            }
+            await this.k8sApi.replaceNamespacedConfigMap(this.configMapName, this.namespace, configMap);
+            console.log(`📝 Updated scale state: ${newProfile} at ${currentTime}`);
         } catch (error) {
             console.error('Error updating scale state:', error.message);
         }
@@ -378,7 +385,7 @@ class RabbitMQVerticalScaler {
             };
 
             await this.customApi.patchNamespacedCustomObject(
-                'rabbitmq.com', 'v1beta1', 'prod', 'rabbitmqclusters', 'rmq',
+                'rabbitmq.com', 'v1beta1', this.namespace, 'rabbitmqclusters', this.scalerName,
                 patch,
                 undefined, undefined, undefined,
                 { headers: { 'Content-Type': 'application/merge-patch+json' } }

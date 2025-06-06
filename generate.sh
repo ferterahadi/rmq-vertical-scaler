@@ -103,6 +103,7 @@ ROLE="${SCALER_NAME}-${SUFFIX}-role"
 ROLE_BINDING="${SCALER_NAME}-${SUFFIX}-binding"
 PDB="${SCALER_NAME}-pdb"
 DEPLOYMENT="${SCALER_NAME}-${SUFFIX}"
+CONFIG_MAP="${SCALER_NAME}-config"
 
 # Output file name
 OUTPUT_FILE="${SCALER_NAME}-scaler.yaml"
@@ -113,6 +114,7 @@ echo "  Service Account: $SERVICE_ACCOUNT"
 echo "  Role: $ROLE"
 echo "  Role Binding: $ROLE_BINDING"
 echo "  PodDisruptionBudget: $PDB"
+echo "  ConfigMap: $CONFIG_MAP"
 echo "  Deployment: $DEPLOYMENT"
 echo ""
 echo -e "${YELLOW}Output file: $OUTPUT_FILE${NC}"
@@ -166,6 +168,18 @@ roleRef:
   kind: Role
   name: $ROLE
   apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: $CONFIG_MAP
+  namespace: $NAMESPACE
+data:
+  stable_profile: ""
+  stable_since: "0"
+  last_scaled_profile: ""
+  last_scale_time: "0"
 ---
 # PodDisruptionBudget to ensure only 1 pod scaling at a time
 apiVersion: policy/v1
@@ -224,6 +238,11 @@ spec:
               value: '$RMQ_HOST'
             - name: RMQ_PORT
               value: '$RMQ_PORT'
+            # Dynamic resource names
+            - name: SCALER_NAME
+              value: '$SCALER_NAME'
+            - name: NAMESPACE
+              value: '$NAMESPACE'
             # Profile configuration
             - name: PROFILE_COUNT
               value: '$NUM_PROFILES'
@@ -274,9 +293,11 @@ echo -e "${GREEN}✓ File saved as: $OUTPUT_FILE${NC}"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo "1. Review the generated configuration"
-echo "2. Update the image registry URL in the deployment"
+echo "2. Update the image registry URL in the deployment (or use UPDATE_DEPLOYMENT=true with build.sh)"
 echo "3. Customize profile resources and thresholds in the environment variables section"
 echo "4. Apply the configuration: kubectl apply -f $OUTPUT_FILE"
+echo ""
+echo -e "${GREEN}✓ ConfigMap pre-created for state tracking (eliminates runtime creation delays)${NC}"
 echo ""
 echo -e "${YELLOW}To customize profiles, edit these environment variables in $OUTPUT_FILE:${NC}"
 echo "  - PROFILE_*_CPU/MEMORY: Resource requests for each profile"

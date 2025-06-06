@@ -1,31 +1,30 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
-COPY yarn.lock ./
+COPY package.json yarn.lock ./
 
-# Install all dependencies (including dev for webpack)
-RUN yarn install
+# Install production dependencies only
+RUN yarn install --production --frozen-lockfile && \
+    yarn cache clean
 
-# Copy source code
-COPY scale.js webpack.config.js ./
+# Copy application source
+COPY scale.js ./
 
-# Build with webpack
-RUN npm run build
+# Create non-root user
+RUN addgroup -g 1001 -S scaler && \
+    adduser -S -D -H -u 1001 -s /sbin/nologin -G scaler scaler && \
+    chown -R scaler:scaler /app
 
-# Final stage - use distroless for minimal size
-FROM gcr.io/distroless/nodejs18-debian11
+# Switch to non-root user
+USER scaler
 
-# Copy only the bundled file and minimal dependencies
-WORKDIR /app
-COPY --from=builder /app/dist/bundle.js ./
-COPY --from=builder /app/node_modules/@kubernetes/client-node ./node_modules/@kubernetes/client-node
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
 
-# Run as non-root user (distroless has a built-in nonroot user with UID 65532)
-USER nonroot
-
-# No need for npm - run node directly
-CMD ["bundle.js"]
+# Run the application directly
+CMD ["node", "scale.js"]
