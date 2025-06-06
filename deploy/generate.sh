@@ -238,6 +238,8 @@ spec:
               value: '$RMQ_HOST'
             - name: RMQ_PORT
               value: '$RMQ_PORT'
+            - name: RMQ_SERVICE_NAME
+              value: '$RMQ_SERVICE_NAME'
             # Dynamic resource names
             - name: SCALER_NAME
               value: '$SCALER_NAME'

@@ -15,6 +15,7 @@ class RabbitMQVerticalScaler {
         this.rmqPass = process.env.RMQ_PASS || 'guest';
 
         // Dynamic resource names from environment
+        this.rmqServiceName = process.env.RMQ_SERVICE_NAME || 'rmq';
         this.scalerName = process.env.SCALER_NAME || 'rmq';
         this.namespace = process.env.NAMESPACE || 'prod';
         this.configMapName = `${this.scalerName}-config`;
@@ -190,7 +191,7 @@ class RabbitMQVerticalScaler {
                 version: 'v1beta1',
                 namespace: this.namespace,
                 plural: 'rabbitmqclusters',
-                name: this.scalerName
+                name: this.rmqServiceName
             });
             const currentCpu = response.body.spec?.resources?.requests?.cpu || '0';
 
@@ -212,7 +213,7 @@ class RabbitMQVerticalScaler {
             const response = await this.k8sApi.readNamespacedConfigMap({
                 name: this.configMapName,
                 namespace: this.namespace
-            }, this.namespace);
+            });
             return {
                 stableProfile: response.body.data?.stable_profile || '',
                 stableSince: parseInt(response.body.data?.stable_since || '0')
@@ -238,7 +239,6 @@ class RabbitMQVerticalScaler {
             configMapData.stable_since = currentTime.toString();
 
             const configMap = {
-                metadata: { name: this.configMapName, namespace: this.namespace },
                 data: configMapData
             };
 
@@ -250,25 +250,6 @@ class RabbitMQVerticalScaler {
             console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
-            // Fallback: try to create the configmap if it doesn't exist
-            try {
-                const configMap = {
-                    metadata: { name: this.configMapName, namespace: this.namespace },
-                    data: {
-                        stable_profile: profile,
-                        stable_since: currentTime.toString(),
-                        last_scaled_profile: '',
-                        last_scale_time: '0'
-                    }
-                };
-                await this.k8sApi.createNamespacedConfigMap({
-                    namespace: this.namespace,
-                    body: configMap
-                });
-                console.log(`📝 Created new stability tracking configmap`);
-            } catch (createError) {
-                console.error('Failed to create stability tracking configmap:', createError.message);
-            }
         }
     }
 
@@ -288,7 +269,6 @@ class RabbitMQVerticalScaler {
             configMapData.last_scale_time = currentTime.toString();
 
             const configMap = {
-                metadata: { name: this.configMapName, namespace: this.namespace },
                 data: configMapData
             };
 
@@ -413,7 +393,7 @@ class RabbitMQVerticalScaler {
                 version: 'v1beta1',
                 namespace: this.namespace,
                 plural: 'rabbitmqclusters',
-                name: this.scalerName,
+                name: this.rmqServiceName,
                 body: patch
             });
 
