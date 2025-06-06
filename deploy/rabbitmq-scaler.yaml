@@ -1,0 +1,158 @@
+---
+# ServiceAccount for the scaler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq-vertical-scaler-sa
+  namespace: prod
+---
+# Role for vertical scaling operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-vertical-scaler-role
+  namespace: prod
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-vertical-scaler-binding
+  namespace: prod
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq-vertical-scaler-sa
+    namespace: prod
+roleRef:
+  kind: Role
+  name: rabbitmq-vertical-scaler-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: prod
+data:
+  stable_profile: ""
+  stable_since: "0"
+  last_scaled_profile: ""
+  last_scale_time: "0"
+---
+# PodDisruptionBudget to ensure only 1 pod scaling at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-pdb
+  namespace: prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rmq
+---
+# Deployment for the vertical scaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-vertical-scaler
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-vertical-scaler
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-vertical-scaler
+    spec:
+      serviceAccountName: rabbitmq-vertical-scaler-sa
+      containers:
+        - name: scaler
+          image: ferterahadi/rabbitmq-vscaler:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          env:
+            # RabbitMQ credentials from secret
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rmq-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rmq-default-user
+                  key: password
+            # RabbitMQ connection settings
+            - name: RMQ_HOST
+              value: 'rmq.prod.svc.cluster.local'
+            - name: RMQ_PORT
+              value: '15672'
+            # Dynamic resource names
+            - name: SCALER_NAME
+              value: 'rabbitmq'
+            - name: NAMESPACE
+              value: 'prod'
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '4'
+            - name: PROFILE_NAMES
+              value: 'LOW MEDIUM HIGH CRITICAL'
+            - name: PROFILE_LOW_CPU
+              value: '300m'
+            - name: PROFILE_LOW_MEMORY
+              value: '2Gi'
+            - name: PROFILE_MEDIUM_CPU
+              value: '800m'
+            - name: PROFILE_MEDIUM_MEMORY
+              value: '3Gi'
+            - name: QUEUE_THRESHOLD_MEDIUM
+              value: '2000'
+            - name: RATE_THRESHOLD_MEDIUM
+              value: '200'
+            - name: PROFILE_HIGH_CPU
+              value: '1600m'
+            - name: PROFILE_HIGH_MEMORY
+              value: '4Gi'
+            - name: QUEUE_THRESHOLD_HIGH
+              value: '10000'
+            - name: RATE_THRESHOLD_HIGH
+              value: '1000'
+            - name: PROFILE_CRITICAL_CPU
+              value: '2400m'
+            - name: PROFILE_CRITICAL_MEMORY
+              value: '8Gi'
+            - name: QUEUE_THRESHOLD_CRITICAL
+              value: '50000'
+            - name: RATE_THRESHOLD_CRITICAL
+              value: '2000'
+            # Debounce settings
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: '30'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '120'
+            # Check interval
+            - name: CHECK_INTERVAL_SECONDS
+              value: '5'
+      nodeSelector:
+        cloud.google.com/gke-spot: 'true'
+      restartPolicy: Always

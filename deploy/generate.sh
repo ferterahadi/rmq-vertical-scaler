@@ -213,7 +213,7 @@ spec:
       containers:
         - name: scaler
           image: ferterahadi/rabbitmq-vscaler:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 75m

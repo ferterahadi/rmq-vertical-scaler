@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import nodeExternals from 'webpack-node-externals';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,16 +14,15 @@ export default (env, argv) => {
       path: path.resolve(__dirname, 'dist'),
       filename: 'scale.js',
       clean: true,
+      module: true,
     },
-    externals: [
-      nodeExternals({
-        // Bundle axios and @kubernetes/client-node for smaller image
-        allowlist: ['axios', '@kubernetes/client-node']
-      })
-    ],
+    experiments: {
+      outputModule: true,
+    },
+    externals: [],
     optimization: {
       // Disable minification to preserve function names and readability
-      minimize: false,
+      minimize: true,
       // Keep function names for better debugging
       mangleExports: false,
     },
