@@ -185,9 +185,13 @@ class RabbitMQVerticalScaler {
 
     async getCurrentProfile() {
         try {
-            const response = await this.customApi.getNamespacedCustomObject(
-                'rabbitmq.com', 'v1beta1', this.namespace, 'rabbitmqclusters', this.scalerName
-            );
+            const response = await this.customApi.getNamespacedCustomObject({
+                group: 'rabbitmq.com',
+                version: 'v1beta1',
+                namespace: this.namespace,
+                plural: 'rabbitmqclusters',
+                name: this.scalerName
+            });
             const currentCpu = response.body.spec?.resources?.requests?.cpu || '0';
 
             return this.cpuToProfileMap[currentCpu] || 'UNKNOWN';
@@ -205,7 +209,10 @@ class RabbitMQVerticalScaler {
 
     async getStabilityState() {
         try {
-            const response = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
+            const response = await this.k8sApi.readNamespacedConfigMap({
+                name: this.configMapName,
+                namespace: this.namespace
+            }, this.namespace);
             return {
                 stableProfile: response.body.data?.stable_profile || '',
                 stableSince: parseInt(response.body.data?.stable_since || '0')
@@ -220,7 +227,10 @@ class RabbitMQVerticalScaler {
         
         try {
             // Get existing configmap (should exist from deployment)
-            const existing = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
+            const existing = await this.k8sApi.readNamespacedConfigMap({
+                name: this.configMapName,
+                namespace: this.namespace
+            });
             const configMapData = { ...existing.body.data };
             
             // Update stability tracking fields
@@ -232,7 +242,11 @@ class RabbitMQVerticalScaler {
                 data: configMapData
             };
 
-            await this.k8sApi.replaceNamespacedConfigMap(this.configMapName, this.namespace, configMap);
+            await this.k8sApi.replaceNamespacedConfigMap({
+                name: this.configMapName,
+                namespace: this.namespace,
+                body: configMap
+            });
             console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
@@ -247,7 +261,10 @@ class RabbitMQVerticalScaler {
                         last_scale_time: '0'
                     }
                 };
-                await this.k8sApi.createNamespacedConfigMap(this.namespace, configMap);
+                await this.k8sApi.createNamespacedConfigMap({
+                    namespace: this.namespace,
+                    body: configMap
+                });
                 console.log(`📝 Created new stability tracking configmap`);
             } catch (createError) {
                 console.error('Failed to create stability tracking configmap:', createError.message);
@@ -260,7 +277,10 @@ class RabbitMQVerticalScaler {
 
         try {
             // Get existing configmap and preserve all data
-            const existing = await this.k8sApi.readNamespacedConfigMap(this.configMapName, this.namespace);
+            const existing = await this.k8sApi.readNamespacedConfigMap({
+                name: this.configMapName,
+                namespace: this.namespace
+            });
             const configMapData = { ...existing.body.data };
             
             // Update scale state fields
@@ -272,7 +292,11 @@ class RabbitMQVerticalScaler {
                 data: configMapData
             };
 
-            await this.k8sApi.replaceNamespacedConfigMap(this.configMapName, this.namespace, configMap);
+            await this.k8sApi.replaceNamespacedConfigMap({
+                name: this.configMapName,
+                namespace: this.namespace,
+                body: configMap
+            });
             console.log(`📝 Updated scale state: ${newProfile} at ${currentTime}`);
         } catch (error) {
             console.error('Error updating scale state:', error.message);
@@ -384,12 +408,14 @@ class RabbitMQVerticalScaler {
                 }
             };
 
-            await this.customApi.patchNamespacedCustomObject(
-                'rabbitmq.com', 'v1beta1', this.namespace, 'rabbitmqclusters', this.scalerName,
-                patch,
-                undefined, undefined, undefined,
-                { headers: { 'Content-Type': 'application/merge-patch+json' } }
-            );
+            await this.customApi.patchNamespacedCustomObject({
+                group: 'rabbitmq.com',
+                version: 'v1beta1',
+                namespace: this.namespace,
+                plural: 'rabbitmqclusters',
+                name: this.scalerName,
+                body: patch
+            });
 
             console.log('✅ Scaling completed successfully');
             // Update scale state after successful scaling
