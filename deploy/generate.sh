@@ -212,7 +212,7 @@ spec:
       serviceAccountName: $SERVICE_ACCOUNT
       containers:
         - name: scaler
-          image: ferterahadi/rabbitmq-vscaler:latest
+          image: ferterahadi/rabbitmq-scaler:latest
           imagePullPolicy: Always
           resources:
             requests:

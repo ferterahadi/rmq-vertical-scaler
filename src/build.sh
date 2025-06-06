@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 REGISTRY="${REGISTRY:-ferterahadi}"
-IMAGE_NAME="rabbitmq-vscaler"
+IMAGE_NAME="rabbitmq-scaler"
 VERSION="${VERSION:-latest}"
 FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 
