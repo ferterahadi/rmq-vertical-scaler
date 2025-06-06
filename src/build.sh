@@ -10,7 +10,7 @@ FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 echo "🚀 Building RabbitMQ Vertical Scaler"
 echo "📦 Image: ${FULL_IMAGE}"
 
-# Change to the root directory (parent of build/)
+# Change to the root directory (parent of src/)
 cd "$(dirname "$0")/.."
 
 # Enable BuildKit for better caching and smaller images
@@ -19,7 +19,7 @@ export DOCKER_BUILDKIT=1
 # Build the Docker image with webpack optimization
 echo "🔨 Building optimized Docker image with webpack bundling..."
 docker build --no-cache \
-  -f build/Dockerfile \
+  -f src/Dockerfile \
   -t "${FULL_IMAGE}" \
   .
 

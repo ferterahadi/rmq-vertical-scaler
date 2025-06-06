@@ -136,7 +136,7 @@ env:
 - **GKE cluster** with RabbitMQ deployed using [RabbitMQ Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview.html)
 - **RabbitMQ version**: Only tested with RabbitMQ 3.1.x
 - **Cluster size**: RabbitMQ cluster must have **minimum 3 nodes**
-- **PodDisruptionBudget**: Set to minimum 2 available pods to ensure availability during scaling
+- **PodDisruptionBudget**: Already provided in *-scaler.yaml, make sure to set to minimum 2m to ensure high availability during scaling
 
 ### Limitations
 - **Vertical scaling only** - Does not add/remove pods, only changes CPU/Memory
@@ -167,12 +167,11 @@ The codebase is organized as follows:
 │   ├── generate.sh        # Script to generate deployment YAML
 │   ├── README.md          # This documentation
 │   └── templates/         # Template files (if any)
-├── src/                   # Source code for development
+├── src/                   # Source code and build files
 │   ├── scale.js          # Main application code
 │   ├── package.json      # Dependencies
 │   ├── webpack.config.js # Build configuration
-│   └── yarn.lock         # Lock file
-├── build/                 # Build scripts and Docker
+│   ├── yarn.lock         # Lock file
 │   ├── build.sh          # Build and push script
 │   └── Dockerfile        # Container build
 └── dist/                  # Build artifacts (generated)
@@ -180,7 +179,7 @@ The codebase is organized as follows:
 
 To build the Docker image:
 ```bash
-cd build
+cd src
 ./build.sh
 ```
 

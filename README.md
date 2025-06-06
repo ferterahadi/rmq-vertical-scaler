@@ -20,27 +20,15 @@ See [`deploy/README.md`](deploy/README.md) for complete documentation.
 │   ├── generate.sh        # Script to generate deployment YAML
 │   ├── README.md          # Complete user documentation
 │   └── templates/         # Template files (if any)
-├── src/                   # 💻 Source code for development
+├── src/                   # 💻 Source code and build files
 │   ├── scale.js          # Main application code
 │   ├── package.json      # Dependencies
 │   ├── webpack.config.js # Build configuration
-│   └── yarn.lock         # Lock file
-├── build/                 # 🔨 Build scripts and Docker
+│   ├── yarn.lock         # Lock file
 │   ├── build.sh          # Build and push script
 │   └── Dockerfile        # Container build
 └── dist/                  # 📦 Build artifacts (generated)
 ```
-
-## For Users
-
-- **Deploy the scaler**: Go to [`deploy/`](deploy/) directory
-- **Read documentation**: See [`deploy/README.md`](deploy/README.md)
-
-## For Developers
-
-- **Source code**: Located in [`src/`](src/) directory
-- **Build the image**: Run [`build/build.sh`](build/build.sh)
-- **Development setup**: Install dependencies in `src/` directory
 
 ## License
 

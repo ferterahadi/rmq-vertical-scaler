@@ -12,7 +12,7 @@ export default (env, argv) => {
     target: 'node',
     entry: './scale.js',
     output: {
-      path: path.resolve(__dirname, '../dist'),
+      path: path.resolve(__dirname, 'dist'),
       filename: 'scale.js',
       clean: true,
     },
