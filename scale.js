@@ -19,7 +19,7 @@ class RabbitMQVerticalScaler {
         this.thresholds = this.config.thresholds;
         this.profiles = this.config.profiles;
         this.scaleUpDebounceSeconds = this.config.debounce.scaleUpSeconds;
-        this.scaleDownDebounceMinutes = this.config.debounce.scaleDownMinutes;
+        this.scaleDownDebounceSeconds = this.config.debounce.scaleDownSeconds;
         this.checkIntervalSeconds = this.config.checkInterval;
 
         // Create CPU to profile mapping
@@ -40,24 +40,49 @@ class RabbitMQVerticalScaler {
                 return JSON.parse(configData);
             }
         } catch (error) {
-            console.warn('Could not load config file, using defaults:', error.message);
+            console.warn('Could not load config file, using environment variables:', error.message);
         }
 
-        // Fallback to default configuration
+        // Load from environment variables
+        const profileNames = (process.env.PROFILE_NAMES || 'LOW MEDIUM HIGH CRITICAL').split(' ');
+        
+        // Build profiles and thresholds from environment
+        const profiles = {};
+        const queueThresholds = {};
+        const rateThresholds = {};
+        
+        for (let i = 0; i < profileNames.length; i++) {
+            const name = profileNames[i];
+            
+            // Load profile resources
+            profiles[name] = {
+                cpu: process.env[`PROFILE_${name}_CPU`] || '1000m',
+                memory: process.env[`PROFILE_${name}_MEMORY`] || '2Gi'
+            };
+            
+            // Load thresholds (first profile doesn't have thresholds)
+            if (i > 0) {
+                queueThresholds[name] = parseInt(process.env[`QUEUE_THRESHOLD_${name}`] || '1000');
+                rateThresholds[name] = parseInt(process.env[`RATE_THRESHOLD_${name}`] || '100');
+            }
+        }
+        
         return {
+            profileNames,
+            profiles,
             thresholds: {
-                queue: { low: 1000, medium: 2000, high: 10000, critical: 50000 },
-                rate: { low: 20, medium: 200, high: 1000, critical: 2000 }
+                queue: queueThresholds,
+                rate: rateThresholds
             },
-            profiles: {
-                LOW: { cpu: '330m', memory: '2Gi' },
-                MEDIUM: { cpu: '800m', memory: '3Gi' },
-                HIGH: { cpu: '1600m', memory: '4Gi' },
-                CRITICAL: { cpu: '2400m', memory: '8Gi' }
+            debounce: {
+                scaleUpSeconds: parseInt(process.env.DEBOUNCE_SCALE_UP_SECONDS || '30'),
+                scaleDownSeconds: parseInt(process.env.DEBOUNCE_SCALE_DOWN_SECONDS || '120')
             },
-            debounce: { scaleUpSeconds: 30, scaleDownMinutes: 2 },
-            checkInterval: 5, // Check every 5 seconds
-            rmq: { host: 'rmq.prod.svc.cluster.local', port: '15672' }
+            checkInterval: parseInt(process.env.CHECK_INTERVAL_SECONDS || '5'),
+            rmq: {
+                host: process.env.RMQ_HOST || 'rmq.prod.svc.cluster.local',
+                port: process.env.RMQ_PORT || '15672'
+            }
         };
     }
 
@@ -113,7 +138,7 @@ class RabbitMQVerticalScaler {
             console.warn('[WARNING] Using default values due to API errors');
             return {
                 metrics: { totalMessages: 0, maxQueueDepth: 0, messageRate: 0, consumeRate: 0, backlogRate: 0 },
-                profile: 'LOW'
+                profile: this.config.profileNames[0] // Use first profile as default
             };
         }
 
@@ -135,13 +160,20 @@ class RabbitMQVerticalScaler {
         };
 
         // Determine scale profile based on metrics
-        let profile = 'LOW';
-        if (maxQueueDepth > this.thresholds.queue.critical || messageRate > this.thresholds.rate.critical) {
-            profile = 'CRITICAL';
-        } else if (maxQueueDepth > this.thresholds.queue.high || messageRate > this.thresholds.rate.high) {
-            profile = 'HIGH';
-        } else if (maxQueueDepth > this.thresholds.queue.medium || messageRate > this.thresholds.rate.medium) {
-            profile = 'MEDIUM';
+        // Start with the lowest profile
+        let profile = this.config.profileNames[0];
+        
+        // Check thresholds from highest to lowest
+        for (let i = this.config.profileNames.length - 1; i > 0; i--) {
+            const profileName = this.config.profileNames[i];
+            const queueThreshold = this.thresholds.queue[profileName];
+            const rateThreshold = this.thresholds.rate[profileName];
+            
+            if ((queueThreshold && maxQueueDepth > queueThreshold) || 
+                (rateThreshold && messageRate > rateThreshold)) {
+                profile = profileName;
+                break;
+            }
         }
 
         return { metrics, profile };
@@ -162,8 +194,9 @@ class RabbitMQVerticalScaler {
     }
 
     getProfilePriority(profile) {
-        const priorities = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
-        return priorities[profile] || 0;
+        // Priority based on position in profile names array
+        const index = this.config.profileNames.indexOf(profile);
+        return index >= 0 ? index + 1 : 0;
     }
 
     async getStabilityState() {
@@ -271,12 +304,9 @@ class RabbitMQVerticalScaler {
             }
         } else {
             // Scale-down debounce
-            const debounceSeconds = this.scaleDownDebounceMinutes * 60;
-            if (timeStable < debounceSeconds) {
-                const remaining = debounceSeconds - timeStable;
-                const minutes = Math.floor(remaining / 60);
-                const seconds = remaining % 60;
-                console.log(`⏳ Scale-down debounce: ${recommendedProfile} stable for ${timeStable}s, need ${debounceSeconds}s (${minutes}m ${seconds}s remaining)`);
+            if (timeStable < this.scaleDownDebounceSeconds) {
+                const remaining = this.scaleDownDebounceSeconds - timeStable;
+                console.log(`⏳ Scale-down debounce: ${recommendedProfile} stable for ${timeStable}s, need ${this.scaleDownDebounceSeconds}s (${remaining}s remaining)`);
                 return false;
             }
         }
@@ -298,24 +328,25 @@ class RabbitMQVerticalScaler {
 
         // Set resources based on profile
         const resources = this.profiles[profile];
+        if (!resources) {
+            console.error(`❓ Unknown profile '${profile}', defaulting to ${this.config.profileNames[0]}`);
+            profile = this.config.profileNames[0];
+            resources = this.profiles[profile];
+        }
+        
+        // Generate appropriate message based on profile position
+        const profileIndex = this.config.profileNames.indexOf(profile);
+        const profileCount = this.config.profileNames.length;
         let message = '';
-        switch (profile) {
-            case 'CRITICAL':
-                message = '🚨 CRITICAL load detected - scaling to maximum resources';
-                break;
-            case 'HIGH':
-                message = '⚠️  HIGH load detected - scaling up resources';
-                break;
-            case 'MEDIUM':
-                message = '📈 MEDIUM load detected - moderate scaling';
-                break;
-            case 'LOW':
-                message = '✅ LOW load detected - minimal resources';
-                break;
-            default:
-                console.error(`❓ Unknown profile '${profile}', defaulting to LOW`);
-                profile = 'LOW';
-                resources = this.profiles.LOW;
+        
+        if (profileIndex === 0) {
+            message = `✅ ${profile} load detected - minimal resources`;
+        } else if (profileIndex === profileCount - 1) {
+            message = `🚨 ${profile} load detected - scaling to maximum resources`;
+        } else if (profileIndex > profileCount / 2) {
+            message = `⚠️  ${profile} load detected - scaling up resources`;
+        } else {
+            message = `📈 ${profile} load detected - moderate scaling`;
         }
         console.log(message);
 

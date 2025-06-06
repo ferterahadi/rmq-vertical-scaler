@@ -1,39 +1,31 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
-# Install kubectl
-RUN apk add --no-cache curl && \
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
-    chmod +x kubectl && \
-    mv kubectl /usr/local/bin/
-
-# Create app directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+# Copy package files
+COPY package.json ./
+COPY yarn.lock ./
 
-# Install app dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev for webpack)
+RUN yarn install
 
-# Copy app source
-COPY scale.js ./
+# Copy source code
+COPY scale.js webpack.config.js ./
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S scaler && \
-    adduser -S -D -H -u 1001 -s /sbin/nologin -G scaler scaler
+# Build with webpack
+RUN npm run build
 
-# Change ownership of the app directory
-RUN chown -R scaler:scaler /app
+# Final stage - use distroless for minimal size
+FROM gcr.io/distroless/nodejs18-debian11
 
-# Switch to non-root user
-USER scaler
+# Copy only the bundled file and minimal dependencies
+WORKDIR /app
+COPY --from=builder /app/dist/bundle.js ./
+COPY --from=builder /app/node_modules/@kubernetes/client-node ./node_modules/@kubernetes/client-node
 
-# Expose port (if needed for health checks)
-EXPOSE 3000
+# Run as non-root user (distroless has a built-in nonroot user with UID 65532)
+USER nonroot
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "console.log('Health check passed')" || exit 1
-
-# Start the application
-CMD ["npm", "start"] 
+# No need for npm - run node directly
+CMD ["bundle.js"]

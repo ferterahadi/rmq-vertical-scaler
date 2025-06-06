@@ -2,17 +2,29 @@
 set -e
 
 # Configuration
-REGISTRY="${REGISTRY:-your-registry}"
-IMAGE_NAME="rmq-vertical-scaler"
+REGISTRY="${REGISTRY:-ferterahadi}"
+IMAGE_NAME="rabbitmq-vscaler"
 VERSION="${VERSION:-v1.0.0}"
 FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 
 echo "🚀 Building RabbitMQ Vertical Scaler"
 echo "📦 Image: ${FULL_IMAGE}"
 
+# Enable BuildKit for better caching and smaller images
+export DOCKER_BUILDKIT=1
+
 # Build the Docker image
-echo "🔨 Building Docker image..."
-docker build -t "${FULL_IMAGE}" .
+echo "🔨 Building optimized Docker image..."
+docker buildx build \
+  --platform linux/amd64 \
+  --build-arg BUILDKIT_INLINE_CACHE=1 \
+  -t "${FULL_IMAGE}" \
+  --load \
+  .
+
+# Show image size
+echo "📏 Image size:"
+docker images "${FULL_IMAGE}" --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 
 # Push to registry
 echo "📤 Pushing to registry..."

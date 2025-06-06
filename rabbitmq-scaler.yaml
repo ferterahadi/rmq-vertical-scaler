@@ -3,14 +3,14 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: rmq-vertical-scaler-nodejs-sa
+  name: rabbitmq-vertical-scaler-sa
   namespace: prod
 ---
 # Role for vertical scaling operations
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: rmq-vertical-scaler-nodejs-role
+  name: rabbitmq-vertical-scaler-role
   namespace: prod
 rules:
   - apiGroups: ['rabbitmq.com']
@@ -27,49 +27,49 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: rmq-vertical-scaler-nodejs-binding
+  name: rabbitmq-vertical-scaler-binding
   namespace: prod
 subjects:
   - kind: ServiceAccount
-    name: rmq-vertical-scaler-nodejs-sa
+    name: rabbitmq-vertical-scaler-sa
     namespace: prod
 roleRef:
   kind: Role
-  name: rmq-vertical-scaler-nodejs-role
+  name: rabbitmq-vertical-scaler-role
   apiGroup: rbac.authorization.k8s.io
 ---
 # PodDisruptionBudget to ensure only 1 pod scaling at a time
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: rmq-pdb
+  name: rabbitmq-pdb
   namespace: prod
 spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app: rmq-vertical-scaler-nodejs
+      app.kubernetes.io/name: rmq
 ---
 # Deployment for the vertical scaler
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rmq-vertical-scaler-nodejs
+  name: rabbitmq-vertical-scaler
   namespace: prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rmq-vertical-scaler-nodejs
+      app: rabbitmq-vertical-scaler
   template:
     metadata:
       labels:
-        app: rmq-vertical-scaler-nodejs
+        app: rabbitmq-vertical-scaler
     spec:
-      serviceAccountName: rmq-vertical-scaler-nodejs-sa
+      serviceAccountName: rabbitmq-vertical-scaler-sa
       containers:
         - name: scaler
-          image: your-registry/rmq-vertical-scaler:v1.0.0 # Replace with your actual registry
+          image: ferterahadi/rabbitmq-vscaler:v1.0.0 # Replace with your actual registry
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -95,45 +95,44 @@ spec:
               value: 'rmq.prod.svc.cluster.local'
             - name: RMQ_PORT
               value: '15672'
-            # Threshold settings
-            - name: QUEUE_THRESHOLD_LOW
-              value: '1000'
-            - name: QUEUE_THRESHOLD_MEDIUM
-              value: '2000'
-            - name: QUEUE_THRESHOLD_HIGH
-              value: '10000'
-            - name: QUEUE_THRESHOLD_CRITICAL
-              value: '50000'
-            - name: RATE_THRESHOLD_LOW
-              value: '20'
-            - name: RATE_THRESHOLD_MEDIUM
-              value: '200'
-            - name: RATE_THRESHOLD_HIGH
-              value: '1000'
-            - name: RATE_THRESHOLD_CRITICAL
-              value: '2000'
-            # Resource profiles
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '4'
+            - name: PROFILE_NAMES
+              value: 'LOW MEDIUM HIGH CRITICAL'
             - name: PROFILE_LOW_CPU
-              value: '330m'
+              value: '300m'
             - name: PROFILE_LOW_MEMORY
               value: '2Gi'
             - name: PROFILE_MEDIUM_CPU
               value: '800m'
             - name: PROFILE_MEDIUM_MEMORY
               value: '3Gi'
+            - name: QUEUE_THRESHOLD_MEDIUM
+              value: '2000'
+            - name: RATE_THRESHOLD_MEDIUM
+              value: '200'
             - name: PROFILE_HIGH_CPU
               value: '1600m'
             - name: PROFILE_HIGH_MEMORY
               value: '4Gi'
+            - name: QUEUE_THRESHOLD_HIGH
+              value: '10000'
+            - name: RATE_THRESHOLD_HIGH
+              value: '1000'
             - name: PROFILE_CRITICAL_CPU
               value: '2400m'
             - name: PROFILE_CRITICAL_MEMORY
               value: '8Gi'
+            - name: QUEUE_THRESHOLD_CRITICAL
+              value: '50000'
+            - name: RATE_THRESHOLD_CRITICAL
+              value: '2000'
             # Debounce settings
             - name: DEBOUNCE_SCALE_UP_SECONDS
               value: '30'
-            - name: DEBOUNCE_SCALE_DOWN_MINUTES
-              value: '2'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '120'
             # Check interval
             - name: CHECK_INTERVAL_SECONDS
               value: '5'
