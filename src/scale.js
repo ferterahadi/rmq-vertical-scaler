@@ -38,16 +38,6 @@ class RabbitMQVerticalScaler {
     }
 
     loadConfig() {
-        try {
-            // Try to load from mounted config file first
-            if (fs.existsSync('/config/config.json')) {
-                const configData = fs.readFileSync('/config/config.json', 'utf8');
-                return JSON.parse(configData);
-            }
-        } catch (error) {
-            console.warn('Could not load config file, using environment variables:', error.message);
-        }
-
         // Load from environment variables
         const profileNames = (process.env.PROFILE_NAMES || 'LOW MEDIUM HIGH CRITICAL').split(' ');
         
@@ -85,8 +75,8 @@ class RabbitMQVerticalScaler {
             },
             checkInterval: parseInt(process.env.CHECK_INTERVAL_SECONDS || '5'),
             rmq: {
-                host: process.env.RMQ_HOST || 'rmq.prod.svc.cluster.local',
-                port: process.env.RMQ_PORT || '15672'
+                host: process.env.RMQ_HOST,
+                port: process.env.RMQ_PORT
             }
         };
     }
@@ -193,6 +183,7 @@ class RabbitMQVerticalScaler {
                 plural: 'rabbitmqclusters',
                 name: this.rmqServiceName
             });
+            
             const currentCpu = response.body.spec?.resources?.requests?.cpu || '0';
 
             return this.cpuToProfileMap[currentCpu] || 'UNKNOWN';

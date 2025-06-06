@@ -82,7 +82,7 @@ spec:
       containers:
         - name: scaler
           image: ferterahadi/rabbitmq-vscaler:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           resources:
             requests:
               cpu: 75m
@@ -107,6 +107,8 @@ spec:
               value: 'rmq.prod.svc.cluster.local'
             - name: RMQ_PORT
               value: '15672'
+            - name: RMQ_SERVICE_NAME
+              value: 'rmq'
             # Dynamic resource names
             - name: SCALER_NAME
               value: 'rabbitmq'
