@@ -212,7 +212,7 @@ spec:
       serviceAccountName: $SERVICE_ACCOUNT
       containers:
         - name: scaler
-          image: ferterahadi/rabbitmq-vscaler:v1.0.0 # Replace with your actual registry
+          image: ferterahadi/rabbitmq-vscaler:latest
           imagePullPolicy: IfNotPresent
           resources:
             requests:

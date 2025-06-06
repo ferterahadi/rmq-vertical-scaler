@@ -38,6 +38,18 @@ roleRef:
   name: rabbitmq-vertical-scaler-role
   apiGroup: rbac.authorization.k8s.io
 ---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: prod
+data:
+  stable_profile: ""
+  stable_since: "0"
+  last_scaled_profile: ""
+  last_scale_time: "0"
+---
 # PodDisruptionBudget to ensure only 1 pod scaling at a time
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -69,7 +81,7 @@ spec:
       serviceAccountName: rabbitmq-vertical-scaler-sa
       containers:
         - name: scaler
-          image: ferterahadi/rabbitmq-vscaler:v1.0.0 # Replace with your actual registry
+          image: ferterahadi/rabbitmq-vscaler:latest # Replace with your actual registry
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -95,6 +107,11 @@ spec:
               value: 'rmq.prod.svc.cluster.local'
             - name: RMQ_PORT
               value: '15672'
+            # Dynamic resource names
+            - name: SCALER_NAME
+              value: 'rabbitmq'
+            - name: NAMESPACE
+              value: 'prod'
             # Profile configuration
             - name: PROFILE_COUNT
               value: '4'

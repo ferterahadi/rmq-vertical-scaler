@@ -1,108 +1,47 @@
-# RabbitMQ Vertical Scaler
+ # RabbitMQ Vertical Scaler
 
-A Node.js application that automatically scales RabbitMQ cluster resources based on queue metrics and message rates.
+A Node.js application that automatically **vertically scales** RabbitMQ cluster resources (CPU/Memory) based on queue metrics and message rates in Google Kubernetes Engine (GKE).
 
-## Features
+## Quick Start
 
-- **5-second monitoring interval** - Checks RabbitMQ metrics every 5 seconds
-- **Intelligent debouncing** - 30-second scale-up, 2-minute scale-down delays
-- **Profile-based scaling** - LOW, MEDIUM, HIGH, CRITICAL resource profiles
-- **Kubernetes native** - Uses Kubernetes API for scaling operations
-- **Configurable thresholds** - Customizable via ConfigMap
-
-## Build & Deploy
-
-### 1. Build Docker Image
-
+**For users wanting to deploy the scaler:**
 ```bash
-cd scaler
-docker build -t your-registry/rmq-vertical-scaler:v1.0.0 .
-docker push your-registry/rmq-vertical-scaler:v1.0.0
+cd deploy
+./generate.sh
+kubectl apply -f *-scaler.yaml
 ```
 
-### 2. Update Deployment
+See [`deploy/README.md`](deploy/README.md) for complete documentation.
 
-Update the image in your Kubernetes deployment:
-
-```yaml
-spec:
-  containers:
-    - name: scaler
-      image: your-registry/rmq-vertical-scaler:v1.0.0
-      env:
-        - name: RMQ_USER
-          valueFrom:
-            secretKeyRef:
-              name: rmq-default-user
-              key: username
-        - name: RMQ_PASS
-          valueFrom:
-            secretKeyRef:
-              name: rmq-default-user
-              key: password
-      volumeMounts:
-        - name: config
-          mountPath: /config
-```
-
-### 3. Deploy
-
-```bash
-kubectl apply -f k8s/prod/prep/vv.rmq-vertical-scaler2.yaml
-```
-
-## Configuration
-
-The scaler reads configuration from `/config/config.json` (mounted via ConfigMap):
-
-```json
-{
-  "thresholds": {
-    "queue": { "low": 1000, "medium": 2000, "high": 10000, "critical": 50000 },
-    "rate": { "low": 20, "medium": 200, "high": 1000, "critical": 2000 }
-  },
-  "profiles": {
-    "LOW": { "cpu": "330m", "memory": "2Gi" },
-    "MEDIUM": { "cpu": "800m", "memory": "3Gi" },
-    "HIGH": { "cpu": "1600m", "memory": "4Gi" },
-    "CRITICAL": { "cpu": "2400m", "memory": "8Gi" }
-  },
-  "debounce": {
-    "scaleUpSeconds": 30,
-    "scaleDownMinutes": 2
-  },
-  "checkInterval": 5,
-  "rmq": {
-    "host": "rmq.prod.svc.cluster.local",
-    "port": "15672"
-  }
-}
-```
-
-## Scaling Logic
-
-### Scale-Up Debounce (30 seconds)
+## Project Structure
 
 ```
-low → low → medium(0s) → medium(5s) → ... → medium(30s) → ✅ SCALE UP
+├── deploy/                 # 🚀 User-facing deployment files
+│   ├── generate.sh        # Script to generate deployment YAML
+│   ├── README.md          # Complete user documentation
+│   └── templates/         # Template files (if any)
+├── src/                   # 💻 Source code for development
+│   ├── scale.js          # Main application code
+│   ├── package.json      # Dependencies
+│   ├── webpack.config.js # Build configuration
+│   └── yarn.lock         # Lock file
+├── build/                 # 🔨 Build scripts and Docker
+│   ├── build.sh          # Build and push script
+│   └── Dockerfile        # Container build
+└── dist/                  # 📦 Build artifacts (generated)
 ```
 
-### Scale-Down Debounce (2 minutes)
+## For Users
 
-```
-medium → low(0s) → low(5s) → ... → low(120s) → ✅ SCALE DOWN
-```
+- **Deploy the scaler**: Go to [`deploy/`](deploy/) directory
+- **Read documentation**: See [`deploy/README.md`](deploy/README.md)
 
-## Monitoring
+## For Developers
 
-Check scaler logs:
+- **Source code**: Located in [`src/`](src/) directory
+- **Build the image**: Run [`build/build.sh`](build/build.sh)
+- **Development setup**: Install dependencies in `src/` directory
 
-```bash
-kubectl logs -n prod deployment/rmq-vertical-scaler-nodejs -f
-```
+## License
 
-Check scaling state:
-
-```bash
-kubectl get configmap rmq-scaler-state -n prod -o yaml
-```
+MIT License - See LICENSE file for details.
