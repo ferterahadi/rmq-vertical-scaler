@@ -183,8 +183,8 @@ class RabbitMQVerticalScaler {
                 plural: 'rabbitmqclusters',
                 name: this.rmqServiceName
             });
-            
-            const currentCpu = response.body.spec?.resources?.requests?.cpu || '0';
+
+            const currentCpu = response.spec?.resources?.requests?.cpu || '0';
 
             return this.cpuToProfileMap[currentCpu] || 'UNKNOWN';
         } catch (error) {
@@ -205,9 +205,10 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace
             });
+
             return {
-                stableProfile: response.body.data?.stable_profile || '',
-                stableSince: parseInt(response.body.data?.stable_since || '0')
+                stableProfile: response.data?.stable_profile || '',
+                stableSince: parseInt(response.data?.stable_since || '0')
             };
         } catch (error) {
             return { stableProfile: '', stableSince: 0 };
@@ -223,7 +224,8 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace
             });
-            const configMapData = { ...existing.body.data };
+
+            const configMapData = { ...existing.data };
             
             // Update stability tracking fields
             configMapData.stable_profile = profile;
@@ -253,7 +255,8 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace
             });
-            const configMapData = { ...existing.body.data };
+
+            const configMapData = { ...existing.data };
             
             // Update scale state fields
             configMapData.last_scaled_profile = newProfile;
