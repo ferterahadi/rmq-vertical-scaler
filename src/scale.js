@@ -40,28 +40,28 @@ class RabbitMQVerticalScaler {
     loadConfig() {
         // Load from environment variables
         const profileNames = (process.env.PROFILE_NAMES || 'LOW MEDIUM HIGH CRITICAL').split(' ');
-        
+
         // Build profiles and thresholds from environment
         const profiles = {};
         const queueThresholds = {};
         const rateThresholds = {};
-        
+
         for (let i = 0; i < profileNames.length; i++) {
             const name = profileNames[i];
-            
+
             // Load profile resources
             profiles[name] = {
                 cpu: process.env[`PROFILE_${name}_CPU`] || '1000m',
                 memory: process.env[`PROFILE_${name}_MEMORY`] || '2Gi'
             };
-            
+
             // Load thresholds (first profile doesn't have thresholds)
             if (i > 0) {
                 queueThresholds[name] = parseInt(process.env[`QUEUE_THRESHOLD_${name}`] || '1000');
                 rateThresholds[name] = parseInt(process.env[`RATE_THRESHOLD_${name}`] || '100');
             }
         }
-        
+
         return {
             profileNames,
             profiles,
@@ -157,14 +157,14 @@ class RabbitMQVerticalScaler {
         // Determine scale profile based on metrics
         // Start with the lowest profile
         let profile = this.config.profileNames[0];
-        
+
         // Check thresholds from highest to lowest
         for (let i = this.config.profileNames.length - 1; i > 0; i--) {
             const profileName = this.config.profileNames[i];
             const queueThreshold = this.thresholds.queue[profileName];
             const rateThreshold = this.thresholds.rate[profileName];
-            
-            if ((queueThreshold && maxQueueDepth > queueThreshold) || 
+
+            if ((queueThreshold && maxQueueDepth > queueThreshold) ||
                 (rateThreshold && messageRate > rateThreshold)) {
                 profile = profileName;
                 break;
@@ -217,7 +217,7 @@ class RabbitMQVerticalScaler {
 
     async updateStabilityTracking(profile) {
         const currentTime = Math.floor(Date.now() / 1000);
-        
+
         try {
             // Get existing configmap (should exist from deployment)
             const existing = await this.k8sApi.readNamespacedConfigMap({
@@ -226,7 +226,7 @@ class RabbitMQVerticalScaler {
             });
 
             const configMapData = { ...existing.data };
-            
+
             // Update stability tracking fields
             configMapData.stable_profile = profile;
             configMapData.stable_since = currentTime.toString();
@@ -239,7 +239,7 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
-            });
+            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
             console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
@@ -257,7 +257,7 @@ class RabbitMQVerticalScaler {
             });
 
             const configMapData = { ...existing.data };
-            
+
             // Update scale state fields
             configMapData.last_scaled_profile = newProfile;
             configMapData.last_scale_time = currentTime.toString();
@@ -270,7 +270,7 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
-            });
+            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
             console.log(`📝 Updated scale state: ${newProfile} at ${currentTime}`);
         } catch (error) {
             console.error('Error updating scale state:', error.message);
@@ -338,12 +338,12 @@ class RabbitMQVerticalScaler {
             profile = this.config.profileNames[0];
             resources = this.profiles[profile];
         }
-        
+
         // Generate appropriate message based on profile position
         const profileIndex = this.config.profileNames.indexOf(profile);
         const profileCount = this.config.profileNames.length;
         let message = '';
-        
+
         if (profileIndex === 0) {
             message = `✅ ${profile} load detected - minimal resources`;
         } else if (profileIndex === profileCount - 1) {
@@ -389,7 +389,7 @@ class RabbitMQVerticalScaler {
                 plural: 'rabbitmqclusters',
                 name: this.rmqServiceName,
                 body: patch
-            });
+            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
 
             console.log('✅ Scaling completed successfully');
             // Update scale state after successful scaling
