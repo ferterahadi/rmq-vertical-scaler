@@ -239,7 +239,7 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
-            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
+            }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
             console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
@@ -270,7 +270,7 @@ class RabbitMQVerticalScaler {
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
-            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
+            }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
             console.log(`📝 Updated scale state: ${newProfile} at ${currentTime}`);
         } catch (error) {
             console.error('Error updating scale state:', error.message);
@@ -389,7 +389,7 @@ class RabbitMQVerticalScaler {
                 plural: 'rabbitmqclusters',
                 name: this.rmqServiceName,
                 body: patch
-            }, k8s.setHeaderOptions('Content-Type', k8s.V1alpha1JSONPatch));
+            }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
 
             console.log('✅ Scaling completed successfully');
             // Update scale state after successful scaling
