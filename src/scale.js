@@ -201,7 +201,7 @@ class RabbitMQVerticalScaler {
 
     async getStabilityState() {
         try {
-            const response = await this.k8sApi.readNamespacedConfigMap({
+            const response = await this.k8sApi.namespacedconfigmap({
                 name: this.configMapName,
                 namespace: this.namespace
             });
@@ -235,7 +235,7 @@ class RabbitMQVerticalScaler {
                 data: configMapData
             };
 
-            await this.k8sApi.replaceNamespacedConfigMap({
+            await this.k8sApi.patchNamespacedConfigMap({
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
@@ -266,7 +266,7 @@ class RabbitMQVerticalScaler {
                 data: configMapData
             };
 
-            await this.k8sApi.replaceNamespacedConfigMap({
+            await this.k8sApi.patchNamespacedConfigMap({
                 name: this.configMapName,
                 namespace: this.namespace,
                 body: configMap
