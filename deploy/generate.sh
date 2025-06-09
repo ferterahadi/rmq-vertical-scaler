@@ -66,7 +66,7 @@ declare -a RATE_THRESHOLD_VALUES
 # Use default values for all profiles
 echo ""
 echo -e "${YELLOW}Using default profile configurations:${NC}"
-echo "  LOW:      CPU=300m,  Memory=2Gi"
+echo "  LOW:      CPU=330m,  Memory=2Gi"
 echo "  MEDIUM:   CPU=800m,  Memory=3Gi  (triggers at: 2000 queue depth, 200 msg/s)"
 echo "  HIGH:     CPU=1600m, Memory=4Gi  (triggers at: 10000 queue depth, 1000 msg/s)"
 echo "  CRITICAL: CPU=2400m, Memory=8Gi  (triggers at: 50000 queue depth, 2000 msg/s)"
@@ -74,7 +74,7 @@ echo ""
 echo "You can customize these values later in the generated YAML file."
 
 # Set default values
-PROFILES_CPU_VALUES[0]="300m"
+PROFILES_CPU_VALUES[0]="330m"
 PROFILES_MEMORY_VALUES[0]="2Gi"
 
 PROFILES_CPU_VALUES[1]="800m"
@@ -178,8 +178,6 @@ metadata:
 data:
   stable_profile: ""
   stable_since: "0"
-  last_scaled_profile: ""
-  last_scale_time: "0"
 ---
 # PodDisruptionBudget to ensure only 1 pod scaling at a time
 apiVersion: policy/v1

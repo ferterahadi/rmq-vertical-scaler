@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
 import axios from 'axios';
 import * as k8s from '@kubernetes/client-node';
-import fs from 'fs';
 
 class RabbitMQVerticalScaler {
     constructor() {
@@ -140,9 +139,7 @@ class RabbitMQVerticalScaler {
         // Extract key metrics with error handling
         const totalMessages = overview.queue_totals?.messages || 0;
         const messageRate = overview.message_stats?.publish_details?.rate || 0;
-        const consumeRate = (overview.message_stats?.deliver_get_details?.rate || 0) +
-            (overview.message_stats?.deliver_details?.rate || 0) +
-            (overview.message_stats?.get_details?.rate || 0);
+        const consumeRate = overview.message_stats?.deliver_get_details?.rate || 0;
         const maxQueueDepth = Math.max(...queues.map(q => q.messages || 0), 0);
         const backlogRate = messageRate - consumeRate;
 
@@ -185,7 +182,7 @@ class RabbitMQVerticalScaler {
             });
 
             const currentCpu = response.spec?.resources?.requests?.cpu || '0';
-
+            
             return this.cpuToProfileMap[currentCpu] || 'UNKNOWN';
         } catch (error) {
             console.error('Error getting current profile:', error.message);
@@ -219,63 +216,31 @@ class RabbitMQVerticalScaler {
         const currentTime = Math.floor(Date.now() / 1000);
 
         try {
-            // Get existing configmap (should exist from deployment)
-            const existing = await this.k8sApi.readNamespacedConfigMap({
-                name: this.configMapName,
-                namespace: this.namespace
-            });
-
-            const configMapData = { ...existing.data };
-
-            // Update stability tracking fields
-            configMapData.stable_profile = profile;
-            configMapData.stable_since = currentTime.toString();
-
-            const configMap = {
-                data: configMapData
-            };
+            const patchOps = [
+                {
+                    op: 'replace',
+                    path: '/data/stable_profile',
+                    value: profile
+                },
+                {
+                    op: 'replace',
+                    path: '/data/stable_since',
+                    value: currentTime.toString()
+                }
+            ];
 
             await this.k8sApi.patchNamespacedConfigMap({
                 name: this.configMapName,
                 namespace: this.namespace,
-                body: configMap
+                body: patchOps
             }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
+
             console.log(`📝 Updated stability tracking: ${profile} since ${currentTime}`);
         } catch (error) {
             console.error('Error updating stability tracking:', error.message);
         }
     }
 
-    async updateScaleState(newProfile) {
-        const currentTime = Math.floor(Date.now() / 1000);
-
-        try {
-            // Get existing configmap and preserve all data
-            const existing = await this.k8sApi.readNamespacedConfigMap({
-                name: this.configMapName,
-                namespace: this.namespace
-            });
-
-            const configMapData = { ...existing.data };
-
-            // Update scale state fields
-            configMapData.last_scaled_profile = newProfile;
-            configMapData.last_scale_time = currentTime.toString();
-
-            const configMap = {
-                data: configMapData
-            };
-
-            await this.k8sApi.patchNamespacedConfigMap({
-                name: this.configMapName,
-                namespace: this.namespace,
-                body: configMap
-            }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
-            console.log(`📝 Updated scale state: ${newProfile} at ${currentTime}`);
-        } catch (error) {
-            console.error('Error updating scale state:', error.message);
-        }
-    }
 
     async checkProfileStability(currentProfile, recommendedProfile) {
         const currentPriority = this.getProfilePriority(currentProfile);
@@ -371,16 +336,18 @@ class RabbitMQVerticalScaler {
 
         try {
             // Apply the patch to RabbitMQ cluster
-            const patch = {
-                spec: {
-                    resources: {
-                        requests: {
-                            cpu: resources.cpu,
-                            memory: resources.memory
-                        }
-                    }
+            const patchOps = [
+                {
+                    op: 'replace',
+                    path: '/spec/resources/requests/cpu',
+                    value: resources.cpu
+                },
+                {
+                    op: 'replace',
+                    path: '/spec/resources/requests/memory',
+                    value: resources.memory
                 }
-            };
+            ];
 
             await this.customApi.patchNamespacedCustomObject({
                 group: 'rabbitmq.com',
@@ -388,12 +355,10 @@ class RabbitMQVerticalScaler {
                 namespace: this.namespace,
                 plural: 'rabbitmqclusters',
                 name: this.rmqServiceName,
-                body: patch
+                body: patchOps
             }, k8s.setHeaderOptions('Content-Type', k8s.PatchStrategy.JsonPatch));
 
             console.log('✅ Scaling completed successfully');
-            // Update scale state after successful scaling
-            await this.updateScaleState(profile);
             // Reset stability tracking since we just scaled
             await this.updateStabilityTracking(profile);
         } catch (error) {
@@ -403,7 +368,9 @@ class RabbitMQVerticalScaler {
 
     async waitForRabbitMQ() {
         console.log('⏳ Waiting for RabbitMQ to be ready...');
-        for (let i = 1; i <= 10; i++) {
+        let attempts = 0;
+        while (true) {
+            attempts++;
             try {
                 await axios.get(`http://${this.rmqHost}:${this.rmqPort}/api/overview`, {
                     auth: {
@@ -415,20 +382,20 @@ class RabbitMQVerticalScaler {
                 console.log('✅ RabbitMQ is ready');
                 return true;
             } catch (error) {
-                console.log(`⏳ Waiting for RabbitMQ... (${i}/10)`);
+                if (attempts > 10) {
+                    console.error(`❌ Failed to connect to RabbitMQ after ${attempts} attempts:`, error.message);
+                } else {
+                    console.log(`⏳ Waiting for RabbitMQ... (attempt ${attempts})`);
+                }
                 await new Promise(resolve => setTimeout(resolve, 5000));
             }
         }
-        console.error('❌ RabbitMQ not ready after 10 attempts');
-        return false;
     }
 
     async main() {
         console.log('🚀 RabbitMQ Vertical Scaler (Node.js)');
 
-        if (!(await this.waitForRabbitMQ())) {
-            process.exit(1);
-        }
+        await this.waitForRabbitMQ();
 
         // Run scaling loop
         while (true) {
