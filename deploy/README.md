@@ -128,21 +128,21 @@ env:
 - **Scale Up**: 30-second debounce (quick response to load)
 - **Scale Down**: 2-minute debounce (conservative to avoid thrashing)
 
-## Limitations & Requirements
+## Limitations & Tested Environment
 
-⚠️ **Use at your own risk** - This code is provided as-is.
+⚠️ **Use at your own risk** – This code is provided as-is and has only been tested in the environment described below.
 
-### Requirements
-- **GKE cluster** with RabbitMQ deployed using [RabbitMQ Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview.html)
-- **RabbitMQ version**: Only tested with RabbitMQ 3.1.x
-- **Cluster size**: RabbitMQ cluster must have **minimum 3 nodes**
-- **PodDisruptionBudget**: Already provided in *-scaler.yaml, make sure to set to minimum 2m to ensure high availability during scaling
+### Tested Environment
+- **GKE cluster** with RabbitMQ deployed via the [RabbitMQ Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview.html)
+- **RabbitMQ version**: Tested with RabbitMQ 3.1.x
+- **Cluster size**: Minimum 3-node RabbitMQ cluster used during testing
+- **PodDisruptionBudget**: Included in `*-scaler.yaml`, set to at least `minAvailable: 2` to maintain high availability
 
 ### Limitations
-- **Vertical scaling only** - Does not add/remove pods, only changes CPU/Memory
-- **Single cluster support** - Monitors one RabbitMQ cluster per scaler instance
-- **GKE specific** - Designed and tested only on Google Kubernetes Engine
-- **Operator dependency** - Requires RabbitMQ Operator for cluster management
+- **Vertical scaling only** – Does not add/remove pods; only adjusts CPU/Memory
+- **Single cluster support** – One RabbitMQ cluster per scaler instance
+- **GKE specific** – Developed and tested exclusively on Google Kubernetes Engine
+- **Operator dependency** – Requires the RabbitMQ Operator for cluster lifecycle management
 
 ## Monitoring
 
