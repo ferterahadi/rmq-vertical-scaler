@@ -103,7 +103,7 @@ ROLE="${SCALER_NAME}-${SUFFIX}-role"
 ROLE_BINDING="${SCALER_NAME}-${SUFFIX}-binding"
 PDB="${SCALER_NAME}-pdb"
 DEPLOYMENT="${SCALER_NAME}-${SUFFIX}"
-CONFIG_MAP="${SCALER_NAME}-config"
+CONFIG_MAP="${SCALER_NAME}-${SUFFIX}-config"
 
 # Output file name
 OUTPUT_FILE="${SCALER_NAME}-scaler.yaml"
@@ -239,10 +239,8 @@ spec:
             - name: RMQ_SERVICE_NAME
               value: '$RMQ_SERVICE_NAME'
             # Dynamic resource names
-            - name: SCALER_NAME
-              value: '$SCALER_NAME'
-            - name: NAMESPACE
-              value: '$NAMESPACE'
+            - name: CONFIG_MAP
+              value: '$CONFIG_MAP'
             # Profile configuration
             - name: PROFILE_COUNT
               value: '$NUM_PROFILES'

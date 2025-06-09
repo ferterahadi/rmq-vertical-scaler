@@ -15,9 +15,8 @@ class RabbitMQVerticalScaler {
 
         // Dynamic resource names from environment
         this.rmqServiceName = process.env.RMQ_SERVICE_NAME || 'rmq';
-        this.scalerName = process.env.SCALER_NAME || 'rmq';
         this.namespace = process.env.NAMESPACE || 'prod';
-        this.configMapName = `${this.scalerName}-config`;
+        this.configMapName = process.env.CONFIG_MAP_NAME || 'rmq-config';
 
         // Load configuration values
         this.thresholds = this.config.thresholds;
