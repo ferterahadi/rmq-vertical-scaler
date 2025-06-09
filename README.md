@@ -2,11 +2,6 @@
 
 A Node.js application that automatically **vertically scales** RabbitMQ cluster resources (CPU/Memory) based on queue metrics and message rates in Google Kubernetes Engine (GKE).
 
-
-# Short 
-Node.js app auto-scales RabbitMQ CPU/Memory in GKE based on queue metrics & message rates
-
-
 ## Quick Start
 
 **For users wanting to deploy the scaler:**
