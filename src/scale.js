@@ -260,9 +260,11 @@ class RabbitMQVerticalScaler {
             return false;
         }
 
-        // If already at recommended profile, no need to check stability
+        // If already at recommended profile, update tracking to ensure timer resets if recommendation changed
         if (currentProfile === recommendedProfile) {
             console.log(`✅ Already at recommended profile: ${recommendedProfile}`);
+            // Update tracking to reset timer in case recommendation oscillated
+            await this.updateStabilityTracking(recommendedProfile);
             return true;
         }
 
