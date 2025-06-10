@@ -239,7 +239,7 @@ spec:
             - name: RMQ_SERVICE_NAME
               value: '$RMQ_SERVICE_NAME'
             # Dynamic resource names
-            - name: CONFIG_MAP
+            - name: CONFIG_MAP_NAME
               value: '$CONFIG_MAP'
             # Profile configuration
             - name: PROFILE_COUNT
