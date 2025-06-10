@@ -196,8 +196,9 @@ class RabbitMQVerticalScaler {
     }
 
     async getStabilityState() {
+        console.log(`🔍 Getting stability state from ConfigMap: ${this.configMapName} in namespace: ${this.namespace}`);
         try {
-            const response = await this.k8sApi.namespacedconfigmap({
+            const response = await this.k8sApi.readNamespacedConfigMap({
                 name: this.configMapName,
                 namespace: this.namespace
             });
@@ -207,6 +208,8 @@ class RabbitMQVerticalScaler {
                 stableSince: parseInt(response.data?.stable_since || '0')
             };
         } catch (error) {
+            console.error('Error getting stability state:', error.message);
+            console.error('Full error details:', error);
             return { stableProfile: '', stableSince: 0 };
         }
     }
@@ -242,6 +245,8 @@ class RabbitMQVerticalScaler {
 
 
     async checkProfileStability(currentProfile, recommendedProfile) {
+        console.log(`🔍 Checking profile stability: current=${currentProfile}, recommended=${recommendedProfile}`);
+        
         const currentPriority = this.getProfilePriority(currentProfile);
         const recommendedPriority = this.getProfilePriority(recommendedProfile);
 
@@ -257,6 +262,7 @@ class RabbitMQVerticalScaler {
 
         // If already at recommended profile, no need to check stability
         if (currentProfile === recommendedProfile) {
+            console.log(`✅ Already at recommended profile: ${recommendedProfile}`);
             return true;
         }
 
