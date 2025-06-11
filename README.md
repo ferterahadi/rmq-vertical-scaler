@@ -11,13 +11,12 @@ $ chmod +x ./generate.sh
 $ ./generate.sh
 $ kubectl apply -f *-scaler.yaml
 ```
+See [`deploy/README.md`](deploy/README.md) for complete documentation.
 
 **For users wanting to modify, tweak, and re-deploy the scaler**
 ```bash
 $ code ./src 
 ```
-
-See [`deploy/README.md`](deploy/README.md) for complete documentation.
 
 ## Project Structure
 
