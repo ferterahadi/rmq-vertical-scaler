@@ -21,11 +21,11 @@ $ code ./src
 ## Project Structure
 
 ```
-├── deploy/                 # 🚀 User-facing deployment files
-│   ├── generate.sh        # Script to generate deployment YAML
-│   ├── README.md          # Complete user documentation
-│   └── templates/         # Template files (if any)
-├── src/                   # 💻 Source code and build files
+├── deploy/               # 🚀 User-facing deployment files
+│   ├── generate.sh       # Script to generate deployment YAML
+│   ├── README.md         # Complete user documentation
+|
+├── src/                  # 💻 Source code and build files
     ├── scale.js          # Main application code
     ├── package.json      # Dependencies
     ├── webpack.config.js # Build configuration
