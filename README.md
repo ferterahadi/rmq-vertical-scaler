@@ -26,13 +26,12 @@ $ code ./src
 │   ├── README.md          # Complete user documentation
 │   └── templates/         # Template files (if any)
 ├── src/                   # 💻 Source code and build files
-│   ├── scale.js          # Main application code
-│   ├── package.json      # Dependencies
-│   ├── webpack.config.js # Build configuration
-│   ├── yarn.lock         # Lock file
-│   ├── build.sh          # Build and push script
-│   └── Dockerfile        # Container build
-└── dist/                  # 📦 Build artifacts (generated)
+    ├── scale.js          # Main application code
+    ├── package.json      # Dependencies
+    ├── webpack.config.js # Build configuration
+    ├── yarn.lock         # Lock file
+    ├── build.sh          # Build and push script
+    └── Dockerfile        # Container build
 ```
 
 ## License
