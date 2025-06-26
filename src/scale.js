@@ -128,11 +128,8 @@ class RabbitMQVerticalScaler {
 
         // Skip processing if we got error responses
         if (Object.keys(overview).length === 0 || queues.length === 0) {
-            console.warn('[WARNING] Using default values due to API errors');
-            return {
-                metrics: { totalMessages: 0, maxQueueDepth: 0, messageRate: 0, consumeRate: 0, backlogRate: 0 },
-                profile: this.config.profileNames[0] // Use first profile as default
-            };
+            console.warn('[WARNING] Unable to get overview and queues due to connection error, skipping scaling');
+            throw new Error('Connection error: Unable to fetch metrics');
         }
 
         // Extract key metrics with error handling
@@ -409,14 +406,13 @@ class RabbitMQVerticalScaler {
             try {
                 await this.applyScale();
                 console.log('---');
-                // Wait for configured interval (default 5 seconds)
-                const intervalMs = (this.checkIntervalSeconds || 5) * 1000;
-                await new Promise(resolve => setTimeout(resolve, intervalMs));
             } catch (error) {
                 console.error('Error in scaling loop:', error.message);
-                // Wait 30 seconds before retrying on error
-                await new Promise(resolve => setTimeout(resolve, 30000));
             }
+            
+            // Wait for configured interval (default 5 seconds)
+            const intervalMs = (this.checkIntervalSeconds || 5) * 1000;
+            await new Promise(resolve => setTimeout(resolve, intervalMs));
         }
     }
 }
