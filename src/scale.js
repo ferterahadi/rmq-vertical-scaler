@@ -244,9 +244,6 @@ class RabbitMQVerticalScaler {
     async checkProfileStability(currentProfile, recommendedProfile) {
         console.log(`🔍 Checking profile stability: current=${currentProfile}, recommended=${recommendedProfile}`);
         
-        const currentPriority = this.getProfilePriority(currentProfile);
-        const recommendedPriority = this.getProfilePriority(recommendedProfile);
-
         const stability = await this.getStabilityState();
         const currentTime = Math.floor(Date.now() / 1000);
 
@@ -264,6 +261,10 @@ class RabbitMQVerticalScaler {
             await this.updateStabilityTracking(recommendedProfile);
             return true;
         }
+
+        const currentPriority = this.getProfilePriority(currentProfile);
+        const recommendedPriority = this.getProfilePriority(recommendedProfile);
+
 
         // Check if recommendation has been stable long enough
         const timeStable = currentTime - stability.stableSince;
@@ -324,15 +325,15 @@ class RabbitMQVerticalScaler {
         }
         console.log(message);
 
-        // Skip if already at target profile
-        if (currentProfile === profile) {
-            console.log(`⏸️  Scaling skipped - already at ${profile} profile`);
+        // Always check stability to ensure timer resets when recommendation changes
+        if (!(await this.checkProfileStability(currentProfile, profile))) {
+            console.log('⏸️  Profile not stable long enough yet');
             return;
         }
 
-        // Check if profile recommendation has been stable long enough
-        if (!(await this.checkProfileStability(currentProfile, profile))) {
-            console.log('⏸️  Profile not stable long enough yet');
+        // Skip if already at target profile
+        if (currentProfile === profile) {
+            console.log(`⏸️  Scaling skipped - already at ${profile} profile`);
             return;
         }
 
