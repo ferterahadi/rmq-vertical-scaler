@@ -9,24 +9,28 @@ export default (env, argv) => {
   
   return {
     target: 'node',
-    entry: './scale.js',
+    entry: './bin/rmq-vertical-scaler',
     output: {
       path: path.resolve(__dirname, 'dist'),
-      filename: 'scale.js',
+      filename: 'rmq-vertical-scaler.js',
       clean: true,
       module: true,
     },
     experiments: {
       outputModule: true,
     },
-    externals: [],
+    externals: {
+      // Keep Node.js built-ins as externals
+      'node:test': 'commonjs2 node:test',
+      'node:assert': 'commonjs2 node:assert',
+      '@kubernetes/client-node': 'commonjs2 @kubernetes/client-node',
+      'axios': 'commonjs2 axios',
+      'commander': 'commonjs2 commander'
+    },
     optimization: {
-      // Disable minification to preserve function names and readability
-      minimize: true,
-      // Keep function names for better debugging
+      minimize: isProduction,
       mangleExports: false,
     },
-    // Generate source maps for proper line mapping
     devtool: isProduction ? 'source-map' : 'eval-source-map',
     mode: argv.mode || 'production',
     resolve: {
@@ -42,9 +46,8 @@ export default (env, argv) => {
         }
       ]
     },
-    // Enable source map support for better debugging
     stats: {
       errorDetails: true
     }
   };
-}; 
+};

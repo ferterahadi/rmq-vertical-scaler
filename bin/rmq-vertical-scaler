@@ -1,0 +1,230 @@
+#!/usr/bin/env node
+
+import { RabbitMQVerticalScaler } from '../lib/index.js';
+import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
+
+const program = new Command();
+
+program
+  .name('rmq-vertical-scaler')
+  .description('Automatically scale RabbitMQ resources based on queue metrics')
+  .version(packageJson.version);
+
+// Main scaling command (default)
+program
+  .command('start', { isDefault: true })
+  .description('Start the RabbitMQ vertical scaler')
+  .option('-c, --config <path>', 'path to configuration file')
+  .option('-n, --namespace <namespace>', 'Kubernetes namespace', process.env.NAMESPACE || 'default')
+  .option('-d, --debug', 'enable debug logging')
+  .option('--dry-run', 'simulate scaling without applying changes')
+  .action(async (options) => {
+    try {
+      console.log('🚀 RabbitMQ Vertical Scaler starting...');
+      
+      const scaler = new RabbitMQVerticalScaler({
+        configPath: options.config,
+        namespace: options.namespace,
+        debug: options.debug,
+        dryRun: options.dryRun
+      });
+      
+      await scaler.start();
+    } catch (error) {
+      console.error('❌ Fatal error:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Deploy subcommands
+const deployCmd = program
+  .command('deploy')
+  .description('Deployment utilities for Kubernetes');
+
+deployCmd
+  .command('generate')
+  .description('Generate Kubernetes deployment manifests')
+  .option('-n, --namespace <namespace>', 'Kubernetes namespace', 'default')
+  .option('-s, --service-name <name>', 'RabbitMQ service name', 'rabbitmq')
+  .option('-o, --output <file>', 'Output file name', 'rmq-scaler.yaml')
+  .option('--image <image>', 'Docker image to use', 'rmq-vertical-scaler/rmq-vertical-scaler:latest')
+  .action(async (options) => {
+    try {
+      await generateKubernetesManifests(options);
+    } catch (error) {
+      console.error('❌ Failed to generate manifests:', error.message);
+      process.exit(1);
+    }
+  });
+
+deployCmd
+  .command('install')
+  .description('Install to Kubernetes cluster')
+  .option('-f, --file <file>', 'Manifest file to install', 'rmq-scaler.yaml')
+  .option('--dry-run', 'Show what would be installed without applying')
+  .action(async (options) => {
+    try {
+      await installToKubernetes(options);
+    } catch (error) {
+      console.error('❌ Failed to install:', error.message);
+      process.exit(1);
+    }
+  });
+
+program.parse();
+
+// Implementation functions
+async function generateKubernetesManifests(options) {
+  const { execSync } = await import('child_process');
+  const { writeFileSync } = await import('fs');
+  
+  console.log('🔧 Generating Kubernetes manifests...');
+  console.log(`📝 Namespace: ${options.namespace}`);
+  console.log(`🐰 RabbitMQ Service: ${options.serviceName}`);
+  console.log(`📦 Image: ${options.image}`);
+  
+  // Generate the YAML content programmatically instead of running shell script
+  const manifest = generateManifestContent(options);
+  
+  writeFileSync(options.output, manifest);
+  console.log(`✅ Generated ${options.output}`);
+  console.log('');
+  console.log('Next steps:');
+  console.log(`  kubectl apply -f ${options.output}`);
+  console.log('  # or');
+  console.log(`  rmq-vertical-scaler deploy install -f ${options.output}`);
+}
+
+async function installToKubernetes(options) {
+  const { execSync } = await import('child_process');
+  const { existsSync } = await import('fs');
+  
+  if (!existsSync(options.file)) {
+    throw new Error(`Manifest file not found: ${options.file}`);
+  }
+  
+  const command = options.dryRun 
+    ? `kubectl apply -f ${options.file} --dry-run=client`
+    : `kubectl apply -f ${options.file}`;
+  
+  console.log(`🚀 ${options.dryRun ? 'Dry run: ' : ''}Installing to Kubernetes...`);
+  
+  try {
+    const output = execSync(command, { encoding: 'utf-8' });
+    console.log(output);
+    
+    if (!options.dryRun) {
+      console.log('✅ Installation complete!');
+      console.log('');
+      console.log('Check status with:');
+      console.log('  kubectl get deployment rmq-vertical-scaler');
+      console.log('  kubectl logs -f deployment/rmq-vertical-scaler');
+    }
+  } catch (error) {
+    throw new Error(`kubectl failed: ${error.message}`);
+  }
+}
+
+function generateManifestContent(options) {
+  // This replaces the complex shell script with a clean JavaScript template
+  return `---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rmq-vertical-scaler
+  namespace: ${options.namespace}
+---
+# Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rmq-vertical-scaler-role
+  namespace: ${options.namespace}
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets', 'configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rmq-vertical-scaler-binding
+  namespace: ${options.namespace}
+subjects:
+  - kind: ServiceAccount
+    name: rmq-vertical-scaler
+    namespace: ${options.namespace}
+roleRef:
+  kind: Role
+  name: rmq-vertical-scaler-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rmq-vertical-scaler-config
+  namespace: ${options.namespace}
+data:
+  stable_profile: ""
+  stable_since: "0"
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmq-vertical-scaler
+  namespace: ${options.namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmq-vertical-scaler
+  template:
+    metadata:
+      labels:
+        app: rmq-vertical-scaler
+    spec:
+      serviceAccountName: rmq-vertical-scaler
+      containers:
+        - name: scaler
+          image: ${options.image}
+          env:
+            - name: RMQ_HOST
+              value: "${options.serviceName}.${options.namespace}.svc.cluster.local"
+            - name: RMQ_PORT
+              value: "15672"
+            - name: NAMESPACE
+              value: "${options.namespace}"
+            - name: RMQ_SERVICE_NAME
+              value: "${options.serviceName}"
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ${options.serviceName}-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ${options.serviceName}-default-user
+                  key: password
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi`;
+}

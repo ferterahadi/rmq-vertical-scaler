@@ -1,0 +1,47 @@
+{
+  "profileNames": ["MINIMAL", "STANDARD", "PERFORMANCE", "MAXIMUM"],
+  "profiles": {
+    "MINIMAL": {
+      "cpu": "500m",
+      "memory": "4Gi"
+    },
+    "STANDARD": {
+      "cpu": "1000m",
+      "memory": "8Gi"
+    },
+    "PERFORMANCE": {
+      "cpu": "2000m",
+      "memory": "16Gi"
+    },
+    "MAXIMUM": {
+      "cpu": "4000m",
+      "memory": "32Gi"
+    }
+  },
+  "thresholds": {
+    "queue": {
+      "STANDARD": 5000,
+      "PERFORMANCE": 25000,
+      "MAXIMUM": 100000
+    },
+    "rate": {
+      "STANDARD": 500,
+      "PERFORMANCE": 2500,
+      "MAXIMUM": 5000
+    }
+  },
+  "debounce": {
+    "scaleUpSeconds": 60,
+    "scaleDownSeconds": 300
+  },
+  "checkInterval": 10,
+  "rmq": {
+    "host": "rabbitmq-cluster.production.svc.cluster.local",
+    "port": "15672"
+  },
+  "kubernetes": {
+    "namespace": "production",
+    "rmqServiceName": "rabbitmq-cluster",
+    "configMapName": "rmq-scaler-state"
+  }
+}

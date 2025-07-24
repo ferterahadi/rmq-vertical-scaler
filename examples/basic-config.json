@@ -1,0 +1,49 @@
+{
+  "profileNames": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  "profiles": {
+    "LOW": {
+      "cpu": "330m",
+      "memory": "2Gi"
+    },
+    "MEDIUM": {
+      "cpu": "800m",
+      "memory": "3Gi"
+    },
+    "HIGH": {
+      "cpu": "1600m",
+      "memory": "4Gi"
+    },
+    "CRITICAL": {
+      "cpu": "2400m",
+      "memory": "8Gi"
+    }
+  },
+  "thresholds": {
+    "queue": {
+      "MEDIUM": 2000,
+      "HIGH": 10000,
+      "CRITICAL": 50000
+    },
+    "rate": {
+      "MEDIUM": 200,
+      "HIGH": 1000,
+      "CRITICAL": 2000
+    }
+  },
+  "debounce": {
+    "scaleUpSeconds": 30,
+    "scaleDownSeconds": 120
+  },
+  "checkInterval": 5,
+  "rmq": {
+    "host": "rabbitmq.default.svc.cluster.local",
+    "port": "15672",
+    "user": "guest",
+    "pass": "guest"
+  },
+  "kubernetes": {
+    "namespace": "default",
+    "rmqServiceName": "rabbitmq",
+    "configMapName": "rmq-vertical-scaler-config"
+  }
+}

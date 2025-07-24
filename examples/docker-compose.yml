@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  rmq-vertical-scaler:
+    image: rmq-vertical-scaler/rmq-vertical-scaler:latest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      # RabbitMQ connection
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 15672
+      RMQ_USER: admin
+      RMQ_PASS: password
+      
+      # Kubernetes settings (for local testing)
+      NAMESPACE: default
+      RMQ_SERVICE_NAME: rabbitmq
+      
+      # Scaling configuration
+      CHECK_INTERVAL_SECONDS: 10
+      DEBOUNCE_SCALE_UP_SECONDS: 30
+      DEBOUNCE_SCALE_DOWN_SECONDS: 120
+      
+      # Profile configuration
+      PROFILE_LOW_CPU: "250m"
+      PROFILE_LOW_MEMORY: "1Gi"
+      PROFILE_MEDIUM_CPU: "500m"
+      PROFILE_MEDIUM_MEMORY: "2Gi"
+      PROFILE_HIGH_CPU: "1000m"
+      PROFILE_HIGH_MEMORY: "4Gi"
+      PROFILE_CRITICAL_CPU: "2000m"
+      PROFILE_CRITICAL_MEMORY: "8Gi"
+      
+      # Thresholds
+      QUEUE_THRESHOLD_MEDIUM: 1000
+      RATE_THRESHOLD_MEDIUM: 100
+      QUEUE_THRESHOLD_HIGH: 5000
+      RATE_THRESHOLD_HIGH: 500
+      QUEUE_THRESHOLD_CRITICAL: 25000
+      RATE_THRESHOLD_CRITICAL: 1000
+    
+    # For local development/testing - run in dry-run mode
+    command: ["--dry-run", "--debug"]
+    
+    # Uncomment to use custom config file
+    # volumes:
+    #   - ./examples/basic-config.json:/app/config.json
+    # command: ["--config", "/app/config.json", "--dry-run"]
+
+volumes:
+  rabbitmq_data:
