@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file.
 ## [1.0.2] - 2025-08-17
 
 ### Fixed
-- Resource patching now updates both requests and limits to prevent pod scheduling failures
 - Added namespace environment variable to scaler deployment
 
 ### Changed
