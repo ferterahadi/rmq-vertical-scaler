@@ -58,4 +58,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Default command
-CMD ["node", "bin/rmq-vertical-scaler"]
+CMD ["node", "lib/index.js"]

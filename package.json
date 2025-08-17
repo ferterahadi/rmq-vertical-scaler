@@ -2,29 +2,15 @@
   "name": "rmq-vertical-scaler",
   "version": "1.0.0",
   "description": "Automatically scale RabbitMQ cluster resources (CPU/Memory) based on queue metrics and message rates in Kubernetes",
-  "main": "lib/index.js",
+  "main": "bin/rmq-vertical-scaler",
   "type": "module",
   "bin": {
     "rmq-vertical-scaler": "./bin/rmq-vertical-scaler"
   },
   "scripts": {
-    "start": "node bin/rmq-vertical-scaler",
-    "dev": "node --watch bin/rmq-vertical-scaler",
-    "test": "node --test tests/**/*.test.js",
-    "test:watch": "node --test --watch tests/**/*.test.js",
-    "lint": "eslint lib bin tests scripts",
-    "lint:fix": "eslint lib bin tests scripts --fix",
-    "build": "webpack --mode=production",
-    "build:dev": "webpack --mode=development",
-    "build:docker": "./scripts/build.sh",
-    "docker:build": "docker build -t rmq-vertical-scaler .",
-    "docker:run": "docker run --rm rmq-vertical-scaler",
-    "docker:push": "PUSH=true ./scripts/build.sh",
-    "docs:build": "jsdoc -c jsdoc.conf.json",
-    "clean": "rm -rf dist/ node_modules/.cache",
-    "preversion": "npm test && npm run lint",
-    "version": "npm run build && git add -A",
-    "postversion": "git push && git push --tags"
+    "generate": "node ./bin/rmq-vertical-scaler",
+    "dev": "node ./lib/index",
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [
     "rabbitmq",
@@ -39,19 +25,19 @@
     "devops"
   ],
   "author": {
-    "name": "RMQ Vertical Scaler Team",
-    "email": "support@rmq-vertical-scaler.dev",
-    "url": "https://github.com/yourusername/rmq-vertical-scaler"
+    "name": "Fer Terahadi",
+    "email": "fernanditerahadi@gmail.com",
+    "url": "https://github.com/ferterahadi/rmq-vertical-scaler"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/rmq-vertical-scaler.git"
+    "url": "git+https://github.com/ferterahadi/rmq-vertical-scaler.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/rmq-vertical-scaler/issues"
+    "url": "https://github.com/ferterahadi/rmq-vertical-scaler/issues"
   },
-  "homepage": "https://github.com/yourusername/rmq-vertical-scaler#readme",
+  "homepage": "https://github.com/ferterahadi/rmq-vertical-scaler#readme",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
@@ -77,14 +63,11 @@
     "utf-8-validate": "^6.0.5"
   },
   "files": [
-    "lib/",
     "bin/",
-    "docs/",
     "examples/",
-    "scripts/",
+    "schema/",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public"

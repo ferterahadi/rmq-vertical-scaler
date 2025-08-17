@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RabbitMQ Vertical Scaler Configuration",
+  "description": "Configuration file for RabbitMQ Vertical Scaler deployment generation",
+  "type": "object",
+  "properties": {
+    "profiles": {
+      "type": "object",
+      "description": "Scaling profiles with resource specifications and trigger thresholds",
+      "patternProperties": {
+        "^[A-Z_]+$": {
+          "type": "object",
+          "description": "A scaling profile defining resource limits and scaling triggers",
+          "properties": {
+            "cpu": {
+              "type": "string",
+              "description": "CPU request (e.g., '1000m', '1.5')",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(m|Mi|Gi|Ti)?$",
+              "examples": ["330m", "1000m", "2"]
+            },
+            "memory": {
+              "type": "string", 
+              "description": "Memory request (e.g., '2Gi', '512Mi')",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|Ti)$",
+              "examples": ["2Gi", "512Mi", "16Gi"]
+            },
+            "queue": {
+              "type": "number",
+              "description": "Queue depth threshold to trigger this profile (number of messages)",
+              "minimum": 0,
+              "examples": [2000, 10000, 50000]
+            },
+            "rate": {
+              "type": "number", 
+              "description": "Message rate threshold to trigger this profile (messages per second)",
+              "minimum": 0,
+              "examples": [200, 1000, 2000]
+            }
+          },
+          "required": ["cpu", "memory"],
+          "additionalProperties": false
+        }
+      },
+      "minProperties": 1
+    },
+    "debounce": {
+      "type": "object",
+      "description": "Scaling delays to prevent oscillation",
+      "properties": {
+        "scaleUpSeconds": {
+          "type": "number",
+          "description": "Time to wait before scaling up (prevents rapid scaling)",
+          "minimum": 0,
+          "default": 30,
+          "examples": [30, 60, 120]
+        },
+        "scaleDownSeconds": {
+          "type": "number",
+          "description": "Time to wait before scaling down (prevents rapid scaling)",
+          "minimum": 0, 
+          "default": 120,
+          "examples": [120, 300, 600]
+        }
+      },
+      "required": ["scaleUpSeconds", "scaleDownSeconds"],
+      "additionalProperties": false
+    },
+    "checkInterval": {
+      "type": "number",
+      "description": "How often to check metrics and make scaling decisions (seconds)",
+      "minimum": 1,
+      "default": 5,
+      "examples": [5, 10, 30]
+    },
+    "rmq": {
+      "type": "object",
+      "description": "RabbitMQ connection settings",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "RabbitMQ management API hostname (Kubernetes service DNS name)",
+          "examples": [
+            "rabbitmq.default.svc.cluster.local",
+            "rabbitmq-cluster.production.svc.cluster.local"
+          ]
+        },
+        "port": {
+          "type": "string",
+          "description": "RabbitMQ management API port",
+          "default": "15672",
+          "examples": ["15672", "80", "443"]
+        }
+      },
+      "required": ["host", "port"],
+      "additionalProperties": false
+    },
+    "kubernetes": {
+      "type": "object",
+      "description": "Kubernetes deployment settings",
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "description": "Kubernetes namespace for deployment",
+          "default": "default",
+          "examples": ["default", "production", "staging"]
+        },
+        "rmqServiceName": {
+          "type": "string", 
+          "description": "Name of the RabbitMQ service (used for DNS and secrets)",
+          "default": "rabbitmq",
+          "examples": ["rabbitmq", "rabbitmq-cluster", "my-rabbitmq"]
+        }
+      },
+      "required": ["namespace", "rmqServiceName"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["profiles"],
+  "additionalProperties": false
+}

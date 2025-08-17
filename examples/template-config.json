@@ -6,22 +6,16 @@
       "memory": "2Gi"
     },
     "MEDIUM": {
-      "cpu": "800m",
+      "cpu": "800m", 
       "memory": "3Gi",
       "queue": 2000,
       "rate": 200
     },
     "HIGH": {
       "cpu": "1600m",
-      "memory": "4Gi",
+      "memory": "4Gi", 
       "queue": 10000,
       "rate": 1000
-    },
-    "CRITICAL": {
-      "cpu": "2400m",
-      "memory": "8Gi",
-      "queue": 50000,
-      "rate": 2000
     }
   },
   "debounce": {

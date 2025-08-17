@@ -14,38 +14,18 @@ const program = new Command();
 program
   .name('rmq-vertical-scaler')
   .description('Generate Kubernetes manifests for RabbitMQ Vertical Scaler\n\nCommon usage:\n  rmq-vertical-scaler generate --namespace prod --service-name my-rabbitmq\n  rmq-vertical-scaler generate --help  # See all customization options')
-  .version(packageJson.version)
-  .option('-n, --namespace <namespace>', 'Kubernetes namespace (shortcut for generate -n)')
-  .option('-s, --service-name <name>', 'RabbitMQ service name (shortcut for generate -s)')
-  .option('-o, --output <file>', 'Output file name (shortcut for generate -o)');
+  .version(packageJson.version);
 
 // Generate command
 program
   .command('generate')
   .description('Generate Kubernetes deployment manifests for RabbitMQ Vertical Scaler')
-  .option('-n, --namespace <namespace>', 'Kubernetes namespace where RabbitMQ and scaler will be deployed', 'default')
-  .option('-s, --service-name <name>', 'Name of the RabbitMQ service/cluster (used for DNS and secrets)', 'rabbitmq')
-  .option('-o, --output <file>', 'Output YAML file name for the generated manifests', 'rmq-scaler.yaml')
-  .option('--image <image>', 'Docker image to use for the scaler deployment', 'ferterahadi/rabbitmq-scaler:latest')
-  .option('--scaler-name <name>', 'Custom name for scaler resources (ServiceAccount, Role, etc.)', 'rmq-vertical-scaler')
-  .option('--interactive', 'Run in interactive mode to customize scaling profiles and thresholds')
-  .option('--low-cpu <cpu>', 'CPU request for LOW profile', '330m')
-  .option('--low-memory <memory>', 'Memory request for LOW profile', '2Gi')
-  .option('--medium-cpu <cpu>', 'CPU request for MEDIUM profile', '800m')
-  .option('--medium-memory <memory>', 'Memory request for MEDIUM profile', '3Gi')
-  .option('--high-cpu <cpu>', 'CPU request for HIGH profile', '1600m')
-  .option('--high-memory <memory>', 'Memory request for HIGH profile', '4Gi')
-  .option('--critical-cpu <cpu>', 'CPU request for CRITICAL profile', '2400m')
-  .option('--critical-memory <memory>', 'Memory request for CRITICAL profile', '8Gi')
-  .option('--medium-queue-threshold <num>', 'Queue depth to trigger MEDIUM profile', '2000')
-  .option('--medium-rate-threshold <num>', 'Message rate to trigger MEDIUM profile', '200')
-  .option('--high-queue-threshold <num>', 'Queue depth to trigger HIGH profile', '10000')
-  .option('--high-rate-threshold <num>', 'Message rate to trigger HIGH profile', '1000')
-  .option('--critical-queue-threshold <num>', 'Queue depth to trigger CRITICAL profile', '50000')
-  .option('--critical-rate-threshold <num>', 'Message rate to trigger CRITICAL profile', '2000')
-  .option('--scale-up-debounce <seconds>', 'Time to wait before scaling up (prevents oscillation)', '30')
-  .option('--scale-down-debounce <seconds>', 'Time to wait before scaling down (prevents oscillation)', '120')
-  .option('--check-interval <seconds>', 'How often to check metrics and make scaling decisions', '5')
+  .option('-c, --config <file>', 'Path to JSON configuration file (see examples/ for templates)')
+  .option('-n, --namespace <namespace>', 'Kubernetes namespace where RabbitMQ and scaler will be deployed')
+  .option('-s, --service-name <name>', 'Name of the RabbitMQ service/cluster (used for DNS and secrets)')
+  .option('-o, --output <file>', 'Output YAML file name for the generated manifests')
+  .option('--image <image>', 'Docker image to use for the scaler deployment')
+  .option('--scaler-name <name>', 'Custom name for scaler resources (ServiceAccount, Role, etc.)')
   .action(async (options) => {
     try {
       await generateKubernetesManifests(options);
@@ -55,87 +35,162 @@ program
     }
   });
 
-// Show help when no command is provided, or run generate if options are provided
-program.action(async (options) => {
-  // If user provided options, run generate with those options
-  if (options.namespace || options.serviceName || options.output) {
-    console.log('🔄 Running generate command with provided options...\n');
-    await generateKubernetesManifests({
-      namespace: options.namespace || 'default',
-      serviceName: options.serviceName || 'rabbitmq',
-      output: options.output || 'rmq-scaler.yaml',
-      image: 'ferterahadi/rabbitmq-scaler:latest',
-      scalerName: 'rmq-vertical-scaler',
-      lowCpu: '330m',
-      lowMemory: '2Gi',
-      mediumCpu: '800m',
-      mediumMemory: '3Gi',
-      highCpu: '1600m',
-      highMemory: '4Gi',
-      criticalCpu: '2400m',
-      criticalMemory: '8Gi',
-      mediumQueueThreshold: '2000',
-      mediumRateThreshold: '200',
-      highQueueThreshold: '10000',
-      highRateThreshold: '1000',
-      criticalQueueThreshold: '50000',
-      criticalRateThreshold: '2000',
-      scaleUpDebounce: '30',
-      scaleDownDebounce: '120',
-      checkInterval: '5'
-    });
-  } else {
-    program.help();
-  }
-});
 
 program.parse();
 
 // Implementation functions
 async function generateKubernetesManifests(options) {
-  const { writeFileSync } = await import('fs');
+  const { writeFileSync, readFileSync } = await import('fs');
+  
+  // Load config file if provided
+  let config = {};
+  if (options.config) {
+    try {
+      const configData = readFileSync(options.config, 'utf8');
+      config = JSON.parse(configData);
+      console.log(`📄 Loaded configuration from: ${options.config}`);
+    } catch (error) {
+      console.error(`❌ Failed to load config file: ${error.message}`);
+      process.exit(1);
+    }
+  }
+  
+  // Merge config with CLI options (CLI takes precedence)
+  const finalConfig = {
+    namespace: options.namespace || config.kubernetes?.namespace || 'default',
+    serviceName: options.serviceName || config.kubernetes?.rmqServiceName || 'rabbitmq',
+    image: options.image || 'ferterahadi/rmq-vertical-scaler:latest',
+    scalerName: options.scalerName || 'rmq-vertical-scaler',
+    output: options.output || 'rmq-scaler.yaml',
+    profiles: config.profiles || {
+      LOW: { cpu: '330m', memory: '2Gi' },
+      MEDIUM: { cpu: '800m', memory: '3Gi' },
+      HIGH: { cpu: '1600m', memory: '4Gi' },
+      CRITICAL: { cpu: '2400m', memory: '8Gi' }
+    },
+    thresholds: extractThresholds(config),
+    debounce: config.debounce || {
+      scaleUpSeconds: 30,
+      scaleDownSeconds: 120
+    },
+    checkInterval: config.checkInterval || 5,
+    rmq: config.rmq || {
+      host: `${options.serviceName}.${options.namespace}.svc.cluster.local`,
+      port: '15672'
+    }
+  };
   
   console.log('🔧 Generating Kubernetes manifests...');
-  console.log(`📝 Namespace: ${options.namespace}`);
-  console.log(`🐰 RabbitMQ Service: ${options.serviceName}`);
-  console.log(`📦 Image: ${options.image}`);
-  console.log(`🏷️  Scaler Name: ${options.scalerName}`);
+  console.log(`📝 Namespace: ${finalConfig.namespace}`);
+  console.log(`🐰 RabbitMQ Service: ${finalConfig.serviceName}`);
+  console.log(`📦 Image: ${finalConfig.image}`);
+  console.log(`🏷️  Scaler Name: ${finalConfig.scalerName}`);
   console.log('');
   console.log('📊 Scaling Profiles:');
-  console.log(`  LOW:      CPU=${options.lowCpu}, Memory=${options.lowMemory}`);
-  console.log(`  MEDIUM:   CPU=${options.mediumCpu}, Memory=${options.mediumMemory} (triggers at: ${options.mediumQueueThreshold} queue depth, ${options.mediumRateThreshold} msg/s)`);
-  console.log(`  HIGH:     CPU=${options.highCpu}, Memory=${options.highMemory} (triggers at: ${options.highQueueThreshold} queue depth, ${options.highRateThreshold} msg/s)`);
-  console.log(`  CRITICAL: CPU=${options.criticalCpu}, Memory=${options.criticalMemory} (triggers at: ${options.criticalQueueThreshold} queue depth, ${options.criticalRateThreshold} msg/s)`);
+  
+  Object.entries(finalConfig.profiles).forEach(([profile, resources]) => {
+    const queueThreshold = finalConfig.thresholds.queue[profile] || 'N/A';
+    const rateThreshold = finalConfig.thresholds.rate[profile] || 'N/A';
+    if (profile === 'LOW') {
+      console.log(`  ${profile}:      CPU=${resources.cpu}, Memory=${resources.memory}`);
+    } else {
+      console.log(`  ${profile}:   CPU=${resources.cpu}, Memory=${resources.memory} (triggers at: ${queueThreshold} queue depth, ${rateThreshold} msg/s)`);
+    }
+  });
+  
   console.log('');
   console.log('⏱️  Timing Configuration:');
-  console.log(`  Scale Up Debounce: ${options.scaleUpDebounce}s`);
-  console.log(`  Scale Down Debounce: ${options.scaleDownDebounce}s`);
-  console.log(`  Check Interval: ${options.checkInterval}s`);
+  console.log(`  Scale Up Debounce: ${finalConfig.debounce.scaleUpSeconds}s`);
+  console.log(`  Scale Down Debounce: ${finalConfig.debounce.scaleDownSeconds}s`);
+  console.log(`  Check Interval: ${finalConfig.checkInterval}s`);
   
   // Generate the YAML content programmatically
-  const manifest = generateManifestContent(options);
+  const manifest = generateManifestContent(finalConfig);
   
-  writeFileSync(options.output, manifest);
+  writeFileSync(finalConfig.output, manifest);
   console.log('');
-  console.log(`✅ Generated ${options.output}`);
+  console.log(`✅ Generated ${finalConfig.output}`);
   console.log('');
   console.log('📋 Next steps:');
   console.log(`  1. Review the generated configuration`);
-  console.log(`  2. Apply to your cluster: kubectl apply -f ${options.output}`);
-  console.log(`  3. Monitor the deployment: kubectl logs -f deployment/${options.scalerName} -n ${options.namespace}`);
+  console.log(`  2. Apply to your cluster: kubectl apply -f ${finalConfig.output}`);
+  console.log(`  3. Monitor the deployment: kubectl logs -f deployment/${finalConfig.scalerName} -n ${finalConfig.namespace}`);
   console.log('');
   console.log('💡 To customize profiles further, use the options shown in --help');
   console.log('   Example: ./bin/rmq-vertical-scaler generate --medium-cpu 1000m --high-memory 6Gi');
 }
 
-function generateManifestContent(options) {
-  const scalerName = options.scalerName || 'rmq-vertical-scaler';
+function extractThresholds(config) {
+  // Support both old format (separate thresholds section) and new format (embedded in profiles)
+  if (config.thresholds) {
+    // Old format: return as-is
+    return config.thresholds;
+  }
+  
+  // New format: extract thresholds from profiles
+  const thresholds = { queue: {}, rate: {} };
+  
+  Object.entries(config.profiles || {}).forEach(([profileName, profile]) => {
+    if (profile.queue !== undefined) {
+      thresholds.queue[profileName] = profile.queue;
+    }
+    if (profile.rate !== undefined) {
+      thresholds.rate[profileName] = profile.rate;
+    }
+  });
+  
+  // Fallback to defaults if no thresholds found
+  if (Object.keys(thresholds.queue).length === 0 && Object.keys(thresholds.rate).length === 0) {
+    return {
+      queue: { MEDIUM: 2000, HIGH: 10000, CRITICAL: 50000 },
+      rate: { MEDIUM: 200, HIGH: 1000, CRITICAL: 2000 }
+    };
+  }
+  
+  return thresholds;
+}
+
+function generateProfileEnvVars(profiles) {
+  let envVars = '';
+  Object.entries(profiles).forEach(([profile, resources]) => {
+    envVars += `
+            # Profile ${profile} resources
+            - name: PROFILE_${profile}_CPU
+              value: '${resources.cpu}'
+            - name: PROFILE_${profile}_MEMORY
+              value: '${resources.memory}'`;
+  });
+  return envVars;
+}
+
+function generateThresholdEnvVars(thresholds) {
+  let envVars = '';
+  Object.entries(thresholds.queue).forEach(([profile, threshold]) => {
+    envVars += `
+            # ${profile} thresholds
+            - name: QUEUE_THRESHOLD_${profile}
+              value: '${threshold}'`;
+  });
+  Object.entries(thresholds.rate).forEach(([profile, threshold]) => {
+    envVars += `
+            - name: RATE_THRESHOLD_${profile}
+              value: '${threshold}'`;
+  });
+  return envVars;
+}
+
+function generateManifestContent(config) {
+  const scalerName = config.scalerName || 'rmq-vertical-scaler';
   const serviceAccount = `${scalerName}-sa`;
   const role = `${scalerName}-role`;
   const roleBinding = `${scalerName}-binding`;
   const configMap = `${scalerName}-config`;
   const deployment = scalerName;
-  const pdb = `${options.serviceName}-pdb`;
+  const pdb = `${config.serviceName}-pdb`;
+  
+  // Get profile names dynamically from config
+  const profileNames = Object.keys(config.profiles);
+  const profileNamesStr = profileNames.join(' ');
   
   return `---
 # ServiceAccount for the scaler
@@ -143,14 +198,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ${serviceAccount}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 ---
 # Role for vertical scaling operations
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ${role}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 rules:
   - apiGroups: ['rabbitmq.com']
     resources: ['rabbitmqclusters']
@@ -167,11 +222,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ${roleBinding}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 subjects:
   - kind: ServiceAccount
     name: ${serviceAccount}
-    namespace: ${options.namespace}
+    namespace: ${config.namespace}
 roleRef:
   kind: Role
   name: ${role}
@@ -182,7 +237,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ${configMap}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 data:
   stable_profile: ""
   stable_since: "0"
@@ -192,19 +247,19 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: ${pdb}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 spec:
   minAvailable: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: ${options.serviceName}
+      app.kubernetes.io/name: ${config.serviceName}
 ---
 # Deployment for the vertical scaler
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${deployment}
-  namespace: ${options.namespace}
+  namespace: ${config.namespace}
 spec:
   replicas: 1
   selector:
@@ -218,7 +273,7 @@ spec:
       serviceAccountName: ${serviceAccount}
       containers:
         - name: scaler
-          image: ${options.image}
+          image: ${config.image}
           imagePullPolicy: Always
           resources:
             requests:
@@ -232,65 +287,35 @@ spec:
             - name: RMQ_USER
               valueFrom:
                 secretKeyRef:
-                  name: ${options.serviceName}-default-user
+                  name: ${config.serviceName}-default-user
                   key: username
             - name: RMQ_PASS
               valueFrom:
                 secretKeyRef:
-                  name: ${options.serviceName}-default-user
+                  name: ${config.serviceName}-default-user
                   key: password
             # RabbitMQ connection settings
             - name: RMQ_HOST
-              value: '${options.serviceName}.${options.namespace}.svc.cluster.local'
+              value: '${config.rmq.host}'
             - name: RMQ_PORT
-              value: '15672'
+              value: '${config.rmq.port}'
             - name: RMQ_SERVICE_NAME
-              value: '${options.serviceName}'
+              value: '${config.serviceName}'
             # Dynamic resource names
             - name: CONFIG_MAP_NAME
               value: '${configMap}'
             # Profile configuration
             - name: PROFILE_COUNT
-              value: '4'
+              value: '${profileNames.length}'
             - name: PROFILE_NAMES
-              value: 'LOW MEDIUM HIGH CRITICAL'
-            # Profile resources
-            - name: PROFILE_LOW_CPU
-              value: '${options.lowCpu}'
-            - name: PROFILE_LOW_MEMORY
-              value: '${options.lowMemory}'
-            - name: PROFILE_MEDIUM_CPU
-              value: '${options.mediumCpu}'
-            - name: PROFILE_MEDIUM_MEMORY
-              value: '${options.mediumMemory}'
-            - name: PROFILE_HIGH_CPU
-              value: '${options.highCpu}'
-            - name: PROFILE_HIGH_MEMORY
-              value: '${options.highMemory}'
-            - name: PROFILE_CRITICAL_CPU
-              value: '${options.criticalCpu}'
-            - name: PROFILE_CRITICAL_MEMORY
-              value: '${options.criticalMemory}'
-            # Scaling thresholds
-            - name: QUEUE_THRESHOLD_MEDIUM
-              value: '${options.mediumQueueThreshold}'
-            - name: RATE_THRESHOLD_MEDIUM
-              value: '${options.mediumRateThreshold}'
-            - name: QUEUE_THRESHOLD_HIGH
-              value: '${options.highQueueThreshold}'
-            - name: RATE_THRESHOLD_HIGH
-              value: '${options.highRateThreshold}'
-            - name: QUEUE_THRESHOLD_CRITICAL
-              value: '${options.criticalQueueThreshold}'
-            - name: RATE_THRESHOLD_CRITICAL
-              value: '${options.criticalRateThreshold}'
+              value: '${profileNamesStr}'${generateProfileEnvVars(config.profiles)}${generateThresholdEnvVars(config.thresholds)}
             # Debounce settings
             - name: DEBOUNCE_SCALE_UP_SECONDS
-              value: '${options.scaleUpDebounce}'
+              value: '${config.debounce.scaleUpSeconds}'
             - name: DEBOUNCE_SCALE_DOWN_SECONDS
-              value: '${options.scaleDownDebounce}'
+              value: '${config.debounce.scaleDownSeconds}'
             # Check interval
             - name: CHECK_INTERVAL_SECONDS
-              value: '${options.checkInterval}'
+              value: '${config.checkInterval}'
       restartPolicy: Always`;
 }

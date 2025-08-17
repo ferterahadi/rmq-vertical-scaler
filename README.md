@@ -1,6 +1,6 @@
 # RabbitMQ Vertical Scaler
 
-[![Docker Image](https://img.shields.io/docker/v/ferterahadi/rabbitmq-scaler?label=docker)](https://hub.docker.com/r/ferterahadi/rabbitmq-scaler)
+[![Docker Image](https://img.shields.io/docker/v/ferterahadi/rmq-vertical-scaler?label=docker)](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler)
 
 Node.js application that automatically **vertically scales** RabbitMQ cluster resources (CPU/Memory) based on real-time queue metrics and message rates in Kubernetes environments.
 
@@ -18,202 +18,135 @@ Node.js application that automatically **vertically scales** RabbitMQ cluster re
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Usage](#-usage)
+- [Configuration](#️-configuration)
 - [Deployment](#-deployment)
 - [Monitoring](#-monitoring)
-- [Contributing](#-contributing)
+- [Architecture](#️-architecture)
 
 ## ⚡ Quick Start
 
-### Using Docker
-
 ```bash
-docker run --rm \
-  -e RMQ_HOST=my-rabbitmq.prod.svc.cluster.local \
-  -e NAMESPACE=production \
-  ferterahadi/rabbitmq-scaler:latest
-```
+# Option 1: Use configuration file (recommended)
+npx rmq-vertical-scaler generate \
+  --config examples/production-config.json \
+  --output my-scaler.yaml
 
-### Using Kubernetes
-
-```bash
-# 1. Clone the repository to get the manifest generator
-git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
-cd rmq-vertical-scaler
-
-# 2. Generate Kubernetes manifests for your environment
-./bin/rmq-vertical-scaler generate \
+# Option 2: Use CLI options
+npx rmq-vertical-scaler generate \
   --namespace production \
   --service-name my-rabbitmq \
   --output my-scaler.yaml
 
-# 3. Deploy to your cluster
+# Deploy to your cluster
 kubectl apply -f my-scaler.yaml
 ```
 
-## 🔧 Installation
-
-### Prerequisites
-
-- **Kubernetes**: ≥1.20 with RabbitMQ Cluster Operator
-- **RabbitMQ**: Cluster managed by [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
-- **Docker**: For pulling the pre-built image
-
-### Installation
-
-The Docker image `ferterahadi/rabbitmq-scaler:latest` is ready to use. You just need to:
-
-1. **Clone this repository** to get the Kubernetes manifest generator
-2. **Generate manifests** for your specific environment
-3. **Deploy** to your cluster
-
-```bash
-git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
-cd rmq-vertical-scaler
-```
-
-
 ## ⚙️ Configuration
 
-### Environment Variables
+The scaler supports two configuration methods:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `RMQ_HOST` | RabbitMQ management API host | - | ✅ |
-| `RMQ_PORT` | RabbitMQ management API port | `15672` | |
-| `RMQ_USER` | RabbitMQ username | `guest` | |
-| `RMQ_PASS` | RabbitMQ password | `guest` | |
-| `NAMESPACE` | Kubernetes namespace | `default` | ✅ |
-| `RMQ_SERVICE_NAME` | RabbitMQ service name | `rmq` | |
-| `CHECK_INTERVAL_SECONDS` | Scaling check interval | `5` | |
-| `DEBOUNCE_SCALE_UP_SECONDS` | Scale-up delay | `30` | |
-| `DEBOUNCE_SCALE_DOWN_SECONDS` | Scale-down delay | `120` | |
+### Option 1: Configuration File (Recommended)
 
-### Scaling Profiles
-
-Configure resource profiles and thresholds:
+Use a JSON configuration file for complex setups:
 
 ```bash
-# Profile Resources
-export PROFILE_LOW_CPU="330m"
-export PROFILE_LOW_MEMORY="2Gi"
-export PROFILE_MEDIUM_CPU="800m" 
-export PROFILE_MEDIUM_MEMORY="3Gi"
-export PROFILE_HIGH_CPU="1600m"
-export PROFILE_HIGH_MEMORY="4Gi"
-export PROFILE_CRITICAL_CPU="2400m"
-export PROFILE_CRITICAL_MEMORY="8Gi"
+# Use pre-built configuration templates
+npx rmq-vertical-scaler generate --config examples/basic-config.json
+npx rmq-vertical-scaler generate --config examples/production-config.json
 
-# Scaling Thresholds
-export QUEUE_THRESHOLD_MEDIUM="2000"    # Queue depth trigger
-export RATE_THRESHOLD_MEDIUM="200"      # Messages/sec trigger
-export QUEUE_THRESHOLD_HIGH="10000"
-export RATE_THRESHOLD_HIGH="1000"
-export QUEUE_THRESHOLD_CRITICAL="50000"
-export RATE_THRESHOLD_CRITICAL="2000"
+# Or download the template to create your own
+curl -o my-config.json https://raw.githubusercontent.com/ferterahadi/rmq-vertical-scaler/master/examples/template-config.json
 ```
 
-### Configuration File
+**📋 Schema Validation**: All config files include JSON Schema annotations for IDE support:
+- **Autocomplete**: Get suggestions for valid configuration options
+- **Validation**: Real-time error checking and type validation  
+- **Documentation**: Hover over properties to see descriptions and examples
+- **IntelliSense**: Modern editors like VS Code provide rich editing experience
 
-Create `config.json`:
+To get started with a custom configuration:
+```bash
+# Download the template file
+curl -o my-config.json https://raw.githubusercontent.com/ferterahadi/rmq-vertical-scaler/master/examples/template-config.json
 
+# Alternative: using wget
+# wget -O my-config.json https://raw.githubusercontent.com/ferterahadi/rmq-vertical-scaler/master/examples/template-config.json
+
+# Edit in VS Code (or any JSON Schema-aware editor)
+code my-config.json
+
+# Generate manifests with your custom config
+npx rmq-vertical-scaler generate --config my-config.json --output my-scaler.yaml
+```
+
+**Basic Configuration** (`examples/basic-config.json`):
 ```json
 {
-  "profileNames": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  "$schema": "../schema/config-schema.json",
   "profiles": {
     "LOW": { "cpu": "330m", "memory": "2Gi" },
-    "MEDIUM": { "cpu": "800m", "memory": "3Gi" },
-    "HIGH": { "cpu": "1600m", "memory": "4Gi" },
-    "CRITICAL": { "cpu": "2400m", "memory": "8Gi" }
+    "MEDIUM": { "cpu": "800m", "memory": "3Gi", "queue": 2000, "rate": 200 },
+    "HIGH": { "cpu": "1600m", "memory": "4Gi", "queue": 10000, "rate": 1000 },
+    "CRITICAL": { "cpu": "2400m", "memory": "8Gi", "queue": 50000, "rate": 2000 }
   },
-  "thresholds": {
-    "queue": {
-      "MEDIUM": 2000,
-      "HIGH": 10000,
-      "CRITICAL": 50000
-    },
-    "rate": {
-      "MEDIUM": 200,
-      "HIGH": 1000,
-      "CRITICAL": 2000
-    }
+  "debounce": { "scaleUpSeconds": 30, "scaleDownSeconds": 120 },
+  "checkInterval": 5,
+  "rmq": {
+    "host": "rabbitmq.default.svc.cluster.local",
+    "port": "15672"
   },
-  "debounce": {
-    "scaleUpSeconds": 30,
-    "scaleDownSeconds": 120
-  },
-  "checkInterval": 5
+  "kubernetes": {
+    "namespace": "default",
+    "rmqServiceName": "rabbitmq"
+  }
 }
 ```
 
-## 📖 Usage
+**Production Configuration** (`examples/production-config.json`):
+- Higher resource limits: MINIMAL (500m/4Gi) → MAXIMUM (4000m/32Gi)
+- Conservative scaling: Longer debounce times (60s up, 300s down)
+- Higher thresholds: Queue depths from 5K to 100K messages, message rates from 500 to 5K msg/s
+- Self-contained profiles: Each profile includes CPU, memory, queue threshold, and rate threshold
 
-### Manifest Generator
+### Option 2: CLI Options
 
-The repository includes a script to generate Kubernetes manifests customized for your environment:
-
-```bash
-# Clone the repository
-git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
-cd rmq-vertical-scaler
-
-# Generate manifests (runs locally, no Docker needed)
-./bin/rmq-vertical-scaler generate \
-  --namespace production \
-  --service-name my-rabbitmq \
-  --output my-scaler.yaml
-
-# Options:
-#   -n, --namespace     Kubernetes namespace (default: "default")
-#   -s, --service-name  RabbitMQ service name (default: "rabbitmq") 
-#   -o, --output        Output file name (default: "rmq-scaler.yaml")
-#   --image             Docker image (default: "ferterahadi/rabbitmq-scaler:latest")
-```
-
-### Docker Usage (Advanced)
-
-For standalone Docker usage outside Kubernetes:
+For simple customizations, use CLI options directly:
 
 ```bash
-docker run --rm \
-  -e RMQ_HOST=rabbitmq.default.svc.cluster.local \
-  -e NAMESPACE=production \
-  ferterahadi/rabbitmq-scaler:latest
+npx rmq-vertical-scaler generate --help
 ```
+
+CLI options override config file values when both are provided.
+
+### RabbitMQ Credentials
+
+The scaler requires access to RabbitMQ's management API to collect queue metrics. By default, the generated manifests assume RabbitMQ credentials are stored in a Kubernetes secret named `{service-name}-default-user`:
+
+```yaml
+# The scaler expects these secrets to exist:
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-default-user  # Format: {serviceName}-default-user
+  namespace: production
+data:
+  username: <base64-encoded-username>
+  password: <base64-encoded-password>
+```
+
+**For RabbitMQ Cluster Operator users**: This secret is created automatically when you deploy a RabbitMQ cluster.
+
+**For custom RabbitMQ deployments**: Create the secret manually or modify the generated manifest to reference your existing secret name.
 
 ## 🚢 Deployment
 
-### Kubernetes RBAC
-
-The scaler requires specific permissions:
-
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: rmq-vertical-scaler-role
-rules:
-  - apiGroups: ['rabbitmq.com']
-    resources: ['rabbitmqclusters']
-    verbs: ['get', 'patch', 'update']
-  - apiGroups: ['']
-    resources: ['secrets', 'configmaps']
-    verbs: ['get', 'create', 'update', 'patch']
-```
 
 ### Kubernetes Deployment
 
 ```bash
-# Clone the repository 
-git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
-cd rmq-vertical-scaler
-
-# Generate manifests for your environment
-./bin/rmq-vertical-scaler generate \
-  --namespace production \
-  --service-name my-rabbitmq \
+# Generate manifests using config file
+npx rmq-vertical-scaler generate \
+  --config examples/production-config.json \
   --output production-scaler.yaml
 
 # Apply to your cluster
@@ -226,35 +159,16 @@ kubectl logs -f deployment/rmq-vertical-scaler -n production
 
 ## 📊 Monitoring
 
-### Health Endpoint
+Monitor the scaler deployment:
 
-The scaler exposes a health check method:
+```bash
+# Check deployment status
+kubectl get deployment rmq-vertical-scaler -n production
 
-```javascript
-const health = await scaler.healthCheck();
-// Returns: { status: 'healthy', timestamp: '2024-01-01T00:00:00.000Z' }
+# View logs and scaling decisions
+kubectl logs -f deployment/rmq-vertical-scaler -n production
 ```
 
-### Metrics and Logging
-
-- **Structured Logging**: JSON formatted logs with timestamps
-- **Scaling Events**: Detailed logs for every scaling decision
-- **Error Tracking**: Comprehensive error handling and reporting
-- **Performance Metrics**: Queue depth, message rates, and scaling decisions
-
-### Prometheus Integration
-
-Example metrics collection (implement as needed):
-
-```javascript
-import client from 'prom-client';
-
-const scalingCounter = new client.Counter({
-  name: 'rmq_scaling_events_total',
-  help: 'Total number of scaling events',
-  labelNames: ['profile', 'direction']
-});
-```
 
 ## 🏗️ Architecture
 
@@ -303,9 +217,6 @@ npm install
 # Run tests
 npm test
 
-# Run linting
-npm run lint
-
 # Start in development mode
 npm run dev
 ```
@@ -319,13 +230,18 @@ rmq-vertical-scaler/
 │   ├── MetricsCollector.js
 │   ├── ScalingEngine.js
 │   ├── KubernetesClient.js
-│   └── ConfigManager.js
-├── bin/                    # CLI executable with deploy commands
+│   ├── ConfigManager.js
+│   └── index.js            # Main entry point for Docker
+├── bin/                    # CLI executable for manifest generation
+├── examples/               # Configuration templates
+│   ├── basic-config.json
+│   ├── production-config.json
+│   └── template-config.json
+├── schema/                 # JSON Schema for configuration validation
+│   └── config-schema.json
 ├── tests/                  # Test suites
-├── examples/               # Usage examples
-├── scripts/                # Build and utility scripts
-├── docs/                   # Documentation
-└── .github/                # CI/CD workflows
+├── k8s-test/               # Local Kubernetes testing scripts
+└── scripts/                # Build and utility scripts
 ```
 
 ## 🏆 Acknowledgments

@@ -1,5 +1,5 @@
 {
-  "profileNames": ["MINIMAL", "STANDARD", "PERFORMANCE", "MAXIMUM"],
+  "$schema": "../schema/config-schema.json", 
   "profiles": {
     "MINIMAL": {
       "cpu": "500m",
@@ -7,27 +7,21 @@
     },
     "STANDARD": {
       "cpu": "1000m",
-      "memory": "8Gi"
+      "memory": "8Gi",
+      "queue": 5000,
+      "rate": 500
     },
     "PERFORMANCE": {
       "cpu": "2000m",
-      "memory": "16Gi"
+      "memory": "16Gi",
+      "queue": 25000,
+      "rate": 2500
     },
     "MAXIMUM": {
       "cpu": "4000m",
-      "memory": "32Gi"
-    }
-  },
-  "thresholds": {
-    "queue": {
-      "STANDARD": 5000,
-      "PERFORMANCE": 25000,
-      "MAXIMUM": 100000
-    },
-    "rate": {
-      "STANDARD": 500,
-      "PERFORMANCE": 2500,
-      "MAXIMUM": 5000
+      "memory": "32Gi",
+      "queue": 100000,
+      "rate": 5000
     }
   },
   "debounce": {
@@ -41,7 +35,6 @@
   },
   "kubernetes": {
     "namespace": "production",
-    "rmqServiceName": "rabbitmq-cluster",
-    "configMapName": "rmq-scaler-state"
+    "rmqServiceName": "rabbitmq-cluster"
   }
 }

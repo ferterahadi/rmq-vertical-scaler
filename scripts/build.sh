@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-REGISTRY="${REGISTRY:-rmq-vertical-scaler}"
+REGISTRY="${REGISTRY:-ferterahadi}"
 IMAGE_NAME="rmq-vertical-scaler"
 VERSION="${VERSION:-latest}"
 FULL_IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
