@@ -1,0 +1,52 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: default
+spec:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 330m
+      memory: 2Gi
+    limits:
+      cpu: 3000m
+      memory: 10Gi
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+      - rabbitmq_prometheus
+  persistence:
+    storageClassName: standard
+    storage: 10Gi
+  service:
+    type: ClusterIP
+  override:
+    service:
+      spec:
+        ports:
+          - name: amqp
+            port: 5672
+            protocol: TCP
+            targetPort: 5672
+          - name: management
+            port: 15672
+            protocol: TCP
+            targetPort: 15672
+---
+# Service to expose RabbitMQ management UI for local access
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-management
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+    - name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 30672
+  selector:
+    app.kubernetes.io/name: rabbitmq

@@ -1,39 +1,61 @@
-FROM node:18-alpine
+# Multi-stage build for optimized production image
+FROM node:20-alpine AS builder
 
-# Install kubectl
-RUN apk add --no-cache curl && \
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
-    chmod +x kubectl && \
-    mv kubectl /usr/local/bin/
-
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# Copy package files
 COPY package*.json ./
 
-# Install app dependencies
-RUN npm ci --only=production
+# Install dependencies (including devDependencies for build)
+RUN npm ci
 
-# Copy app source
-COPY scale.js ./
+# Copy source code
+COPY . .
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S scaler && \
-    adduser -S -D -H -u 1001 -s /sbin/nologin -G scaler scaler
+# Build the application
+RUN npm run build
 
-# Change ownership of the app directory
-RUN chown -R scaler:scaler /app
+# Production stage
+FROM node:20-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S rmqscaler && \
+    adduser -S rmqscaler -u 1001 -G rmqscaler
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/bin ./bin
+COPY --from=builder /app/dist ./dist
+
+# Change ownership to non-root user
+RUN chown -R rmqscaler:rmqscaler /app
 
 # Switch to non-root user
-USER scaler
+USER rmqscaler
 
-# Expose port (if needed for health checks)
-EXPOSE 3000
+# Expose health check port (if implemented)
+EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "console.log('Health check passed')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "process.exit(0)" || exit 1
 
-# Start the application
-CMD ["npm", "start"] 
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command
+CMD ["node", "lib/index.js"]

@@ -1,0 +1,40 @@
+{
+  "$schema": "../schema/config-schema.json", 
+  "profiles": {
+    "MINIMAL": {
+      "cpu": "500m",
+      "memory": "4Gi"
+    },
+    "STANDARD": {
+      "cpu": "1000m",
+      "memory": "8Gi",
+      "queue": 5000,
+      "rate": 500
+    },
+    "PERFORMANCE": {
+      "cpu": "2000m",
+      "memory": "16Gi",
+      "queue": 25000,
+      "rate": 2500
+    },
+    "MAXIMUM": {
+      "cpu": "4000m",
+      "memory": "32Gi",
+      "queue": 100000,
+      "rate": 5000
+    }
+  },
+  "debounce": {
+    "scaleUpSeconds": 60,
+    "scaleDownSeconds": 300
+  },
+  "checkInterval": 10,
+  "rmq": {
+    "host": "rabbitmq-cluster.production.svc.cluster.local",
+    "port": "15672"
+  },
+  "kubernetes": {
+    "namespace": "production",
+    "rmqServiceName": "rabbitmq-cluster"
+  }
+}

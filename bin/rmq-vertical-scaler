@@ -1,0 +1,325 @@
+#!/usr/bin/env node
+
+import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
+
+const program = new Command();
+
+program
+  .name('rmq-vertical-scaler')
+  .description('Generate Kubernetes manifests for RabbitMQ Vertical Scaler\n\nCommon usage:\n  rmq-vertical-scaler generate --namespace prod --service-name my-rabbitmq\n  rmq-vertical-scaler generate --help  # See all customization options')
+  .version(packageJson.version);
+
+// Generate command
+program
+  .command('generate')
+  .description('Generate Kubernetes deployment manifests for RabbitMQ Vertical Scaler')
+  .option('-c, --config <file>', 'Path to JSON configuration file (see examples/ for templates)')
+  .option('-n, --namespace <namespace>', 'Kubernetes namespace where RabbitMQ and scaler will be deployed')
+  .option('-s, --service-name <name>', 'Name of the RabbitMQ service/cluster (used for DNS and secrets)')
+  .option('-o, --output <file>', 'Output YAML file name for the generated manifests')
+  .option('--image <image>', 'Docker image to use for the scaler deployment')
+  .option('--scaler-name <name>', 'Custom name for scaler resources (ServiceAccount, Role, etc.)')
+  .action(async (options) => {
+    try {
+      await generateKubernetesManifests(options);
+    } catch (error) {
+      console.error('❌ Failed to generate manifests:', error.message);
+      process.exit(1);
+    }
+  });
+
+
+program.parse();
+
+// Implementation functions
+async function generateKubernetesManifests(options) {
+  const { writeFileSync, readFileSync } = await import('fs');
+  
+  // Load config file if provided
+  let config = {};
+  if (options.config) {
+    try {
+      const configData = readFileSync(options.config, 'utf8');
+      config = JSON.parse(configData);
+      console.log(`📄 Loaded configuration from: ${options.config}`);
+    } catch (error) {
+      console.error(`❌ Failed to load config file: ${error.message}`);
+      process.exit(1);
+    }
+  }
+  
+  // Merge config with CLI options (CLI takes precedence)
+  const finalConfig = {
+    namespace: options.namespace || config.kubernetes?.namespace || 'default',
+    serviceName: options.serviceName || config.kubernetes?.rmqServiceName || 'rabbitmq',
+    image: options.image || 'ferterahadi/rmq-vertical-scaler:latest',
+    scalerName: options.scalerName || 'rmq-vertical-scaler',
+    output: options.output || 'rmq-scaler.yaml',
+    profiles: config.profiles || {
+      LOW: { cpu: '330m', memory: '2Gi' },
+      MEDIUM: { cpu: '800m', memory: '3Gi' },
+      HIGH: { cpu: '1600m', memory: '4Gi' },
+      CRITICAL: { cpu: '2400m', memory: '8Gi' }
+    },
+    thresholds: extractThresholds(config),
+    debounce: config.debounce || {
+      scaleUpSeconds: 30,
+      scaleDownSeconds: 120
+    },
+    checkInterval: config.checkInterval || 5
+  };
+  
+  // Add rmq configuration after we have the final namespace and serviceName
+  finalConfig.rmq = config.rmq || {
+    host: `${finalConfig.serviceName}.${finalConfig.namespace}.svc.cluster.local`,
+    port: '15672'
+  };
+  
+  console.log('🔧 Generating Kubernetes manifests...');
+  console.log(`📝 Namespace: ${finalConfig.namespace}`);
+  console.log(`🐰 RabbitMQ Service: ${finalConfig.serviceName}`);
+  console.log(`📦 Image: ${finalConfig.image}`);
+  console.log(`🏷️  Scaler Name: ${finalConfig.scalerName}`);
+  console.log('');
+  console.log('📊 Scaling Profiles:');
+  
+  Object.entries(finalConfig.profiles).forEach(([profile, resources]) => {
+    const queueThreshold = finalConfig.thresholds.queue[profile] || 'N/A';
+    const rateThreshold = finalConfig.thresholds.rate[profile] || 'N/A';
+    if (profile === 'LOW') {
+      console.log(`  ${profile}:      CPU=${resources.cpu}, Memory=${resources.memory}`);
+    } else {
+      console.log(`  ${profile}:   CPU=${resources.cpu}, Memory=${resources.memory} (triggers at: ${queueThreshold} queue depth, ${rateThreshold} msg/s)`);
+    }
+  });
+  
+  console.log('');
+  console.log('⏱️  Timing Configuration:');
+  console.log(`  Scale Up Debounce: ${finalConfig.debounce.scaleUpSeconds}s`);
+  console.log(`  Scale Down Debounce: ${finalConfig.debounce.scaleDownSeconds}s`);
+  console.log(`  Check Interval: ${finalConfig.checkInterval}s`);
+  
+  // Generate the YAML content programmatically
+  const manifest = generateManifestContent(finalConfig);
+  
+  writeFileSync(finalConfig.output, manifest);
+  console.log('');
+  console.log(`✅ Generated ${finalConfig.output}`);
+  console.log('');
+  console.log('📋 Next steps:');
+  console.log(`  1. Review the generated configuration`);
+  console.log(`  2. Apply to your cluster: kubectl apply -f ${finalConfig.output}`);
+  console.log(`  3. Monitor the deployment: kubectl logs -f deployment/${finalConfig.scalerName} -n ${finalConfig.namespace}`);
+  console.log('');
+  console.log('💡 To customize profiles further, use the options shown in --help');
+  console.log('   Example: ./bin/rmq-vertical-scaler generate --medium-cpu 1000m --high-memory 6Gi');
+}
+
+function extractThresholds(config) {
+  // Support both old format (separate thresholds section) and new format (embedded in profiles)
+  if (config.thresholds) {
+    // Old format: return as-is
+    return config.thresholds;
+  }
+  
+  // New format: extract thresholds from profiles
+  const thresholds = { queue: {}, rate: {} };
+  
+  Object.entries(config.profiles || {}).forEach(([profileName, profile]) => {
+    if (profile.queue !== undefined) {
+      thresholds.queue[profileName] = profile.queue;
+    }
+    if (profile.rate !== undefined) {
+      thresholds.rate[profileName] = profile.rate;
+    }
+  });
+  
+  // Fallback to defaults if no thresholds found
+  if (Object.keys(thresholds.queue).length === 0 && Object.keys(thresholds.rate).length === 0) {
+    return {
+      queue: { MEDIUM: 2000, HIGH: 10000, CRITICAL: 50000 },
+      rate: { MEDIUM: 200, HIGH: 1000, CRITICAL: 2000 }
+    };
+  }
+  
+  return thresholds;
+}
+
+function generateProfileEnvVars(profiles) {
+  let envVars = '';
+  Object.entries(profiles).forEach(([profile, resources]) => {
+    envVars += `
+            # Profile ${profile} resources
+            - name: PROFILE_${profile}_CPU
+              value: '${resources.cpu}'
+            - name: PROFILE_${profile}_MEMORY
+              value: '${resources.memory}'`;
+  });
+  return envVars;
+}
+
+function generateThresholdEnvVars(thresholds) {
+  let envVars = '';
+  Object.entries(thresholds.queue).forEach(([profile, threshold]) => {
+    envVars += `
+            # ${profile} thresholds
+            - name: QUEUE_THRESHOLD_${profile}
+              value: '${threshold}'`;
+  });
+  Object.entries(thresholds.rate).forEach(([profile, threshold]) => {
+    envVars += `
+            - name: RATE_THRESHOLD_${profile}
+              value: '${threshold}'`;
+  });
+  return envVars;
+}
+
+function generateManifestContent(config) {
+  const scalerName = config.scalerName || 'rmq-vertical-scaler';
+  const serviceAccount = `${scalerName}-sa`;
+  const role = `${scalerName}-role`;
+  const roleBinding = `${scalerName}-binding`;
+  const configMap = `${scalerName}-config`;
+  const deployment = scalerName;
+  const pdb = `${config.serviceName}-pdb`;
+  
+  // Get profile names dynamically from config
+  const profileNames = Object.keys(config.profiles);
+  const profileNamesStr = profileNames.join(' ');
+  
+  return `---
+# ServiceAccount for the scaler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${serviceAccount}
+  namespace: ${config.namespace}
+---
+# Role for vertical scaling operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ${role}
+  namespace: ${config.namespace}
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ${roleBinding}
+  namespace: ${config.namespace}
+subjects:
+  - kind: ServiceAccount
+    name: ${serviceAccount}
+    namespace: ${config.namespace}
+roleRef:
+  kind: Role
+  name: ${role}
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ${configMap}
+  namespace: ${config.namespace}
+data:
+  stable_profile: ""
+  stable_since: "0"
+---
+# PodDisruptionBudget to ensure only 1 pod scaling at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ${pdb}
+  namespace: ${config.namespace}
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ${config.serviceName}
+---
+# Deployment for the vertical scaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${deployment}
+  namespace: ${config.namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${deployment}
+  template:
+    metadata:
+      labels:
+        app: ${deployment}
+    spec:
+      serviceAccountName: ${serviceAccount}
+      containers:
+        - name: scaler
+          image: ${config.image}
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          env:
+            # RabbitMQ credentials from secret
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ${config.serviceName}-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: ${config.serviceName}-default-user
+                  key: password
+            # RabbitMQ connection settings
+            - name: RMQ_HOST
+              value: '${config.rmq.host}'
+            - name: RMQ_PORT
+              value: '${config.rmq.port}'
+            - name: RMQ_SERVICE_NAME
+              value: '${config.serviceName}'
+            # Dynamic resource names
+            - name: NAMESPACE
+              value: '${config.namespace}'
+            - name: CONFIG_MAP_NAME
+              value: '${configMap}'
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '${profileNames.length}'
+            - name: PROFILE_NAMES
+              value: '${profileNamesStr}'${generateProfileEnvVars(config.profiles)}${generateThresholdEnvVars(config.thresholds)}
+            # Debounce settings
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: '${config.debounce.scaleUpSeconds}'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '${config.debounce.scaleDownSeconds}'
+            # Check interval
+            - name: CHECK_INTERVAL_SECONDS
+              value: '${config.checkInterval}'
+      restartPolicy: Always`;
+}

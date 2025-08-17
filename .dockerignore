@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+
+# Environment
+.env
+.env.*
+
+# Build output (will be copied from builder stage)
+dist
+
+# Kubernetes and deployment files
+*.yaml
+*.yml
+
+# Scripts
+generate-scaler.sh
+build.sh
+
+# Docker files (not needed in build context)
+Dockerfile
+.dockerignore
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
