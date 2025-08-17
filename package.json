@@ -1,6 +1,6 @@
 {
   "name": "rmq-vertical-scaler",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Automatically scale RabbitMQ cluster resources (CPU/Memory) based on queue metrics and message rates in Kubernetes",
   "main": "bin/rmq-vertical-scaler",
   "type": "module",
