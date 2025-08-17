@@ -39,10 +39,7 @@ RUN npm ci --only=production && \
 # Copy built application from builder stage
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/bin ./bin
-COPY --from=builder /app/dist ./dist 2>/dev/null || true
-
-# Copy additional files
-COPY README.md LICENSE ./
+COPY --from=builder /app/dist ./dist
 
 # Change ownership to non-root user
 RUN chown -R rmqscaler:rmqscaler /app

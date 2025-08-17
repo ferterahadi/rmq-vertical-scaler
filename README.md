@@ -1,11 +1,8 @@
 # RabbitMQ Vertical Scaler
 
-[![npm version](https://badge.fury.io/js/rmq-vertical-scaler.svg)](https://badge.fury.io/js/rmq-vertical-scaler)
-[![Docker Image](https://img.shields.io/docker/v/rmq-vertical-scaler/rmq-vertical-scaler?label=docker)](https://hub.docker.com/r/rmq-vertical-scaler/rmq-vertical-scaler)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js CI](https://github.com/yourusername/rmq-vertical-scaler/workflows/Node.js%20CI/badge.svg)](https://github.com/yourusername/rmq-vertical-scaler/actions)
+[![Docker Image](https://img.shields.io/docker/v/ferterahadi/rabbitmq-scaler?label=docker)](https://hub.docker.com/r/ferterahadi/rabbitmq-scaler)
 
-A powerful, production-ready Node.js application that automatically **vertically scales** RabbitMQ cluster resources (CPU/Memory) based on real-time queue metrics and message rates in Kubernetes environments.
+Node.js application that automatically **vertically scales** RabbitMQ cluster resources (CPU/Memory) based on real-time queue metrics and message rates in Kubernetes environments.
 
 ## 🚀 Features
 
@@ -16,7 +13,7 @@ A powerful, production-ready Node.js application that automatically **vertically
 - **🐳 Cloud Native**: Kubernetes-first design with built-in deployment tools
 - **📈 Monitoring Ready**: Built-in health checks and metrics endpoints
 - **🛡️ Production Hardened**: Comprehensive error handling and logging
-- **📦 Multiple Install Options**: npm, Docker, or binary releases
+- **📦 Easy Installation**: Docker image ready to use
 
 ## 📋 Table of Contents
 
@@ -24,25 +21,11 @@ A powerful, production-ready Node.js application that automatically **vertically
 - [Installation](#-installation)
 - [Configuration](#-configuration)
 - [Usage](#-usage)
-- [API Reference](#-api-reference)
 - [Deployment](#-deployment)
 - [Monitoring](#-monitoring)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ## ⚡ Quick Start
-
-### Using npm
-
-```bash
-# Install globally
-npm install -g rmq-vertical-scaler
-
-# Run with environment variables
-export RMQ_HOST="my-rabbitmq.prod.svc.cluster.local"
-export NAMESPACE="production"
-rmq-vertical-scaler --dry-run
-```
 
 ### Using Docker
 
@@ -50,59 +33,45 @@ rmq-vertical-scaler --dry-run
 docker run --rm \
   -e RMQ_HOST=my-rabbitmq.prod.svc.cluster.local \
   -e NAMESPACE=production \
-  rmq-vertical-scaler/rmq-vertical-scaler:latest
+  ferterahadi/rabbitmq-scaler:latest
 ```
 
-### Using Kubernetes CLI
+### Using Kubernetes
 
 ```bash
-# Generate and deploy in one command
-rmq-vertical-scaler deploy generate --namespace production --service-name my-rabbitmq | kubectl apply -f -
+# 1. Clone the repository to get the manifest generator
+git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
+cd rmq-vertical-scaler
+
+# 2. Generate Kubernetes manifests for your environment
+./bin/rmq-vertical-scaler generate \
+  --namespace production \
+  --service-name my-rabbitmq \
+  --output my-scaler.yaml
+
+# 3. Deploy to your cluster
+kubectl apply -f my-scaler.yaml
 ```
 
 ## 🔧 Installation
 
 ### Prerequisites
 
-- **Node.js**: ≥18.0.0
 - **Kubernetes**: ≥1.20 with RabbitMQ Cluster Operator
 - **RabbitMQ**: Cluster managed by [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
+- **Docker**: For pulling the pre-built image
 
-### Install Options
+### Installation
 
-#### 1. npm Package
+The Docker image `ferterahadi/rabbitmq-scaler:latest` is ready to use. You just need to:
 
-```bash
-# Global installation
-npm install -g rmq-vertical-scaler
-
-# Local installation
-npm install rmq-vertical-scaler
-```
-
-#### 2. Docker Image
+1. **Clone this repository** to get the Kubernetes manifest generator
+2. **Generate manifests** for your specific environment
+3. **Deploy** to your cluster
 
 ```bash
-# Pull latest image
-docker pull rmq-vertical-scaler/rmq-vertical-scaler:latest
-
-# Or build locally
-git clone https://github.com/yourusername/rmq-vertical-scaler.git
+git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
 cd rmq-vertical-scaler
-docker build -t rmq-vertical-scaler .
-```
-
-#### 3. Kubernetes Deployment
-
-```bash
-# Generate deployment manifests
-rmq-vertical-scaler deploy generate --namespace production --service-name my-rabbitmq
-
-# Install to cluster
-rmq-vertical-scaler deploy install
-
-# Or do both in one step
-rmq-vertical-scaler deploy generate --namespace production | kubectl apply -f -
 ```
 
 
@@ -181,74 +150,37 @@ Create `config.json`:
 
 ## 📖 Usage
 
-### Command Line Interface
+### Manifest Generator
+
+The repository includes a script to generate Kubernetes manifests customized for your environment:
 
 ```bash
-# Start the scaler (default command)
-rmq-vertical-scaler [start] [options]
-rmq-vertical-scaler --config ./config.json --namespace production
+# Clone the repository
+git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
+cd rmq-vertical-scaler
 
-# Deploy to Kubernetes
-rmq-vertical-scaler deploy generate [options]
-rmq-vertical-scaler deploy install [options]
+# Generate manifests (runs locally, no Docker needed)
+./bin/rmq-vertical-scaler generate \
+  --namespace production \
+  --service-name my-rabbitmq \
+  --output my-scaler.yaml
 
-# Show help
-rmq-vertical-scaler --help
-rmq-vertical-scaler deploy --help
-
-Options:
-  -V, --version                output the version number
-  -c, --config <path>          path to configuration file
-  -n, --namespace <namespace>  Kubernetes namespace (default: "default")
-  -d, --debug                  enable debug logging
-  --dry-run                    simulate scaling without applying changes
-  -h, --help                   display help for command
+# Options:
+#   -n, --namespace     Kubernetes namespace (default: "default")
+#   -s, --service-name  RabbitMQ service name (default: "rabbitmq") 
+#   -o, --output        Output file name (default: "rmq-scaler.yaml")
+#   --image             Docker image (default: "ferterahadi/rabbitmq-scaler:latest")
 ```
 
-### Programmatic Usage
+### Docker Usage (Advanced)
 
-```javascript
-import { RabbitMQVerticalScaler } from 'rmq-vertical-scaler';
-
-const scaler = new RabbitMQVerticalScaler({
-  configPath: './config.json',
-  namespace: 'production',
-  debug: true,
-  dryRun: false
-});
-
-// Start scaling
-await scaler.start();
-
-// Health check
-const health = await scaler.healthCheck();
-console.log(health);
-
-// Stop scaling
-await scaler.stop();
-```
-
-### Docker Usage
+For standalone Docker usage outside Kubernetes:
 
 ```bash
-# Basic usage
 docker run --rm \
   -e RMQ_HOST=rabbitmq.default.svc.cluster.local \
   -e NAMESPACE=production \
-  rmq-vertical-scaler/rmq-vertical-scaler:latest
-
-# With custom configuration
-docker run --rm \
-  -v $(pwd)/config.json:/app/config.json \
-  -e CONFIG_PATH=/app/config.json \
-  rmq-vertical-scaler/rmq-vertical-scaler:latest
-
-# Dry run mode
-docker run --rm \
-  -e RMQ_HOST=rabbitmq.default.svc.cluster.local \
-  -e NAMESPACE=production \
-  rmq-vertical-scaler/rmq-vertical-scaler:latest \
-  --dry-run
+  ferterahadi/rabbitmq-scaler:latest
 ```
 
 ## 🚢 Deployment
@@ -274,18 +206,22 @@ rules:
 ### Kubernetes Deployment
 
 ```bash
-# Generate and apply manifests
-rmq-vertical-scaler deploy generate \
+# Clone the repository 
+git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
+cd rmq-vertical-scaler
+
+# Generate manifests for your environment
+./bin/rmq-vertical-scaler generate \
   --namespace production \
   --service-name my-rabbitmq \
-  --image rmq-vertical-scaler:latest \
   --output production-scaler.yaml
 
-# Install to cluster
-rmq-vertical-scaler deploy install --file production-scaler.yaml
+# Apply to your cluster
+kubectl apply -f production-scaler.yaml
 
-# Or combine both steps
-rmq-vertical-scaler deploy generate --namespace production | kubectl apply -f -
+# Monitor the deployment
+kubectl get deployment rmq-vertical-scaler -n production
+kubectl logs -f deployment/rmq-vertical-scaler -n production
 ```
 
 ## 📊 Monitoring
@@ -354,15 +290,11 @@ const scalingCounter = new client.Counter({
 5. **Resource Update**: Patch RabbitMQ cluster resource specifications
 6. **State Tracking**: Update ConfigMap with current stable profile
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
 ### Development Setup
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/rmq-vertical-scaler.git
+git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
 cd rmq-vertical-scaler
 
 # Install dependencies
@@ -396,19 +328,7 @@ rmq-vertical-scaler/
 └── .github/                # CI/CD workflows
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Documentation**: [Full documentation](https://docs.rmq-vertical-scaler.dev)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/rmq-vertical-scaler/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/rmq-vertical-scaler/discussions)
-- **Email**: support@rmq-vertical-scaler.dev
-
 ## 🏆 Acknowledgments
-
 - [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator) for Kubernetes integration
 - [Kubernetes JavaScript Client](https://github.com/kubernetes-client/javascript) for API access
 - The RabbitMQ and Kubernetes communities for inspiration and best practices
