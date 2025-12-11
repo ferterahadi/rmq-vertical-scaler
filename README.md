@@ -4,7 +4,11 @@
 
 Automatically scales RabbitMQ cluster resources (CPU/Memory) based on real-time queue metrics and message rates in Kubernetes.
 
-> ⚠️ **Important**: This scaler is recommended only for **quorum queues with 3+ nodes**. Using it on single-node RabbitMQ deployments may result in **message loss** during scaling operations.
+> ⚠️ **Note**  
+> Vertically scaling RabbitMQ is *not* generally recommended, since node restarts can cause **temporary disruption and potential message loss**. I understand and accept this trade-off. This scaler is intended as an **alternative** for **infrequent or bursty workloads** where some disruption is acceptable to save resources.  
+>  
+> ⚠️ **Important**: This scaler is recommended only for **quorum queues with 3+ nodes**. Using it on **single-node** RabbitMQ deployments may result in **message loss** during scaling operations.
+
 
 ## 🚀 Features
 
