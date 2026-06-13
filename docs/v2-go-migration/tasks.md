@@ -80,5 +80,5 @@ minikube + RabbitMQ-Cluster-Operator cluster on 2026-06-13.
 
 ## Open / deferred (not blocking code-completeness)
 - [ ] Push `release/2.0.0` + the `v1.0.2` tag to `origin`; merge to `master`. **Held until the test sign-off.**
-- [ ] Meaningful Canary Lab feature + test cases (requested, deferred for now).
+- [x] Canary Lab feature + test cases — `rmq_vertical_scaler_scaling` in the canary-lab workspace. **3/3 passing**: idle→LOW, backlog→HIGH, drain→LOW, against a live minikube cluster, rebuilding the scaler image from source each run. (First run surfaced a test-scenario flaw — the drain deleted the only queue, tripping the scaler's intended "no queues → skip"; fixed by pre-declaring a durable queue + perf-test `--predeclared`.)
 - [ ] Optional: cold-start timing, 24h memory-stability sample.
