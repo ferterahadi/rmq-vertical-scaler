@@ -1,0 +1,163 @@
+---
+# ServiceAccount for the scaler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rmq-vertical-scaler-sa
+  namespace: default
+---
+# Role for vertical scaling operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rmq-vertical-scaler-role
+  namespace: default
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rmq-vertical-scaler-binding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: rmq-vertical-scaler-sa
+    namespace: default
+roleRef:
+  kind: Role
+  name: rmq-vertical-scaler-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rmq-vertical-scaler-config
+  namespace: default
+data:
+  stable_profile: ""
+  stable_since: "0"
+---
+# PodDisruptionBudget to ensure only 1 pod scaling at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-pdb
+  namespace: default
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+---
+# Deployment for the vertical scaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmq-vertical-scaler
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmq-vertical-scaler
+  template:
+    metadata:
+      labels:
+        app: rmq-vertical-scaler
+    spec:
+      serviceAccountName: rmq-vertical-scaler-sa
+      containers:
+        - name: scaler
+          image: ferterahadi/rmq-vertical-scaler:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          env:
+            # RabbitMQ credentials from secret
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: password
+            # RabbitMQ connection settings
+            - name: RMQ_HOST
+              value: 'rabbitmq.default.svc.cluster.local'
+            - name: RMQ_PORT
+              value: '15672'
+            - name: RMQ_SERVICE_NAME
+              value: 'rabbitmq'
+            # Dynamic resource names
+            - name: NAMESPACE
+              value: 'default'
+            - name: CONFIG_MAP_NAME
+              value: 'rmq-vertical-scaler-config'
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '4'
+            - name: PROFILE_NAMES
+              value: 'LOW MEDIUM HIGH CRITICAL'
+            # Profile LOW resources
+            - name: PROFILE_LOW_CPU
+              value: '330m'
+            - name: PROFILE_LOW_MEMORY
+              value: '2Gi'
+            # Profile MEDIUM resources
+            - name: PROFILE_MEDIUM_CPU
+              value: '800m'
+            - name: PROFILE_MEDIUM_MEMORY
+              value: '3Gi'
+            # Profile HIGH resources
+            - name: PROFILE_HIGH_CPU
+              value: '1600m'
+            - name: PROFILE_HIGH_MEMORY
+              value: '4Gi'
+            # Profile CRITICAL resources
+            - name: PROFILE_CRITICAL_CPU
+              value: '2400m'
+            - name: PROFILE_CRITICAL_MEMORY
+              value: '8Gi'
+            # MEDIUM thresholds
+            - name: QUEUE_THRESHOLD_MEDIUM
+              value: '2000'
+            # HIGH thresholds
+            - name: QUEUE_THRESHOLD_HIGH
+              value: '10000'
+            # CRITICAL thresholds
+            - name: QUEUE_THRESHOLD_CRITICAL
+              value: '50000'
+            - name: RATE_THRESHOLD_MEDIUM
+              value: '200'
+            - name: RATE_THRESHOLD_HIGH
+              value: '1000'
+            - name: RATE_THRESHOLD_CRITICAL
+              value: '2000'
+            # Debounce settings
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: '30'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '120'
+            # Check interval
+            - name: CHECK_INTERVAL_SECONDS
+              value: '5'
+      restartPolicy: Always

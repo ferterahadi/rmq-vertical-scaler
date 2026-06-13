@@ -1,61 +1,31 @@
-# Multi-stage build for optimized production image
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1
 
-# Set working directory
-WORKDIR /app
+# ---- Build stage ----
+FROM golang:1.26 AS builder
 
-# Copy package files
-COPY package*.json ./
+WORKDIR /src
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci
+# Download dependencies first so they are cached across source changes.
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Copy source code
+# Build a fully static binary (no libc), stripped of debug info.
 COPY . .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w -X main.version=${VERSION}" \
+    -o /out/rmq-vertical-scaler ./cmd/rmq-vertical-scaler
 
-# Build the application
-RUN npm run build
+# ---- Runtime stage ----
+# distroless/static:nonroot ships CA certs, tzdata, and a non-root user, with no
+# shell or package manager — a ~2 MB base. Go handles SIGTERM/SIGINT natively as
+# PID 1, so no dumb-init is required.
+FROM gcr.io/distroless/static:nonroot
 
-# Production stage
-FROM node:20-alpine AS production
+COPY --from=builder /out/rmq-vertical-scaler /rmq-vertical-scaler
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+USER nonroot:nonroot
 
-# Create non-root user
-RUN addgroup -g 1001 -S rmqscaler && \
-    adduser -S rmqscaler -u 1001 -G rmqscaler
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Copy built application from builder stage
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/bin ./bin
-COPY --from=builder /app/dist ./dist
-
-# Change ownership to non-root user
-RUN chown -R rmqscaler:rmqscaler /app
-
-# Switch to non-root user
-USER rmqscaler
-
-# Expose health check port (if implemented)
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD node -e "process.exit(0)" || exit 1
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Default command
-CMD ["node", "lib/index.js"]
+ENTRYPOINT ["/rmq-vertical-scaler"]
+# Default to the in-cluster control loop; override with "generate" for the CLI.
+CMD ["run"]

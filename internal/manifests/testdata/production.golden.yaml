@@ -1,0 +1,163 @@
+---
+# ServiceAccount for the scaler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rmq-vertical-scaler-sa
+  namespace: production
+---
+# Role for vertical scaling operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rmq-vertical-scaler-role
+  namespace: production
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rmq-vertical-scaler-binding
+  namespace: production
+subjects:
+  - kind: ServiceAccount
+    name: rmq-vertical-scaler-sa
+    namespace: production
+roleRef:
+  kind: Role
+  name: rmq-vertical-scaler-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rmq-vertical-scaler-config
+  namespace: production
+data:
+  stable_profile: ""
+  stable_since: "0"
+---
+# PodDisruptionBudget to ensure only 1 pod scaling at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-cluster-pdb
+  namespace: production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq-cluster
+---
+# Deployment for the vertical scaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmq-vertical-scaler
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmq-vertical-scaler
+  template:
+    metadata:
+      labels:
+        app: rmq-vertical-scaler
+    spec:
+      serviceAccountName: rmq-vertical-scaler-sa
+      containers:
+        - name: scaler
+          image: ferterahadi/rmq-vertical-scaler:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          env:
+            # RabbitMQ credentials from secret
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-cluster-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-cluster-default-user
+                  key: password
+            # RabbitMQ connection settings
+            - name: RMQ_HOST
+              value: 'rabbitmq-cluster.production.svc.cluster.local'
+            - name: RMQ_PORT
+              value: '15672'
+            - name: RMQ_SERVICE_NAME
+              value: 'rabbitmq-cluster'
+            # Dynamic resource names
+            - name: NAMESPACE
+              value: 'production'
+            - name: CONFIG_MAP_NAME
+              value: 'rmq-vertical-scaler-config'
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '4'
+            - name: PROFILE_NAMES
+              value: 'MINIMAL STANDARD PERFORMANCE MAXIMUM'
+            # Profile MINIMAL resources
+            - name: PROFILE_MINIMAL_CPU
+              value: '500m'
+            - name: PROFILE_MINIMAL_MEMORY
+              value: '4Gi'
+            # Profile STANDARD resources
+            - name: PROFILE_STANDARD_CPU
+              value: '1000m'
+            - name: PROFILE_STANDARD_MEMORY
+              value: '8Gi'
+            # Profile PERFORMANCE resources
+            - name: PROFILE_PERFORMANCE_CPU
+              value: '2000m'
+            - name: PROFILE_PERFORMANCE_MEMORY
+              value: '16Gi'
+            # Profile MAXIMUM resources
+            - name: PROFILE_MAXIMUM_CPU
+              value: '4000m'
+            - name: PROFILE_MAXIMUM_MEMORY
+              value: '32Gi'
+            # STANDARD thresholds
+            - name: QUEUE_THRESHOLD_STANDARD
+              value: '5000'
+            # PERFORMANCE thresholds
+            - name: QUEUE_THRESHOLD_PERFORMANCE
+              value: '25000'
+            # MAXIMUM thresholds
+            - name: QUEUE_THRESHOLD_MAXIMUM
+              value: '100000'
+            - name: RATE_THRESHOLD_STANDARD
+              value: '500'
+            - name: RATE_THRESHOLD_PERFORMANCE
+              value: '2500'
+            - name: RATE_THRESHOLD_MAXIMUM
+              value: '5000'
+            # Debounce settings
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: '60'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '300'
+            # Check interval
+            - name: CHECK_INTERVAL_SECONDS
+              value: '10'
+      restartPolicy: Always
