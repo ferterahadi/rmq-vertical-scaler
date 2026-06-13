@@ -34,8 +34,13 @@ management plugin on, NodePort 30672):
 
 ```bash
 kubectl apply -f tests/k8s/rabbitmq-cluster.yaml
-kubectl rollout status sts/rabbitmq          # wait for the 3 nodes
+# The operator names the StatefulSet "<cluster>-server":
+kubectl rollout status sts/rabbitmq-server   # wait for the nodes
 ```
+
+> On a small VM (e.g. a 5 GB minikube) the 3-replica/2Gi fixture won't schedule.
+> Use 1 replica with small requests for a smoke test — see the values in
+> `RMQ_VERTICAL_SCALING` notes or just edit a copy of the fixture.
 
 The operator creates the `rabbitmq-default-user` secret the scaler reads.
 
