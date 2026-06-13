@@ -36,24 +36,28 @@ sampling steps; run it after both versions are deployed. Raw samples land under
 | 24h memory | sawtooth (V8 GC) | flat | more predictable |
 | Cold start | node startup + require graph | single static binary | faster |
 
-## Measured (v2 Go)
+## Measured — real v1-vs-v2 side by side
 
-Build/image figures (host) plus a live minikube run (1-replica RabbitMQ Cluster
-Operator cluster, scaler idle at the LOW profile), 2026-06-13:
+Both versions built and deployed to the **same** minikube cluster, same config,
+both idle at the LOW profile after a fresh restart + 2 min settle, 2026-06-14.
+v1 = the `1.0.2` Node image built from the `v1.0.2` tag; v2 = the `2.0.0` Go image.
 
-| Metric | v1 (Node.js) | v2 (Go) | Source |
-|---|---|---|---|
-| **Idle RSS** | ~50–80 MB (documented baseline) | **8 MiB** | `kubectl top pod` (idle, LOW) |
-| **Idle CPU** | non-trivial (V8) | **1m** (~0) | `kubectl top pod` |
-| Container image (on disk) | ~150–280 MB | **59.9 MB** | `docker build` + `docker images` |
-| Static binary | n/a | 40.1 MiB (10.6 MiB gz) | `go build -ldflags="-s -w"` |
-| Build deps | `node_modules` 154 MB | client-go + stdlib | — |
-| Runtime base image | `node:20-alpine` ~130 MB | `distroless/static:nonroot` ~2 MB | — |
+| Metric | v1 (Node 1.0.2) | v2 (Go 2.0.0) | Change | Source |
+|---|---|---|---|---|
+| **Idle RSS** | **45 MiB** | **5 MiB** | **~89% less (9×)** | `kubectl top pod` |
+| **Idle CPU** | 2m | 1m | lower | `kubectl top pod` |
+| **Container image** | **351 MB** | **59.9 MB** | **~83% less** | `docker images` |
+| **Cold start** (pod start → first metrics activity) | ~4.4 s | ~0.76 s | **~6× faster** | pod `startTime` vs first log ts |
+| Static binary / bundle | webpack `dist` + `node_modules` | single 40.1 MiB static binary | — | — |
+| Runtime base image | `node:20-alpine` ~194 MB | `distroless/static:nonroot` ~6 MB | — | `docker images` |
 
-**Idle RSS dropped from a documented ~50–80 MB (Node) to a measured 8 MiB (Go)
-— a ~6–10× reduction**, which is the headline result for a tool whose purpose
-is saving cluster resources. For reference the RabbitMQ pod it manages used
-88 MiB / 10m at the same moment.
+**Idle RSS dropped from 45 MiB (Node) to 5 MiB (Go) — a 9× reduction**, which is
+the headline result for a tool whose whole purpose is saving cluster resources.
+(Under sustained activity the Go process settles higher — observed ~33 MiB after
+an 8 h run with a scaling cycle — still well below Node's idle baseline.) For
+reference the RabbitMQ pod it manages used ~45–88 MiB at the same time, i.e. v2
+is now negligible next to its workload. Both versions made identical scaling
+decisions and showed the same empty-queue skip behaviour.
 
 > **Honest note on image size:** `client-go` is a large dependency, so the v2
 > binary (~40 MiB) and image (~60 MB) are bigger than a trivial Go program. The
@@ -73,7 +77,5 @@ operator CRD:
 ## Pending (longer-running, optional)
 
 - 24h memory-stability curve (leak check) — needs a sustained run.
-- Cold-start latency captured precisely from timestamps.
-- Strict v1-vs-v2 side-by-side (needs a published v1 image to deploy alongside).
 
 Use `scripts/benchmark.sh` to automate the sampling.
