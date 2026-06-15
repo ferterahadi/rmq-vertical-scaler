@@ -148,3 +148,10 @@ config.local.json
 
 # Docker
 .dockerignore
+
+# Go
+/dist/
+/bin/rmq-vertical-scaler-go
+*.test
+*.out
+vendor/

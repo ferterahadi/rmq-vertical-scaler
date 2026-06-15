@@ -1,0 +1,128 @@
+---
+# ServiceAccount for the scaler
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{.ServiceAccount}}
+  namespace: {{.Namespace}}
+---
+# Role for vertical scaling operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{.Role}}
+  namespace: {{.Namespace}}
+rules:
+  - apiGroups: ['rabbitmq.com']
+    resources: ['rabbitmqclusters']
+    verbs: ['get', 'patch', 'update']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get']
+  - apiGroups: ['']
+    resources: ['configmaps']
+    verbs: ['get', 'create', 'update', 'patch']
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{.RoleBinding}}
+  namespace: {{.Namespace}}
+subjects:
+  - kind: ServiceAccount
+    name: {{.ServiceAccount}}
+    namespace: {{.Namespace}}
+roleRef:
+  kind: Role
+  name: {{.Role}}
+  apiGroup: rbac.authorization.k8s.io
+---
+# ConfigMap for scaler state tracking
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{.ConfigMap}}
+  namespace: {{.Namespace}}
+data:
+  stable_profile: ""
+  stable_since: "0"
+---
+# PodDisruptionBudget to ensure only 1 pod scaling at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{.PDB}}
+  namespace: {{.Namespace}}
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{.ServiceName}}
+---
+# Deployment for the vertical scaler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Deployment}}
+  namespace: {{.Namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{.Deployment}}
+  template:
+    metadata:
+      labels:
+        app: {{.Deployment}}
+    spec:
+      serviceAccountName: {{.ServiceAccount}}
+      containers:
+        - name: scaler
+          image: {{.Image}}
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 75m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          env:
+            # RabbitMQ credentials from secret
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{.ServiceName}}-default-user
+                  key: username
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{.ServiceName}}-default-user
+                  key: password
+            # RabbitMQ connection settings
+            - name: RMQ_HOST
+              value: '{{.RMQHost}}'
+            - name: RMQ_PORT
+              value: '{{.RMQPort}}'
+            - name: RMQ_SERVICE_NAME
+              value: '{{.ServiceName}}'
+            # Dynamic resource names
+            - name: NAMESPACE
+              value: '{{.Namespace}}'
+            - name: CONFIG_MAP_NAME
+              value: '{{.ConfigMap}}'
+            # Profile configuration
+            - name: PROFILE_COUNT
+              value: '{{.ProfileCount}}'
+            - name: PROFILE_NAMES
+              value: '{{.ProfileNamesStr}}'{{.EnvVars}}
+            # Debounce settings
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: '{{.ScaleUpSeconds}}'
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: '{{.ScaleDnSeconds}}'
+            # Check interval
+            - name: CHECK_INTERVAL_SECONDS
+              value: '{{.CheckInterval}}'
+      restartPolicy: Always
