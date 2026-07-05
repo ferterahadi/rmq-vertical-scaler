@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ferterahadi/rmq-vertical-scaler/examples"
+	"github.com/ferterahadi/rmq-vertical-scaler/schema"
 )
 
 // execute runs the root command with args, capturing stdout/stderr into buf.
@@ -152,5 +155,52 @@ func TestPickVersion(t *testing.T) {
 				t.Errorf("pickVersion(%q, %q) = %q, want %q", tc.ldflags, tc.buildBI, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestInitWritesScaffold(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "my-config.json")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+
+	b, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(b, examples.TemplateConfig) {
+		t.Error("scaffold content differs from embedded template")
+	}
+	if err := schema.Validate(b); err != nil {
+		t.Errorf("scaffold does not validate: %v", err)
+	}
+}
+
+func TestInitRefusesOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "my-config.json")
+	if err := os.WriteFile(out, []byte("keep me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("init over an existing file succeeded, want error")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error %q does not mention 'already exists'", err.Error())
+	}
+	b, _ := os.ReadFile(out)
+	if string(b) != "keep me" {
+		t.Error("existing file was clobbered")
 	}
 }
