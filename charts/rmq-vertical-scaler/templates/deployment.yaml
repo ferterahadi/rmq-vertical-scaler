@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rmq-vertical-scaler.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "rmq-vertical-scaler.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "rmq-vertical-scaler.fullname" . }}
+    spec:
+      serviceAccountName: {{ include "rmq-vertical-scaler.serviceAccountName" . }}
+      containers:
+        - name: scaler
+          image: {{ include "rmq-vertical-scaler.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rmq-vertical-scaler.secretName" . }}
+                  key: {{ .Values.auth.usernameKey | quote }}
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rmq-vertical-scaler.secretName" . }}
+                  key: {{ .Values.auth.passwordKey | quote }}
+            - name: RMQ_HOST
+              value: {{ include "rmq-vertical-scaler.rmqHost" . | quote }}
+            - name: RMQ_PORT
+              value: {{ .Values.rmq.port | quote }}
+            - name: RMQ_SERVICE_NAME
+              value: {{ .Values.serviceName | quote }}
+            - name: NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: CONFIG_MAP_NAME
+              value: {{ include "rmq-vertical-scaler.fullname" . }}-config
+            - name: PROFILE_COUNT
+              value: {{ len .Values.profiles | quote }}
+            {{- $names := list }}
+            {{- range .Values.profiles }}{{ $names = append $names .name }}{{- end }}
+            - name: PROFILE_NAMES
+              value: {{ join " " $names | quote }}
+            {{- range .Values.profiles }}
+            - name: PROFILE_{{ .name }}_CPU
+              value: {{ .cpu | quote }}
+            - name: PROFILE_{{ .name }}_MEMORY
+              value: {{ .memory | quote }}
+            {{- end }}
+            {{- range .Values.profiles }}
+            {{- if .queue }}
+            - name: QUEUE_THRESHOLD_{{ .name }}
+              value: {{ .queue | quote }}
+            {{- end }}
+            {{- end }}
+            {{- range .Values.profiles }}
+            {{- if .rate }}
+            - name: RATE_THRESHOLD_{{ .name }}
+              value: {{ .rate | quote }}
+            {{- end }}
+            {{- end }}
+            - name: DEBOUNCE_SCALE_UP_SECONDS
+              value: {{ .Values.debounce.scaleUpSeconds | quote }}
+            - name: DEBOUNCE_SCALE_DOWN_SECONDS
+              value: {{ .Values.debounce.scaleDownSeconds | quote }}
+            - name: CHECK_INTERVAL_SECONDS
+              value: {{ .Values.checkInterval | quote }}
+      restartPolicy: Always

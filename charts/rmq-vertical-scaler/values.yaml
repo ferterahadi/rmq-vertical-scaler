@@ -1,0 +1,70 @@
+# Name of the RabbitmqCluster / its service. Drives the management-API DNS
+# name, the default credentials secret name, and the PDB selector.
+serviceName: rabbitmq
+
+image:
+  repository: ferterahadi/rmq-vertical-scaler
+  tag: ""            # defaults to the chart appVersion
+  pullPolicy: IfNotPresent
+
+rmq:
+  host: ""           # default: <serviceName>.<release namespace>.svc.cluster.local
+  port: "15672"
+
+# RabbitMQ management API credentials.
+auth:
+  existingSecret: "" # default: <serviceName>-default-user (RabbitMQ Cluster Operator convention)
+  usernameKey: username
+  passwordKey: password
+
+# Ordered scaling profiles. The FIRST entry is the floor (idle baseline) and
+# must have no queue/rate. Every later entry needs at least one threshold;
+# the engine scans highest-to-lowest and picks the first exceeded.
+profiles:
+  - name: LOW
+    cpu: 330m
+    memory: 2Gi
+  - name: MEDIUM
+    cpu: 800m
+    memory: 3Gi
+    queue: 2000
+    rate: 200
+  - name: HIGH
+    cpu: 1600m
+    memory: 4Gi
+    queue: 10000
+    rate: 1000
+  - name: CRITICAL
+    cpu: 2400m
+    memory: 8Gi
+    queue: 50000
+    rate: 2000
+
+debounce:
+  scaleUpSeconds: 30
+  scaleDownSeconds: 120
+
+checkInterval: 5
+
+# PDB protecting the RabbitMQ nodes during scaling restarts (requires 3+ nodes).
+pdb:
+  enabled: true
+  minAvailable: 2
+
+# Resources for the scaler container itself.
+resources:
+  requests:
+    cpu: 75m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 512Mi
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: ""           # required when create=false
+
+fullnameOverride: ""

@@ -1,0 +1,11 @@
+rmq-vertical-scaler {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+
+Prerequisite: the credentials secret must exist (keys: {{ .Values.auth.usernameKey }}, {{ .Values.auth.passwordKey }}):
+  kubectl get secret {{ include "rmq-vertical-scaler.secretName" . }} -n {{ .Release.Namespace }}
+(It is created automatically by the RabbitMQ Cluster Operator; set auth.existingSecret to use your own.)
+
+Verify the rollout:
+  kubectl rollout status deployment/{{ include "rmq-vertical-scaler.fullname" . }} -n {{ .Release.Namespace }}
+  kubectl logs -f deployment/{{ include "rmq-vertical-scaler.fullname" . }} -n {{ .Release.Namespace }}
+
+Reminder: vertical scaling restarts RabbitMQ nodes — use only with quorum queues on 3+ nodes.

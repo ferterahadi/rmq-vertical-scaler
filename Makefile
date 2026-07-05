@@ -8,7 +8,7 @@ VERSION  ?= dev
 LDFLAGS  := -s -w -X main.version=$(VERSION)
 
 .DEFAULT_GOAL := help
-.PHONY: help build run-generate test cover vet fmt tidy image bench clean
+.PHONY: help build run-generate test cover vet fmt tidy image bench clean helm-lint
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -44,3 +44,10 @@ bench: ## Run the footprint benchmark harness (see research/benchmark.md)
 
 clean: ## Remove build output
 	rm -rf dist coverage.out
+
+helm-lint: ## Lint + template-render the Helm chart (requires helm)
+	helm lint charts/rmq-vertical-scaler
+	helm template rvs charts/rmq-vertical-scaler > /dev/null
+	@if helm template rvs charts/rmq-vertical-scaler --set pdb.enabled=false | grep -q PodDisruptionBudget; then \
+		echo "pdb.enabled=false still renders a PDB" && exit 1; fi
+	@echo "helm chart OK"

@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["serviceName", "profiles"],
+  "properties": {
+    "serviceName": { "type": "string", "minLength": 1 },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string" },
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
+      },
+      "additionalProperties": false
+    },
+    "rmq": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "usernameKey": { "type": "string", "minLength": 1 },
+        "passwordKey": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "cpu", "memory"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Z_]+$" },
+          "cpu": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?m?$" },
+          "memory": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|Ti)$" },
+          "queue": { "type": "number", "minimum": 0 },
+          "rate": { "type": "number", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "debounce": {
+      "type": "object",
+      "properties": {
+        "scaleUpSeconds": { "type": "number", "minimum": 0 },
+        "scaleDownSeconds": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "checkInterval": { "type": "number", "minimum": 1 },
+    "pdb": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minAvailable": { "type": "number", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "resources": { "type": "object" },
+    "rbac": {
+      "type": "object",
+      "properties": { "create": { "type": "boolean" } },
+      "additionalProperties": false
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "fullnameOverride": { "type": "string" }
+  }
+}
