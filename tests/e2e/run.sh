@@ -78,7 +78,7 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/do
 wait_for 180 "cert-manager webhook ready" \
   kubectl wait -n cert-manager deploy/cert-manager-webhook --for=condition=Available --timeout=5s
 kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml > /dev/null
-wait_for 120 "cluster operator ready" \
+wait_for 300 "cluster operator ready" \
   kubectl wait -n rabbitmq-system deploy/rabbitmq-cluster-operator --for=condition=Available --timeout=5s
 
 (cd "$ROOT" && docker build -q -t rmq-vertical-scaler:e2e .) > /dev/null
