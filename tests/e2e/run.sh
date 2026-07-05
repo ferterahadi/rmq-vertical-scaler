@@ -135,7 +135,14 @@ echo "=== [4/6] scale-down MEDIUM -> LOW (in place, memory decrease) ==="
 kubectl delete deploy e2e-producer -n "$NS" > /dev/null
 # Purging while the producer pod is still terminating repopulates the queue.
 kubectl wait --for=delete pod -l app=e2e-producer -n "$NS" --timeout=120s > /dev/null 2>&1 || true
-kubectl exec -n "$NS" rabbitmq-server-0 -c rabbitmq -- rabbitmqctl purge_queue e2e-load > /dev/null
+# Purge until actually empty (in-flight messages can survive a single purge).
+for _ in $(seq 1 10); do
+  kubectl exec -n "$NS" rabbitmq-server-0 -c rabbitmq -- rabbitmqctl purge_queue e2e-load > /dev/null 2>&1 || true
+  READY=$(kubectl exec -n "$NS" rabbitmq-server-0 -c rabbitmq -- rabbitmqctl list_queues messages --quiet 2>/dev/null | tail -1 | tr -dc 0-9)
+  [ "${READY:-0}" -lt 10 ] && break
+  sleep 5
+done
+note "queue drained (${READY:-?} messages left)"
 wait_for 300 "pods resized back to LOW (100m)" pods_cpu_is 100m
 assert_requests 100m 300Mi "scale-down"
 [ "$(snapshot_uids)" = "$UIDS_BEFORE" ] && ok "scale-down: pod UIDs unchanged (memory decrease in place)" || bad "scale-down: pods were recreated"

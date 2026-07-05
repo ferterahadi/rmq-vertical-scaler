@@ -76,6 +76,10 @@ spec:
             - "1"
             - --consumer-rate
             - "5"
+            # prefetch 1: the consumer never buffers unacked messages, so a
+            # queue purge actually empties the queue during scale-down
+            - --qos
+            - "1"
           resources:
             requests: {cpu: 100m, memory: 128Mi}
             limits: {cpu: 500m, memory: 512Mi}
