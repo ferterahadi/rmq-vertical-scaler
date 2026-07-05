@@ -12,9 +12,13 @@ spec:
     requests:
       cpu: 100m
       memory: 300Mi
+    # Limits are deliberately roomy: limits don't reserve node resources, and
+    # the infeasible-fallback scenario needs an oversized *request* that is
+    # still <= the pod's limit (valid patch) yet > node capacity, so the
+    # kubelet — not API validation — rejects it as Infeasible.
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: "2"
+      memory: 16Gi
   rabbitmq:
     additionalPlugins:
       - rabbitmq_management

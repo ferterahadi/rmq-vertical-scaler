@@ -106,8 +106,10 @@ wait_for 120 "consumer connected" \
 wait_for 300 "pods resized to MEDIUM (200m)" pods_cpu_is 200m
 assert_requests 200m 600Mi "scale-up"
 
-# Mode resolution is lazy (logged with the first applied scale action).
-if kubectl logs deploy/rmq-vertical-scaler -n "$NS" | grep -q "Scale mode: inplace"; then
+# Mode resolution is lazy (logged with the first applied scale action);
+# poll briefly in case the log write races this check.
+if wait_for 60 "mode line in scaler logs" \
+  sh -c "kubectl logs deploy/rmq-vertical-scaler -n $NS --tail=-1 | grep -q 'Scale mode: inplace'"; then
   ok "scaler resolved SCALE_MODE=auto -> inplace"
 else
   bad "scaler did not resolve to inplace mode"
@@ -156,17 +158,25 @@ HEAL_CPU=$(pod_field pod/rabbitmq-server-1 '{.spec.containers[?(@.name=="rabbitm
 [ "$HEAL_CPU" = "100m" ] && ok "self-heal: recreated pod at current profile (100m)" || bad "self-heal: recreated pod at $HEAL_CPU"
 
 echo "=== [6/6] infeasible resize falls back to rolling (auto mode) ==="
-kubectl set env deploy/rmq-vertical-scaler -n "$NS" PROFILE_MEDIUM_MEMORY=64Gi > /dev/null
+# A MEDIUM profile larger than the node can ever fit: the kubelet marks the
+# resize Infeasible and auto mode must revert to a rolling scale. The rolling
+# attempt itself can never complete (nothing can fit 12Gi here) — the point
+# is observing the detection + fallback, then cleaning up immediately.
+kubectl set env deploy/rmq-vertical-scaler -n "$NS" PROFILE_MEDIUM_MEMORY=12Gi > /dev/null
 kubectl rollout status deploy/rmq-vertical-scaler -n "$NS" --timeout=60s > /dev/null
 kubectl apply -f "$DIR/load.yaml" > /dev/null
 if wait_for 300 "scaler logged infeasible fallback" \
-  sh -c "kubectl logs deploy/rmq-vertical-scaler -n $NS | grep -q 'falling back to a rolling scale'"; then
+  sh -c "kubectl logs deploy/rmq-vertical-scaler -n $NS --tail=-1 | grep -q 'falling back to a rolling scale'"; then
   ok "infeasible resize triggered rolling fallback"
   STRATEGY=$(kubectl get rabbitmqclusters.rabbitmq.com rabbitmq -n "$NS" -o jsonpath='{.spec.override.statefulSet.spec.updateStrategy.type}')
   [ "$STRATEGY" = "RollingUpdate" ] && ok "override reverted to RollingUpdate for fallback" || bad "override is '$STRATEGY', want RollingUpdate"
 else
   bad "no rolling fallback observed"
 fi
+# Stop the doomed rolling attempt before it degrades the cluster: restore the
+# sane profile and remove the load so the scaler settles back to LOW.
+kubectl set env deploy/rmq-vertical-scaler -n "$NS" PROFILE_MEDIUM_MEMORY- > /dev/null
+kubectl delete -f "$DIR/load.yaml" --ignore-not-found > /dev/null 2>&1 || true
 
 echo
 echo "=== RESULT: $PASS passed, $FAIL failed ==="

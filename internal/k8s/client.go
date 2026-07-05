@@ -11,11 +11,13 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -206,7 +208,14 @@ func (c *Client) ResizePods(ctx context.Context, cpu, memory string) error {
 		if _, err := c.core.CoreV1().Pods(c.cfg.Namespace).Patch(ctx, pod.Name,
 			types.StrategicMergePatchType, body, metav1.PatchOptions{}, "resize"); err != nil {
 			c.logger.Printf("❌ In-place resize failed for pod %s: %v", pod.Name, err)
-			errs = append(errs, fmt.Errorf("pod %s: %w", pod.Name, err))
+			// Newer API servers reject an unschedulable resize synchronously
+			// ("node didn't have enough allocatable resources") instead of the
+			// async kubelet Infeasible condition — same semantics, same error.
+			if apierrors.IsForbidden(err) && strings.Contains(err.Error(), "allocatable") {
+				errs = append(errs, fmt.Errorf("pod %s: %w: %v", pod.Name, scaling.ErrResizeInfeasible, err))
+			} else {
+				errs = append(errs, fmt.Errorf("pod %s: %w", pod.Name, err))
+			}
 			continue
 		}
 		if err := c.checkResizeFeasible(ctx, pod.Name); err != nil {

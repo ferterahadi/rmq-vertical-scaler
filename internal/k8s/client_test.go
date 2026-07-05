@@ -11,6 +11,7 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -474,5 +475,38 @@ func TestSetUpdateStrategyPatchErrorPropagates(t *testing.T) {
 	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
 	if err := c.EnsureOnDeleteStrategy(context.Background()); err == nil {
 		t.Error("EnsureOnDeleteStrategy = nil, want error when the patch fails")
+	}
+}
+
+func TestResizePodsSynchronousAllocatableRejectionIsInfeasible(t *testing.T) {
+	// Newer API servers reject an unschedulable resize at patch time instead
+	// of the async kubelet Infeasible condition — must map to the same error.
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "330m", "1Gi"))
+	core.Fake.PrependReactor("patch", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(
+			schema.GroupResource{Resource: "pods"}, "rmq-server-0",
+			errors.New("node didn't have enough allocatable resources: memory, requested: 12884901888, allocatable: 8214757376"))
+	})
+	c := newTestClient(t, core, newDynamic())
+
+	err := c.ResizePods(context.Background(), "200m", "12Gi")
+	if !errors.Is(err, scaling.ErrResizeInfeasible) {
+		t.Errorf("err = %v, want ErrResizeInfeasible for synchronous allocatable rejection", err)
+	}
+}
+
+func TestResizePodsOtherForbiddenIsNotInfeasible(t *testing.T) {
+	// RBAC denial is also Forbidden but must NOT trigger the rolling fallback.
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "330m", "1Gi"))
+	core.Fake.PrependReactor("patch", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(
+			schema.GroupResource{Resource: "pods"}, "rmq-server-0",
+			errors.New(`user "system:serviceaccount:default:scaler" cannot patch resource "pods/resize"`))
+	})
+	c := newTestClient(t, core, newDynamic())
+
+	err := c.ResizePods(context.Background(), "200m", "2Gi")
+	if err == nil || errors.Is(err, scaling.ErrResizeInfeasible) {
+		t.Errorf("err = %v, want a non-infeasible error for RBAC denial", err)
 	}
 }
