@@ -72,7 +72,7 @@ go install github.com/ferterahadi/rmq-vertical-scaler/cmd/rmq-vertical-scaler@la
 ```bash
 git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
 helm install rvs rmq-vertical-scaler/charts/rmq-vertical-scaler \
-  --namespace production --set serviceName=my-rabbitmq
+  --namespace production --create-namespace --set serviceName=my-rabbitmq
 ```
 
 See [charts/rmq-vertical-scaler/README.md](charts/rmq-vertical-scaler/README.md) for all values.
