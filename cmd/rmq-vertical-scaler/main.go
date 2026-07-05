@@ -92,6 +92,7 @@ func generateCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&f.Output, "output", "o", "", "Output YAML file name for the generated manifests")
 	cmd.Flags().StringVar(&f.Image, "image", "", "Docker image to use for the scaler deployment")
 	cmd.Flags().StringVar(&f.ScalerName, "scaler-name", "", "Custom name for scaler resources (ServiceAccount, Role, etc.)")
+	cmd.Flags().BoolVar(&f.NoPDB, "no-pdb", false, "Skip the PodDisruptionBudget for the RabbitMQ cluster (e.g. if you manage your own)")
 	return cmd
 }
 

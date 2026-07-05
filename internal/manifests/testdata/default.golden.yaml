@@ -48,7 +48,7 @@ data:
   stable_profile: ""
   stable_since: "0"
 ---
-# PodDisruptionBudget to ensure only 1 pod scaling at a time
+# PodDisruptionBudget protecting the RabbitMQ nodes during scaling restarts (requires 3+ nodes)
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

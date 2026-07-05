@@ -227,6 +227,25 @@ func TestDefaultImage(t *testing.T) {
 	}
 }
 
+func TestGenerateNoPDB(t *testing.T) {
+	yaml, _, err := Generate(Flags{NoPDB: true}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(yaml, "PodDisruptionBudget") {
+		t.Error("--no-pdb output still contains a PodDisruptionBudget")
+	}
+	// The surrounding documents must remain intact.
+	for _, want := range []string{"kind: ConfigMap", "kind: Deployment"} {
+		if !strings.Contains(yaml, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+	if got := strings.Count(yaml, "\n---\n"); got != 4 { // 5 docs = leading --- + 4 separators
+		t.Errorf("document separator count = %d, want 4", got)
+	}
+}
+
 func TestGenerateUsesVersionedDefaultImage(t *testing.T) {
 	_, s, err := Generate(Flags{Version: "2.1.0"}, nil)
 	if err != nil {

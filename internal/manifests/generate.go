@@ -30,6 +30,7 @@ type Flags struct {
 	ScalerName  string
 	Output      string
 	Version     string // resolved build version, "" if unknown
+	NoPDB       bool   // skip the PodDisruptionBudget document
 }
 
 // Summary reports the resolved configuration for human-readable CLI output.
@@ -95,6 +96,7 @@ type tmplData struct {
 	RoleBinding     string
 	ConfigMap       string
 	PDB             string
+	IncludePDB      bool
 	Deployment      string
 	Namespace       string
 	ServiceName     string
@@ -150,6 +152,7 @@ func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
 		RoleBinding:     scalerName + "-binding",
 		ConfigMap:       scalerName + "-config",
 		PDB:             serviceName + "-pdb",
+		IncludePDB:      !flags.NoPDB,
 		Deployment:      scalerName,
 		Namespace:       namespace,
 		ServiceName:     serviceName,
