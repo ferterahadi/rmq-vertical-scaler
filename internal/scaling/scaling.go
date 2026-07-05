@@ -24,6 +24,13 @@ type Metrics struct {
 // raised when the overview is empty or there are no queues.
 var ErrNoMetrics = errors.New("connection error: unable to fetch metrics")
 
+// ErrResizeInfeasible marks an in-place pod resize the kubelet rejected
+// outright (the node can never fit the requested resources). It lives here —
+// not in the k8s package — so the controller can match it with errors.Is
+// without depending on client-go. Auto mode falls back to a rolling scale
+// when it sees this.
+var ErrResizeInfeasible = errors.New("in-place resize infeasible on node")
+
 // CalculateScaleProfile derives metrics from the RabbitMQ payloads and selects
 // the target profile. overviewOK is false when the overview fetch failed (v1's
 // empty `{}`); like v1, an empty queue list is also treated as a skip.

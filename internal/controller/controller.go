@@ -6,6 +6,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -22,6 +23,13 @@ type KubeClient interface {
 	GetStabilityState(ctx context.Context) scaling.StabilityState
 	UpdateStabilityTracking(ctx context.Context, profile string, now int64)
 	ApplyPatch(ctx context.Context, cpu, memory string) error
+
+	// In-place resize (v2.2.0). EffectiveScaleMode resolves SCALE_MODE against
+	// cluster capability; the rest only run when it resolves to inplace.
+	EffectiveScaleMode() string
+	EnsureOnDeleteStrategy(ctx context.Context) error
+	ResizePods(ctx context.Context, cpu, memory string) error
+	SetRollingUpdateStrategy(ctx context.Context) error
 }
 
 // MetricsClient is the subset of the metrics collector the controller needs.
@@ -38,6 +46,7 @@ type Controller struct {
 	kube    KubeClient
 	logger  *log.Logger
 	now     func() int64 // unix seconds; injectable for tests
+	mode    string       // effective scale mode, resolved lazily from kube
 }
 
 // New builds a Controller with a real wall-clock.
@@ -106,7 +115,7 @@ func (c *Controller) ApplyScale(ctx context.Context) error {
 	}
 
 	c.logger.Printf("⚙️  Applying: CPU=%s, Memory=%s", resources.CPU, resources.Memory)
-	if err := c.kube.ApplyPatch(ctx, resources.CPU, resources.Memory); err != nil {
+	if err := c.applyResources(ctx, resources); err != nil {
 		// v1 catches and continues the loop.
 		c.logger.Printf("❌ Scaling failed: %v", err)
 		return nil
@@ -114,6 +123,42 @@ func (c *Controller) ApplyScale(ctx context.Context) error {
 	// Reset stability tracking since we just scaled.
 	c.kube.UpdateStabilityTracking(ctx, profile, c.now())
 	return nil
+}
+
+// applyResources applies a profile through the path the effective scale mode
+// selects. Rolling is the v2.0.0 behaviour: one CR patch, the operator rolls
+// pods. In-place resizes the pods directly (no restart) and then patches the
+// CR too, keeping it the source of truth — under the OnDelete override that
+// patch does not roll anything. An Infeasible resize in auto mode reverts the
+// override and falls back to a rolling scale for this action.
+func (c *Controller) applyResources(ctx context.Context, r config.Profile) error {
+	if c.scaleMode() != config.ScaleModeInPlace {
+		return c.kube.ApplyPatch(ctx, r.CPU, r.Memory)
+	}
+
+	if err := c.kube.EnsureOnDeleteStrategy(ctx); err != nil {
+		return err
+	}
+	if err := c.kube.ResizePods(ctx, r.CPU, r.Memory); err != nil {
+		if c.cfg.ScaleMode == config.ScaleModeAuto && errors.Is(err, scaling.ErrResizeInfeasible) {
+			c.logger.Println("↩️  In-place resize infeasible on node; falling back to a rolling scale")
+			if serr := c.kube.SetRollingUpdateStrategy(ctx); serr != nil {
+				return serr
+			}
+			return c.kube.ApplyPatch(ctx, r.CPU, r.Memory)
+		}
+		return err
+	}
+	return c.kube.ApplyPatch(ctx, r.CPU, r.Memory)
+}
+
+// scaleMode resolves the effective mode once and caches it for the loop's
+// lifetime (capability discovery doesn't change under a running process).
+func (c *Controller) scaleMode() string {
+	if c.mode == "" {
+		c.mode = c.kube.EffectiveScaleMode()
+	}
+	return c.mode
 }
 
 // logStability reproduces v1's per-branch stability log lines.

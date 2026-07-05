@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -182,5 +184,272 @@ func TestApplyPatchReturnsErrorOnFailure(t *testing.T) {
 	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
 	if err := c.ApplyPatch(context.Background(), "2400m", "8Gi"); err == nil {
 		t.Error("ApplyPatch = nil, want error when the patch fails")
+	}
+}
+
+// withDiscovery sets the fake API server's discovery resources.
+func withDiscovery(core *corefake.Clientset, lists ...*metav1.APIResourceList) *corefake.Clientset {
+	core.Fake.Resources = lists
+	return core
+}
+
+func v1Resources(names ...string) *metav1.APIResourceList {
+	rl := &metav1.APIResourceList{GroupVersion: "v1"}
+	for _, n := range names {
+		rl.APIResources = append(rl.APIResources, metav1.APIResource{Name: n})
+	}
+	return rl
+}
+
+func TestResizeSupportedTrue(t *testing.T) {
+	core := withDiscovery(corefake.NewSimpleClientset(), v1Resources("pods", "pods/resize"))
+	c := newTestClient(t, core, newDynamic())
+	if !c.ResizeSupported() {
+		t.Error("ResizeSupported = false, want true when pods/resize is in discovery")
+	}
+}
+
+func TestResizeSupportedFalseWhenAbsent(t *testing.T) {
+	core := withDiscovery(corefake.NewSimpleClientset(), v1Resources("pods", "pods/exec"))
+	c := newTestClient(t, core, newDynamic())
+	if c.ResizeSupported() {
+		t.Error("ResizeSupported = true, want false without pods/resize")
+	}
+}
+
+func TestResizeSupportedFalseOnDiscoveryError(t *testing.T) {
+	// No v1 group registered at all -> discovery lookup errors -> false.
+	c := newTestClient(t, corefake.NewSimpleClientset(), newDynamic())
+	if c.ResizeSupported() {
+		t.Error("ResizeSupported = true, want false on discovery error")
+	}
+}
+
+func TestEffectiveScaleMode(t *testing.T) {
+	cases := []struct {
+		mode      string
+		supported bool
+		want      string
+	}{
+		{config.ScaleModeRolling, true, config.ScaleModeRolling},
+		{config.ScaleModeRolling, false, config.ScaleModeRolling},
+		{config.ScaleModeInPlace, true, config.ScaleModeInPlace},
+		{config.ScaleModeInPlace, false, config.ScaleModeInPlace}, // forced, warn only
+		{config.ScaleModeAuto, true, config.ScaleModeInPlace},
+		{config.ScaleModeAuto, false, config.ScaleModeRolling},
+	}
+	for _, tc := range cases {
+		core := corefake.NewSimpleClientset()
+		if tc.supported {
+			withDiscovery(core, v1Resources("pods", "pods/resize"))
+		} else {
+			withDiscovery(core, v1Resources("pods"))
+		}
+		cfg := testConfig()
+		cfg.ScaleMode = tc.mode
+		c := newClient(cfg, core, newDynamic(), log.New(io.Discard, "", 0))
+		if got := c.EffectiveScaleMode(); got != tc.want {
+			t.Errorf("mode=%s supported=%v: EffectiveScaleMode = %q, want %q",
+				tc.mode, tc.supported, got, tc.want)
+		}
+	}
+}
+
+// rmqPod builds a running RabbitMQ pod as the cluster operator labels it.
+func rmqPod(name, cluster, cpu, mem string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name, Namespace: "prod",
+			Labels: map[string]string{"app.kubernetes.io/name": cluster},
+		},
+		Spec: corev1.PodSpec{Containers: []corev1.Container{{
+			Name: "rabbitmq",
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse(cpu),
+					corev1.ResourceMemory: resource.MustParse(mem),
+				},
+			},
+		}}},
+	}
+}
+
+func TestResizePodsPatchesEveryPodViaResizeSubresource(t *testing.T) {
+	core := corefake.NewSimpleClientset(
+		rmqPod("rmq-server-0", "rmq", "330m", "1Gi"),
+		rmqPod("rmq-server-1", "rmq", "330m", "1Gi"),
+		rmqPod("other-app-0", "other", "100m", "128Mi"), // must be ignored
+	)
+	c := newTestClient(t, core, newDynamic())
+
+	if err := c.ResizePods(context.Background(), "800m", "2Gi"); err != nil {
+		t.Fatalf("ResizePods: %v", err)
+	}
+
+	resizePatches := 0
+	for _, a := range core.Fake.Actions() {
+		if p, ok := a.(k8stesting.PatchAction); ok && a.GetVerb() == "patch" {
+			if a.GetResource().Resource != "pods" {
+				continue
+			}
+			if p.GetSubresource() != "resize" {
+				t.Errorf("pod patch used subresource %q, want resize", p.GetSubresource())
+			}
+			if n := p.GetName(); n != "rmq-server-0" && n != "rmq-server-1" {
+				t.Errorf("patched unexpected pod %q", n)
+			}
+			resizePatches++
+		}
+	}
+	if resizePatches != 2 {
+		t.Errorf("resize patches = %d, want 2", resizePatches)
+	}
+
+	pod, err := core.CoreV1().Pods("prod").Get(context.Background(), "rmq-server-0", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("get pod: %v", err)
+	}
+	req := pod.Spec.Containers[0].Resources.Requests
+	if req.Cpu().String() != "800m" || req.Memory().String() != "2Gi" {
+		t.Errorf("pod requests = %s/%s, want 800m/2Gi", req.Cpu(), req.Memory())
+	}
+}
+
+func TestResizePodsReturnsErrorWhenListFails(t *testing.T) {
+	core := corefake.NewSimpleClientset()
+	core.Fake.PrependReactor("list", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("list boom")
+	})
+	c := newTestClient(t, core, newDynamic())
+	if err := c.ResizePods(context.Background(), "800m", "2Gi"); err == nil {
+		t.Error("ResizePods = nil error, want list error")
+	}
+}
+
+func TestResizePodsContinuesPastPerPodFailure(t *testing.T) {
+	core := corefake.NewSimpleClientset(
+		rmqPod("rmq-server-0", "rmq", "330m", "1Gi"),
+		rmqPod("rmq-server-1", "rmq", "330m", "1Gi"),
+	)
+	core.Fake.PrependReactor("patch", "pods", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if a.(k8stesting.PatchAction).GetName() == "rmq-server-0" {
+			return true, nil, errors.New("infeasible")
+		}
+		return false, nil, nil
+	})
+	c := newTestClient(t, core, newDynamic())
+
+	err := c.ResizePods(context.Background(), "800m", "2Gi")
+	if err == nil {
+		t.Fatal("ResizePods = nil error, want aggregated per-pod error")
+	}
+
+	// The healthy pod must still have been resized.
+	pod, gerr := core.CoreV1().Pods("prod").Get(context.Background(), "rmq-server-1", metav1.GetOptions{})
+	if gerr != nil {
+		t.Fatalf("get pod: %v", gerr)
+	}
+	if pod.Spec.Containers[0].Resources.Requests.Cpu().String() != "800m" {
+		t.Error("rmq-server-1 was not resized after rmq-server-0 failed")
+	}
+}
+
+func TestResizePodsNoPodsIsError(t *testing.T) {
+	c := newTestClient(t, corefake.NewSimpleClientset(), newDynamic())
+	if err := c.ResizePods(context.Background(), "800m", "2Gi"); err == nil {
+		t.Error("ResizePods with zero matching pods = nil error, want error")
+	}
+}
+
+func TestResizePodsDetectsInfeasible(t *testing.T) {
+	pod := rmqPod("rmq-server-0", "rmq", "330m", "1Gi")
+	pod.Status.Conditions = []corev1.PodCondition{{
+		Type:   corev1.PodResizePending,
+		Status: corev1.ConditionTrue,
+		Reason: "Infeasible",
+	}}
+	c := newTestClient(t, corefake.NewSimpleClientset(pod), newDynamic())
+
+	err := c.ResizePods(context.Background(), "8000m", "64Gi")
+	if !errors.Is(err, scaling.ErrResizeInfeasible) {
+		t.Errorf("err = %v, want ErrResizeInfeasible", err)
+	}
+}
+
+func TestResizePodsDeferredIsNotInfeasible(t *testing.T) {
+	pod := rmqPod("rmq-server-0", "rmq", "330m", "1Gi")
+	pod.Status.Conditions = []corev1.PodCondition{{
+		Type:   corev1.PodResizePending,
+		Status: corev1.ConditionTrue,
+		Reason: "Deferred", // node busy now, may fit later — not a hard failure
+	}}
+	c := newTestClient(t, corefake.NewSimpleClientset(pod), newDynamic())
+
+	if err := c.ResizePods(context.Background(), "800m", "2Gi"); err != nil {
+		t.Errorf("err = %v, want nil for Deferred", err)
+	}
+}
+
+// updateStrategyType reads spec.override.statefulSet.spec.updateStrategy.type
+// from the fake RabbitmqCluster.
+func updateStrategyType(t *testing.T, dyn *dynamicfake.FakeDynamicClient) string {
+	t.Helper()
+	obj, err := dyn.Resource(rabbitmqGVR).Namespace("prod").Get(context.Background(), "rmq", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("get cluster: %v", err)
+	}
+	s, _, _ := unstructured.NestedString(obj.Object,
+		"spec", "override", "statefulSet", "spec", "updateStrategy", "type")
+	return s
+}
+
+func TestEnsureOnDeleteStrategyPatchesWhenAbsent(t *testing.T) {
+	dyn := newDynamic(rabbitmqCluster("rmq", "prod", "330m"))
+	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
+
+	if err := c.EnsureOnDeleteStrategy(context.Background()); err != nil {
+		t.Fatalf("EnsureOnDeleteStrategy: %v", err)
+	}
+	if got := updateStrategyType(t, dyn); got != "OnDelete" {
+		t.Errorf("updateStrategy.type = %q, want OnDelete", got)
+	}
+}
+
+func TestEnsureOnDeleteStrategyIdempotent(t *testing.T) {
+	cluster := rabbitmqCluster("rmq", "prod", "330m")
+	unstructured.SetNestedField(cluster.Object, "OnDelete",
+		"spec", "override", "statefulSet", "spec", "updateStrategy", "type")
+	dyn := newDynamic(cluster)
+	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
+
+	if err := c.EnsureOnDeleteStrategy(context.Background()); err != nil {
+		t.Fatalf("EnsureOnDeleteStrategy: %v", err)
+	}
+	for _, a := range dyn.Fake.Actions() {
+		if a.GetVerb() == "patch" {
+			t.Error("patched the cluster although OnDelete was already set")
+		}
+	}
+}
+
+func TestEnsureOnDeleteStrategyErrorOnMissingCluster(t *testing.T) {
+	c := newTestClient(t, corefake.NewSimpleClientset(), newDynamic())
+	if err := c.EnsureOnDeleteStrategy(context.Background()); err == nil {
+		t.Error("EnsureOnDeleteStrategy = nil, want error when cluster is missing")
+	}
+}
+
+func TestSetRollingUpdateStrategy(t *testing.T) {
+	cluster := rabbitmqCluster("rmq", "prod", "330m")
+	unstructured.SetNestedField(cluster.Object, "OnDelete",
+		"spec", "override", "statefulSet", "spec", "updateStrategy", "type")
+	dyn := newDynamic(cluster)
+	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
+
+	if err := c.SetRollingUpdateStrategy(context.Background()); err != nil {
+		t.Fatalf("SetRollingUpdateStrategy: %v", err)
+	}
+	if got := updateStrategyType(t, dyn); got != "RollingUpdate" {
+		t.Errorf("updateStrategy.type = %q, want RollingUpdate", got)
 	}
 }

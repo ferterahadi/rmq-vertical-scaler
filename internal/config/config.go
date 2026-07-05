@@ -16,6 +16,16 @@ type Profile struct {
 	Memory string
 }
 
+// Scale modes: how a profile change is applied to the cluster.
+//   - auto: in-place pod resize when the cluster supports it, rolling otherwise
+//   - inplace: always resize pods via the resize subresource
+//   - rolling: always patch the RabbitmqCluster CR only (v2.0.0 behaviour)
+const (
+	ScaleModeAuto    = "auto"
+	ScaleModeInPlace = "inplace"
+	ScaleModeRolling = "rolling"
+)
+
 // Config holds the fully-resolved configuration. It mirrors the fields the v1
 // ConfigManager exposed so behaviour stays identical.
 type Config struct {
@@ -48,6 +58,14 @@ type Config struct {
 	// two profiles share a CPU value the later one wins (v1 insertion-order
 	// semantics).
 	CPUToProfile map[string]string
+
+	// ScaleMode selects how profile changes are applied (see ScaleMode*
+	// constants). Invalid values fall back to auto.
+	ScaleMode string
+
+	// WatermarkResignal, when true, re-signals RabbitMQ's memory high
+	// watermark after an in-place memory resize.
+	WatermarkResignal bool
 }
 
 // Defaults mirror lib/ConfigManager.js exactly.
@@ -78,6 +96,9 @@ func Load() *Config {
 		ScaleUpDebounceSeconds:   getint("DEBOUNCE_SCALE_UP_SECONDS", defaultScaleUpSecs),
 		ScaleDownDebounceSeconds: getint("DEBOUNCE_SCALE_DOWN_SECONDS", defaultScaleDnSecs),
 		CheckIntervalSeconds:     getint("CHECK_INTERVAL_SECONDS", defaultIntervalSecs),
+
+		ScaleMode:         scaleMode(os.Getenv("SCALE_MODE")),
+		WatermarkResignal: getbool("WATERMARK_RESIGNAL", false),
 
 		Profiles:        map[string]Profile{},
 		QueueThresholds: map[string]int{},
@@ -115,6 +136,33 @@ func getenv(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// scaleMode normalises and validates a SCALE_MODE value, falling back to auto
+// on anything unrecognised (consistent with the other lenient env parsing).
+func scaleMode(v string) string {
+	switch strings.ToLower(v) {
+	case ScaleModeInPlace:
+		return ScaleModeInPlace
+	case ScaleModeRolling:
+		return ScaleModeRolling
+	default:
+		return ScaleModeAuto
+	}
+}
+
+// getbool parses a boolean env var, falling back to def when unset, empty, or
+// unparseable (same spirit as getint).
+func getbool(key string, def bool) bool {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 // getint parses an integer env var, falling back to def when unset, empty, or

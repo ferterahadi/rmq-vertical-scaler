@@ -17,6 +17,7 @@ var envKeys = []string{
 	"RATE_THRESHOLD_MEDIUM", "RATE_THRESHOLD_HIGH", "RATE_THRESHOLD_CRITICAL",
 	"PROFILE_MED_CPU", "PROFILE_MED_MEMORY", "QUEUE_THRESHOLD_MED", "RATE_THRESHOLD_MED",
 	"PROFILE_TINY_CPU", "PROFILE_SMALL_CPU", "PROFILE_BIG_CPU", "PROFILE_HUGE_CPU",
+	"SCALE_MODE", "WATERMARK_RESIGNAL",
 }
 
 func clearEnv(t *testing.T) {
@@ -290,6 +291,61 @@ func TestInvalidNumbersFallBackToDefaults(t *testing.T) {
 	}
 	if c.QueueThresholds["MEDIUM"] != 1000 {
 		t.Errorf("QueueThresholds[MEDIUM] = %d, want 1000 (default)", c.QueueThresholds["MEDIUM"])
+	}
+}
+
+func TestScaleModeDefaultsToAuto(t *testing.T) {
+	clearEnv(t)
+	c := Load()
+	if c.ScaleMode != ScaleModeAuto {
+		t.Errorf("ScaleMode = %q, want %q", c.ScaleMode, ScaleModeAuto)
+	}
+}
+
+func TestScaleModeAcceptsValidValues(t *testing.T) {
+	clearEnv(t)
+	for env, want := range map[string]string{
+		"auto":    ScaleModeAuto,
+		"inplace": ScaleModeInPlace,
+		"rolling": ScaleModeRolling,
+		"InPlace": ScaleModeInPlace, // case-insensitive
+		"ROLLING": ScaleModeRolling,
+	} {
+		t.Setenv("SCALE_MODE", env)
+		if c := Load(); c.ScaleMode != want {
+			t.Errorf("SCALE_MODE=%q: ScaleMode = %q, want %q", env, c.ScaleMode, want)
+		}
+	}
+}
+
+func TestScaleModeInvalidFallsBackToAuto(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("SCALE_MODE", "blue-green")
+	if c := Load(); c.ScaleMode != ScaleModeAuto {
+		t.Errorf("ScaleMode = %q, want %q (fallback)", c.ScaleMode, ScaleModeAuto)
+	}
+}
+
+func TestWatermarkResignalDefaultsToFalse(t *testing.T) {
+	clearEnv(t)
+	if c := Load(); c.WatermarkResignal {
+		t.Error("WatermarkResignal = true, want false (default)")
+	}
+}
+
+func TestWatermarkResignalParsesBools(t *testing.T) {
+	clearEnv(t)
+	for env, want := range map[string]bool{
+		"true":  true,
+		"1":     true,
+		"false": false,
+		"0":     false,
+		"yes":   false, // unparseable -> default false
+	} {
+		t.Setenv("WATERMARK_RESIGNAL", env)
+		if c := Load(); c.WatermarkResignal != want {
+			t.Errorf("WATERMARK_RESIGNAL=%q: got %v, want %v", env, c.WatermarkResignal, want)
+		}
 	}
 }
 
