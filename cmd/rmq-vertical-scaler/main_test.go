@@ -134,3 +134,23 @@ func TestRunFailsOutsideCluster(t *testing.T) {
 		t.Errorf("err = %v, want kubernetes-client init error", err)
 	}
 }
+
+func TestPickVersion(t *testing.T) {
+	cases := []struct {
+		name             string
+		ldflags, buildBI string
+		want             string
+	}{
+		{"ldflags wins", "2.1.0", "v9.9.9", "2.1.0"},
+		{"buildinfo when dev", "dev", "v2.1.0", "v2.1.0"},
+		{"devel buildinfo ignored", "dev", "(devel)", ""},
+		{"both empty", "", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := pickVersion(tc.ldflags, tc.buildBI); got != tc.want {
+				t.Errorf("pickVersion(%q, %q) = %q, want %q", tc.ldflags, tc.buildBI, got, tc.want)
+			}
+		})
+	}
+}

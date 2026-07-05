@@ -79,7 +79,7 @@ spec:
       serviceAccountName: rmq-vertical-scaler-sa
       containers:
         - name: scaler
-          image: ferterahadi/rmq-vertical-scaler:latest
+          image: ferterahadi/rmq-vertical-scaler:2
           imagePullPolicy: Always
           resources:
             requests:

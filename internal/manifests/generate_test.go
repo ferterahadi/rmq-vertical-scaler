@@ -205,3 +205,42 @@ func TestCLIFlagsOverrideConfig(t *testing.T) {
 		t.Errorf("flag override failed: %+v", s)
 	}
 }
+
+func TestDefaultImage(t *testing.T) {
+	cases := []struct {
+		version string
+		want    string
+	}{
+		{"", "ferterahadi/rmq-vertical-scaler:2"},
+		{"dev", "ferterahadi/rmq-vertical-scaler:2"},
+		{"(devel)", "ferterahadi/rmq-vertical-scaler:2"},
+		{"2.1.0", "ferterahadi/rmq-vertical-scaler:2.1.0"},
+		{"v2.1.0", "ferterahadi/rmq-vertical-scaler:2.1.0"},
+		{"v2.1.1-0.20260704120000-abcdef123456", "ferterahadi/rmq-vertical-scaler:2"}, // pseudo-version
+	}
+	for _, tc := range cases {
+		t.Run(tc.version, func(t *testing.T) {
+			if got := defaultImage(tc.version); got != tc.want {
+				t.Errorf("defaultImage(%q) = %q, want %q", tc.version, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestGenerateUsesVersionedDefaultImage(t *testing.T) {
+	_, s, err := Generate(Flags{Version: "2.1.0"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Image != "ferterahadi/rmq-vertical-scaler:2.1.0" {
+		t.Errorf("Image = %q, want versioned default", s.Image)
+	}
+	// Explicit --image always wins.
+	_, s, err = Generate(Flags{Version: "2.1.0", Image: "custom:1"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Image != "custom:1" {
+		t.Errorf("Image = %q, want custom:1", s.Image)
+	}
+}

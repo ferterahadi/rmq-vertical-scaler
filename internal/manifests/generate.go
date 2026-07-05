@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -28,6 +29,7 @@ type Flags struct {
 	Image       string
 	ScalerName  string
 	Output      string
+	Version     string // resolved build version, "" if unknown
 }
 
 // Summary reports the resolved configuration for human-readable CLI output.
@@ -120,7 +122,7 @@ func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
 
 	namespace := firstNonEmpty(flags.Namespace, kubeNamespace(top), "default")
 	serviceName := firstNonEmpty(flags.ServiceName, kubeServiceName(top), "rabbitmq")
-	image := firstNonEmpty(flags.Image, "ferterahadi/rmq-vertical-scaler:latest")
+	image := firstNonEmpty(flags.Image, defaultImage(flags.Version))
 	scalerName := firstNonEmpty(flags.ScalerName, "rmq-vertical-scaler")
 	output := firstNonEmpty(flags.Output, "rmq-scaler.yaml")
 
@@ -293,6 +295,20 @@ func thresholdEnvVars(queue, rate []namedVal) string {
 }
 
 // --- helpers ---
+
+// releaseVersion matches a plain release version like "2.1.0" or "v2.1.0"
+// (not pseudo-versions or "(devel)").
+var releaseVersion = regexp.MustCompile(`^v?([0-9]+\.[0-9]+\.[0-9]+)$`)
+
+// defaultImage pins the generated Deployment to the CLI's own release version
+// so manifests are reproducible; unknown/dev builds fall back to the
+// major-version tag rather than a mutable :latest.
+func defaultImage(version string) string {
+	if m := releaseVersion.FindStringSubmatch(version); m != nil {
+		return "ferterahadi/rmq-vertical-scaler:" + m[1]
+	}
+	return "ferterahadi/rmq-vertical-scaler:2"
+}
 
 type orderedEntry struct {
 	name string

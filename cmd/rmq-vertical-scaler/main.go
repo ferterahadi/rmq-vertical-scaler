@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
@@ -71,6 +72,7 @@ func generateCmd() *cobra.Command {
 				fmt.Fprintf(out, "📄 Loaded configuration from: %s\n", configPath)
 			}
 
+			f.Version = resolveVersion()
 			yaml, summary, err := manifests.Generate(f, configJSON)
 			if err != nil {
 				return fmt.Errorf("failed to generate manifests: %w", err)
@@ -90,6 +92,27 @@ func generateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&f.Image, "image", "", "Docker image to use for the scaler deployment")
 	cmd.Flags().StringVar(&f.ScalerName, "scaler-name", "", "Custom name for scaler resources (ServiceAccount, Role, etc.)")
 	return cmd
+}
+
+// pickVersion resolves the build version: an ldflags-injected version wins;
+// otherwise the module version from build info (set by `go install`) is used;
+// "dev"/"(devel)"/empty resolve to "" (defaultImage then falls back to :2).
+func pickVersion(ldflagsVersion, buildInfoVersion string) string {
+	if ldflagsVersion != "" && ldflagsVersion != "dev" {
+		return ldflagsVersion
+	}
+	if buildInfoVersion != "" && buildInfoVersion != "(devel)" {
+		return buildInfoVersion
+	}
+	return ""
+}
+
+func resolveVersion() string {
+	biVersion := ""
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		biVersion = bi.Main.Version
+	}
+	return pickVersion(version, biVersion)
 }
 
 func runCmd() *cobra.Command {
