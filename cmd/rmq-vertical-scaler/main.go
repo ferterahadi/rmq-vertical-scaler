@@ -18,6 +18,7 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/k8s"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/manifests"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/schema"
 
 	"github.com/spf13/cobra"
 )
@@ -64,6 +65,9 @@ func generateCmd() *cobra.Command {
 					return fmt.Errorf("failed to load config file: %w", err)
 				}
 				configJSON = b
+				if err := schema.Validate(b); err != nil {
+					return fmt.Errorf("invalid config %s: %w", configPath, err)
+				}
 				fmt.Fprintf(out, "📄 Loaded configuration from: %s\n", configPath)
 			}
 

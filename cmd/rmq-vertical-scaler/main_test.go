@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,8 +88,36 @@ func TestGenerateBadConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := execute("generate", "--config", bad)
-	if err == nil || !strings.Contains(err.Error(), "failed to generate manifests") {
-		t.Errorf("err = %v, want generate error", err)
+	if err == nil || !strings.Contains(err.Error(), "parse config") {
+		t.Errorf("err = %v, want parse-config error", err)
+	}
+}
+
+func TestGenerateRejectsInvalidConfig(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "bad.json")
+	// "debounse" is a typo'd key; LOW is missing memory.
+	bad := `{"profiles":{"LOW":{"cpu":"330m"}},"debounse":{"scaleUpSeconds":30}}`
+	if err := os.WriteFile(cfgPath, []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	outPath := filepath.Join(dir, "out.yaml")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"generate", "--config", cfgPath, "--output", outPath})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("generate with invalid config succeeded, want validation error")
+	}
+	for _, want := range []string{"debounse", "memory"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err.Error(), want)
+		}
+	}
+	if _, statErr := os.Stat(outPath); !os.IsNotExist(statErr) {
+		t.Errorf("output file %s was written despite invalid config", outPath)
 	}
 }
 
