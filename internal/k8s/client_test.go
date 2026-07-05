@@ -7,7 +7,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

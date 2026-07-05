@@ -14,13 +14,13 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/examples"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/controller"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/k8s"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/manifests"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
-	"github.com/ferterahadi/rmq-vertical-scaler/schema"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/examples"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/controller"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/k8s"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/manifests"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/schema"
 
 	"github.com/spf13/cobra"
 )

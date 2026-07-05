@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/examples"
-	"github.com/ferterahadi/rmq-vertical-scaler/schema"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/examples"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/schema"
 )
 
 // execute runs the root command with args, capturing stdout/stderr into buf.
