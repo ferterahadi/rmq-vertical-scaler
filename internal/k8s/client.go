@@ -10,8 +10,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/scaling"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

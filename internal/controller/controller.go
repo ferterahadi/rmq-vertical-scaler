@@ -9,9 +9,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/scaling"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 )
 
 // KubeClient is the subset of the Kubernetes client the controller needs.

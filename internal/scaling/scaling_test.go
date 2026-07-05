@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
 )
 
 // testCfg mirrors the mock config used by the v1 ScalingEngine tests.

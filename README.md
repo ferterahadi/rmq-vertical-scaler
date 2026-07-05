@@ -1,8 +1,8 @@
 # RabbitMQ Vertical Scaler
 
 [![Docker Image](https://img.shields.io/docker/v/ferterahadi/rmq-vertical-scaler?label=docker)](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler)
-[![Go Reference](https://pkg.go.dev/badge/github.com/ferterahadi/rmq-vertical-scaler.svg)](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ferterahadi/rmq-vertical-scaler)](https://goreportcard.com/report/github.com/ferterahadi/rmq-vertical-scaler)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ferterahadi/rmq-vertical-scaler/v2.svg)](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ferterahadi/rmq-vertical-scaler/v2)](https://goreportcard.com/report/github.com/ferterahadi/rmq-vertical-scaler/v2)
 
 Automatically scales RabbitMQ cluster resources (CPU/Memory) based on real-time queue metrics and message rates in Kubernetes.
 
@@ -62,7 +62,7 @@ The CLI generates Kubernetes manifests; the same binary runs the controller in-c
 docker pull ferterahadi/rmq-vertical-scaler:2
 
 # Go install (CLI / generator)
-go install github.com/ferterahadi/rmq-vertical-scaler/cmd/rmq-vertical-scaler@latest
+go install github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler@latest
 
 # Or grab a prebuilt binary from the GitHub Releases page (linux/amd64, linux/arm64)
 ```

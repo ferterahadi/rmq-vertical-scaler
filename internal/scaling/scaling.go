@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
 )
 
 // Metrics are the derived numbers a scaling decision is based on.
