@@ -3,6 +3,7 @@ module github.com/ferterahadi/rmq-vertical-scaler
 go 1.26.4
 
 require (
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.10.2
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2

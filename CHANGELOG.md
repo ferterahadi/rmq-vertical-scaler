@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-07-05
+
+### Added
+- **Helm chart** at `charts/rmq-vertical-scaler` — ordered profile list, credentials secret name/key overrides, `pdb.enabled` toggle, values validated by `values.schema.json`.
+- **`init` subcommand** scaffolds a starter config; Quick Start no longer needs a repo clone.
+- **Config validation in `generate`**: configs are checked against `schema/config-schema.json` (embedded in the binary); unknown keys, missing `cpu`/`memory`, and malformed values now fail with a list of violations instead of silently generating empty env values.
+- **`--no-pdb` flag** to skip the PodDisruptionBudget for operators managing their own.
+
+### Changed
+- Default image in generated manifests is **pinned to the release version** (fallback `:2`) instead of `:latest`.
+- Example configs reference the schema by absolute URL, so IDE validation works outside a checkout.
+- The generated PDB's comment now correctly describes it (protects the RabbitMQ nodes during scaling restarts; requires 3+ nodes).
+
+### Compatibility
+- Stricter `generate` validation may reject configs that previously "worked" by silently falling back to defaults — fix the reported fields. The legacy top-level `thresholds` block remains supported. Runtime env-var contract unchanged.
+
 ## [2.0.0] - 2026-06-13
 
 ### Changed

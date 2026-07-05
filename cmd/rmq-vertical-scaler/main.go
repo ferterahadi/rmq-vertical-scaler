@@ -11,13 +11,16 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
+	"github.com/ferterahadi/rmq-vertical-scaler/examples"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/config"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/controller"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/k8s"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/manifests"
 	"github.com/ferterahadi/rmq-vertical-scaler/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/schema"
 
 	"github.com/spf13/cobra"
 )
@@ -44,7 +47,7 @@ func rootCmd() *cobra.Command {
 			"  rmq-vertical-scaler run   # in-cluster control loop (default container command)",
 		SilenceUsage: true,
 	}
-	root.AddCommand(generateCmd(), runCmd())
+	root.AddCommand(generateCmd(), initCmd(), runCmd())
 	return root
 }
 
@@ -64,9 +67,13 @@ func generateCmd() *cobra.Command {
 					return fmt.Errorf("failed to load config file: %w", err)
 				}
 				configJSON = b
+				if err := schema.Validate(b); err != nil {
+					return fmt.Errorf("invalid config %s: %w", configPath, err)
+				}
 				fmt.Fprintf(out, "📄 Loaded configuration from: %s\n", configPath)
 			}
 
+			f.Version = resolveVersion()
 			yaml, summary, err := manifests.Generate(f, configJSON)
 			if err != nil {
 				return fmt.Errorf("failed to generate manifests: %w", err)
@@ -85,7 +92,64 @@ func generateCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&f.Output, "output", "o", "", "Output YAML file name for the generated manifests")
 	cmd.Flags().StringVar(&f.Image, "image", "", "Docker image to use for the scaler deployment")
 	cmd.Flags().StringVar(&f.ScalerName, "scaler-name", "", "Custom name for scaler resources (ServiceAccount, Role, etc.)")
+	cmd.Flags().BoolVar(&f.NoPDB, "no-pdb", false, "Skip the PodDisruptionBudget for the RabbitMQ cluster (e.g. if you manage your own)")
 	return cmd
+}
+
+func initCmd() *cobra.Command {
+	var output string
+
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Scaffold a starter configuration file for `generate`",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+			if err != nil {
+				if os.IsExist(err) {
+					return fmt.Errorf("%s already exists — pass --output to choose another name", output)
+				}
+				return fmt.Errorf("write %s: %w", output, err)
+			}
+			if _, err := f.Write(examples.TemplateConfig); err != nil {
+				f.Close()
+				return fmt.Errorf("write %s: %w", output, err)
+			}
+			if err := f.Close(); err != nil {
+				return fmt.Errorf("write %s: %w", output, err)
+			}
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "✅ Created %s\n\n", output)
+			fmt.Fprintln(out, "📋 Next steps:")
+			fmt.Fprintf(out, "  1. Edit %s — profiles, thresholds, namespace, RabbitMQ service name\n", output)
+			fmt.Fprintf(out, "  2. Generate manifests: rmq-vertical-scaler generate --config %s\n", output)
+			fmt.Fprintln(out, "  3. Apply: kubectl apply -f rmq-scaler.yaml")
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&output, "output", "o", "my-config.json", "File name for the scaffolded config")
+	return cmd
+}
+
+// pickVersion resolves the build version: an ldflags-injected version wins;
+// otherwise the module version from build info (set by `go install`) is used;
+// "dev"/"(devel)"/empty resolve to "" (defaultImage then falls back to :2).
+func pickVersion(ldflagsVersion, buildInfoVersion string) string {
+	if ldflagsVersion != "" && ldflagsVersion != "dev" {
+		return ldflagsVersion
+	}
+	if buildInfoVersion != "" && buildInfoVersion != "(devel)" {
+		return buildInfoVersion
+	}
+	return ""
+}
+
+func resolveVersion() string {
+	biVersion := ""
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		biVersion = bi.Main.Version
+	}
+	return pickVersion(version, biVersion)
 }
 
 func runCmd() *cobra.Command {

@@ -47,8 +47,8 @@ metadata:
 data:
   stable_profile: ""
   stable_since: "0"
----
-# PodDisruptionBudget to ensure only 1 pod scaling at a time
+{{if .IncludePDB}}---
+# PodDisruptionBudget protecting the RabbitMQ nodes during scaling restarts (requires 3+ nodes)
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -59,7 +59,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: {{.ServiceName}}
----
+{{end}}---
 # Deployment for the vertical scaler
 apiVersion: apps/v1
 kind: Deployment

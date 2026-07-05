@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ferterahadi/rmq-vertical-scaler/examples"
+	"github.com/ferterahadi/rmq-vertical-scaler/schema"
 )
 
 // execute runs the root command with args, capturing stdout/stderr into buf.
@@ -87,8 +91,36 @@ func TestGenerateBadConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := execute("generate", "--config", bad)
-	if err == nil || !strings.Contains(err.Error(), "failed to generate manifests") {
-		t.Errorf("err = %v, want generate error", err)
+	if err == nil || !strings.Contains(err.Error(), "parse config") {
+		t.Errorf("err = %v, want parse-config error", err)
+	}
+}
+
+func TestGenerateRejectsInvalidConfig(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "bad.json")
+	// "debounse" is a typo'd key; LOW is missing memory.
+	bad := `{"profiles":{"LOW":{"cpu":"330m"}},"debounse":{"scaleUpSeconds":30}}`
+	if err := os.WriteFile(cfgPath, []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	outPath := filepath.Join(dir, "out.yaml")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"generate", "--config", cfgPath, "--output", outPath})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("generate with invalid config succeeded, want validation error")
+	}
+	for _, want := range []string{"debounse", "memory"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err.Error(), want)
+		}
+	}
+	if _, statErr := os.Stat(outPath); !os.IsNotExist(statErr) {
+		t.Errorf("output file %s was written despite invalid config", outPath)
 	}
 }
 
@@ -103,5 +135,94 @@ func TestRunFailsOutsideCluster(t *testing.T) {
 	_, err := execute("run")
 	if err == nil || !strings.Contains(err.Error(), "kubernetes") {
 		t.Errorf("err = %v, want kubernetes-client init error", err)
+	}
+}
+
+func TestPickVersion(t *testing.T) {
+	cases := []struct {
+		name             string
+		ldflags, buildBI string
+		want             string
+	}{
+		{"ldflags wins", "2.1.0", "v9.9.9", "2.1.0"},
+		{"buildinfo when dev", "dev", "v2.1.0", "v2.1.0"},
+		{"devel buildinfo ignored", "dev", "(devel)", ""},
+		{"both empty", "", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := pickVersion(tc.ldflags, tc.buildBI); got != tc.want {
+				t.Errorf("pickVersion(%q, %q) = %q, want %q", tc.ldflags, tc.buildBI, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestInitWritesScaffold(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "my-config.json")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+
+	b, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(b, examples.TemplateConfig) {
+		t.Error("scaffold content differs from embedded template")
+	}
+	if err := schema.Validate(b); err != nil {
+		t.Errorf("scaffold does not validate: %v", err)
+	}
+}
+
+func TestInitRefusesOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "my-config.json")
+	if err := os.WriteFile(out, []byte("keep me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("init over an existing file succeeded, want error")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error %q does not mention 'already exists'", err.Error())
+	}
+	b, _ := os.ReadFile(out)
+	if string(b) != "keep me" {
+		t.Error("existing file was clobbered")
+	}
+}
+
+func TestInitOpenFileErrorNotExist(t *testing.T) {
+	// A parent directory that doesn't exist produces a non-IsExist OpenFile
+	// error, exercising the generic "write %s: %w" branch (as opposed to the
+	// "already exists" branch covered by TestInitRefusesOverwrite).
+	out := filepath.Join(t.TempDir(), "missing-parent", "my-config.json")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("init with a missing parent directory succeeded, want error")
+	}
+	if strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error %q should not claim the file already exists", err.Error())
+	}
+	if !strings.Contains(err.Error(), "write") {
+		t.Errorf("error %q does not mention the write failure", err.Error())
 	}
 }

@@ -1,0 +1,15 @@
+{{- if .Values.pdb.enabled }}
+# Protects the RabbitMQ nodes during scaling restarts (requires 3+ nodes).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.serviceName }}-pdb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.serviceName }}
+{{- end }}
