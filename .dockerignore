@@ -15,12 +15,12 @@ bin
 dist
 build
 
-# Docs, examples, and generated deployment artifacts (not needed in the image)
+# Docs and generated deployment artifacts (not needed in the image).
+# NOTE: examples/ and schema/ are Go packages compiled into the binary since
+# v2.1.0 (embedded config schema + example templates) — do not ignore them.
 *.md
 *-scaler.yaml
 docs
-examples
-schema
 scripts
 tests
 

@@ -62,10 +62,6 @@ type Config struct {
 	// ScaleMode selects how profile changes are applied (see ScaleMode*
 	// constants). Invalid values fall back to auto.
 	ScaleMode string
-
-	// WatermarkResignal, when true, re-signals RabbitMQ's memory high
-	// watermark after an in-place memory resize.
-	WatermarkResignal bool
 }
 
 // Defaults mirror lib/ConfigManager.js exactly.
@@ -97,8 +93,7 @@ func Load() *Config {
 		ScaleDownDebounceSeconds: getint("DEBOUNCE_SCALE_DOWN_SECONDS", defaultScaleDnSecs),
 		CheckIntervalSeconds:     getint("CHECK_INTERVAL_SECONDS", defaultIntervalSecs),
 
-		ScaleMode:         scaleMode(os.Getenv("SCALE_MODE")),
-		WatermarkResignal: getbool("WATERMARK_RESIGNAL", false),
+		ScaleMode: scaleMode(os.Getenv("SCALE_MODE")),
 
 		Profiles:        map[string]Profile{},
 		QueueThresholds: map[string]int{},
@@ -149,20 +144,6 @@ func scaleMode(v string) string {
 	default:
 		return ScaleModeAuto
 	}
-}
-
-// getbool parses a boolean env var, falling back to def when unset, empty, or
-// unparseable (same spirit as getint).
-func getbool(key string, def bool) bool {
-	v, ok := os.LookupEnv(key)
-	if !ok || v == "" {
-		return def
-	}
-	b, err := strconv.ParseBool(v)
-	if err != nil {
-		return def
-	}
-	return b
 }
 
 // getint parses an integer env var, falling back to def when unset, empty, or

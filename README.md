@@ -164,7 +164,7 @@ config (env var `SCALE_MODE`):
 
 ```json
 {
-  "scaling": { "mode": "auto", "watermarkResignal": false }
+  "scaling": { "mode": "auto" }
 }
 ```
 
@@ -182,11 +182,10 @@ Caveats:
   template changes (e.g. a RabbitMQ image bump) no longer roll pods
   automatically — delete pods one at a time to roll them, or set
   `scaling.mode: rolling`.
-- **Memory watermark**: RabbitMQ reads total memory at boot, so a live memory
-  resize is invisible to its high-watermark until the next restart. Set
-  `scaling.watermarkResignal: true` to have the scaler run
-  `rabbitmqctl set_vm_memory_high_watermark absolute <40% of request>` in each
-  pod after memory resizes (best-effort; grants `pods/exec` to the scaler).
+- **Memory watermark**: no action needed. RabbitMQ computes its memory
+  high-watermark from the container's memory *limit* (or node total) at boot —
+  and the scaler only ever changes *requests*, so the watermark stays correct
+  across in-place resizes.
 - Only resource **requests** are patched (as in every previous version);
   limits defined on the RabbitmqCluster are untouched.
 

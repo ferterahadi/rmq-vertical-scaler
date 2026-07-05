@@ -1,0 +1,25 @@
+# 3-node quorum-capable RabbitMQ cluster sized for a local kind e2e run.
+# Requests match the e2e LOW profile; limits leave headroom for in-place
+# request resizes (requests must stay <= limits).
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: default
+spec:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 300Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+  persistence:
+    storageClassName: standard
+    storage: 1Gi
+  service:
+    type: ClusterIP

@@ -75,8 +75,4 @@ spec:
               value: {{ .Values.checkInterval | quote }}
             - name: SCALE_MODE
               value: {{ .Values.scaling.mode | quote }}
-            {{- if .Values.scaling.watermarkResignal }}
-            - name: WATERMARK_RESIGNAL
-              value: "true"
-            {{- end }}
       restartPolicy: Always

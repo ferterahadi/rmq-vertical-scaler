@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-07-05
+
+### Added
+- **Zero-restart vertical scaling** via Kubernetes in-place pod resize (`pods/resize` subresource, K8s ≥ 1.33). New `scaling.mode` config / `SCALE_MODE` env: `auto` (default — in-place when the cluster supports it, rolling otherwise), `inplace`, `rolling` (v2.0.0 behaviour).
+- In in-place mode the scaler sets the RabbitmqCluster's StatefulSet override to `updateStrategy: OnDelete`, resizes each pod's resource **requests** live (both scale-up and scale-down, CPU and memory), and still patches the CR so it remains the source of truth — recreated pods come back at the current profile's size.
+- **Infeasible fallback**: if the kubelet reports an in-place resize as `Infeasible`, `auto` mode reverts the override and falls back to a rolling scale for that action.
+- Generated manifests and the Helm chart grant `pods` get/list and `pods/resize` patch, and emit `SCALE_MODE`; kind-based e2e suite under `tests/e2e/`. No `pods/exec` needed: RabbitMQ's memory high-watermark derives from the memory *limit*, which the scaler never changes, so it stays correct across in-place resizes.
+
+### Changed
+- Rolling mode (and pre-1.33 clusters) behave exactly as v2.0.0: one CR patch, the operator rolls pods.
+
+### Compatibility
+- Env-var contract is backward compatible; without `SCALE_MODE` the scaler defaults to `auto`. On clusters without `pods/resize` it behaves identically to v2.1.0.
+- **`OnDelete` trade-off** (in-place mode only): operator-driven pod template changes (e.g. RabbitMQ image bumps) no longer roll pods automatically — delete pods one at a time, or set `scaling.mode: rolling`.
+
 ## [2.1.0] - 2026-07-05
 
 ### Added

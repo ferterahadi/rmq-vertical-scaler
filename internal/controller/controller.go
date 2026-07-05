@@ -30,7 +30,6 @@ type KubeClient interface {
 	EnsureOnDeleteStrategy(ctx context.Context) error
 	ResizePods(ctx context.Context, cpu, memory string) error
 	SetRollingUpdateStrategy(ctx context.Context) error
-	ResignalWatermark(ctx context.Context, memory string)
 }
 
 // MetricsClient is the subset of the metrics collector the controller needs.
@@ -150,15 +149,7 @@ func (c *Controller) applyResources(ctx context.Context, r config.Profile) error
 		}
 		return err
 	}
-	if err := c.kube.ApplyPatch(ctx, r.CPU, r.Memory); err != nil {
-		return err
-	}
-	// Pods were resized live; RabbitMQ only reads total memory at boot, so
-	// optionally tell it about the new size (best-effort, flag-gated).
-	if c.cfg.WatermarkResignal {
-		c.kube.ResignalWatermark(ctx, r.Memory)
-	}
-	return nil
+	return c.kube.ApplyPatch(ctx, r.CPU, r.Memory)
 }
 
 // scaleMode resolves the effective mode once and caches it for the loop's

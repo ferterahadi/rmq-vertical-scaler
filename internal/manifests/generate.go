@@ -89,8 +89,7 @@ type rawTop struct {
 		RMQServiceName string `json:"rmqServiceName"`
 	} `json:"kubernetes"`
 	Scaling *struct {
-		Mode              string `json:"mode"`
-		WatermarkResignal bool   `json:"watermarkResignal"`
+		Mode string `json:"mode"`
 	} `json:"scaling"`
 }
 
@@ -114,8 +113,7 @@ type tmplData struct {
 	ScaleDnSeconds  string
 	CheckInterval   string
 
-	ScaleMode         string
-	WatermarkResignal bool
+	ScaleMode string
 }
 
 // Generate renders the manifest YAML. configJSON is nil when no --config file
@@ -173,8 +171,7 @@ func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
 		ScaleDnSeconds:  scaleDn,
 		CheckInterval:   interval,
 
-		ScaleMode:         resolveScaleMode(top),
-		WatermarkResignal: top.Scaling != nil && top.Scaling.WatermarkResignal,
+		ScaleMode: resolveScaleMode(top),
 	}
 
 	var buf bytes.Buffer

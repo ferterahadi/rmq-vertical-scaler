@@ -1,0 +1,30 @@
+# Helm values for the e2e scaler install (small, fast-cycling profiles).
+serviceName: rabbitmq
+
+image:
+  repository: rmq-vertical-scaler
+  tag: e2e
+  pullPolicy: IfNotPresent # image is `kind load`-ed, never pulled
+
+profiles:
+  - name: LOW
+    cpu: 100m
+    memory: 300Mi
+  - name: MEDIUM
+    cpu: 200m
+    memory: 600Mi
+    queue: 100
+    rate: 5000 # effectively queue-only triggering for determinism
+
+debounce:
+  scaleUpSeconds: 10
+  scaleDownSeconds: 15
+
+checkInterval: 5
+
+scaling:
+  mode: auto
+
+pdb:
+  enabled: true
+  minAvailable: 2

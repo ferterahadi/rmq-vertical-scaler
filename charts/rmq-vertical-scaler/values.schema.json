@@ -58,8 +58,7 @@
     "scaling": {
       "type": "object",
       "properties": {
-        "mode": { "enum": ["auto", "inplace", "rolling"] },
-        "watermarkResignal": { "type": "boolean" }
+        "mode": { "enum": ["auto", "inplace", "rolling"] }
       },
       "additionalProperties": false
     },

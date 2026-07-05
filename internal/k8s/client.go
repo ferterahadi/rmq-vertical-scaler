@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"strconv"
 
@@ -17,16 +16,13 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 // rabbitmqGVR identifies the RabbitMQ Cluster Operator's custom resource.
@@ -42,10 +38,6 @@ type Client struct {
 	core    kubernetes.Interface
 	dynamic dynamic.Interface
 	logger  *log.Logger
-
-	// execFn runs a command inside a pod's container. New() wires the real
-	// SPDY executor; tests inject a recorder. nil means exec is unavailable.
-	execFn func(ctx context.Context, namespace, pod, container string, cmd []string) error
 }
 
 // New builds a Client from the in-cluster service-account config (v1's
@@ -63,26 +55,7 @@ func New(cfg *config.Config, logger *log.Logger) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := newClient(cfg, core, dyn, logger)
-	c.execFn = func(ctx context.Context, namespace, pod, container string, cmd []string) error {
-		req := core.CoreV1().RESTClient().Post().
-			Resource("pods").Namespace(namespace).Name(pod).SubResource("exec").
-			VersionedParams(&corev1.PodExecOptions{
-				Container: container,
-				Command:   cmd,
-				Stdout:    true,
-				Stderr:    true,
-			}, kscheme.ParameterCodec)
-		exec, err := remotecommand.NewSPDYExecutor(restCfg, "POST", req.URL())
-		if err != nil {
-			return err
-		}
-		return exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-			Stdout: io.Discard,
-			Stderr: io.Discard,
-		})
-	}
-	return c, nil
+	return newClient(cfg, core, dyn, logger), nil
 }
 
 // newClient assembles a Client from already-built clients. New() uses it with
@@ -261,43 +234,6 @@ func (c *Client) checkResizeFeasible(ctx context.Context, name string) error {
 		}
 	}
 	return nil
-}
-
-// ResignalWatermark best-effort resets RabbitMQ's absolute memory high
-// watermark to 40% (RabbitMQ's default relative watermark) of the new memory
-// request in every cluster pod, via `rabbitmqctl set_vm_memory_high_watermark
-// absolute <bytes>`. RabbitMQ reads total memory at boot, so a live resize is
-// invisible to it until re-signalled. Runtime-only by design: a restarted pod
-// re-reads its (already updated) limits. Never fails the scaling action —
-// every problem is logged and swallowed.
-func (c *Client) ResignalWatermark(ctx context.Context, memory string) {
-	q, err := resource.ParseQuantity(memory)
-	if err != nil {
-		c.logger.Printf("Watermark re-signal skipped: bad memory quantity %q: %v", memory, err)
-		return
-	}
-	watermark := strconv.FormatInt(q.Value()*4/10, 10)
-
-	pods, err := c.core.CoreV1().Pods(c.cfg.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app.kubernetes.io/name=" + c.cfg.RMQServiceName,
-	})
-	if err != nil {
-		c.logger.Printf("Watermark re-signal skipped: listing pods: %v", err)
-		return
-	}
-	if c.execFn == nil {
-		c.logger.Println("Watermark re-signal skipped: exec unavailable")
-		return
-	}
-
-	cmd := []string{"rabbitmqctl", "set_vm_memory_high_watermark", "absolute", watermark}
-	for _, pod := range pods.Items {
-		if err := c.execFn(ctx, c.cfg.Namespace, pod.Name, "rabbitmq", cmd); err != nil {
-			c.logger.Printf("Watermark re-signal failed for pod %s: %v", pod.Name, err)
-			continue
-		}
-		c.logger.Printf("💧 Watermark re-signalled for pod %s: %s bytes", pod.Name, watermark)
-	}
 }
 
 // EnsureOnDeleteStrategy makes sure the RabbitmqCluster overrides its

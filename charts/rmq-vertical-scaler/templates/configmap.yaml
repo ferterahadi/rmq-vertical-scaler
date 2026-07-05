@@ -1,3 +1,12 @@
+{{- /*
+The scaler owns this ConfigMap's data at runtime (debounce state). On upgrade
+the live values are re-emitted so the apply matches what the scaler wrote —
+no server-side-apply conflict with the scaler's field manager, and the
+debounce state survives `helm upgrade`. Fresh installs (and `helm template`,
+where lookup returns nothing) get the zero state.
+*/ -}}
+{{- $existing := lookup "v1" "ConfigMap" .Release.Namespace (printf "%s-config" (include "rmq-vertical-scaler.fullname" .)) }}
+{{- $data := ($existing | default dict).data | default dict }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,5 +15,5 @@ metadata:
   labels:
     {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
 data:
-  stable_profile: ""
-  stable_since: "0"
+  stable_profile: {{ get $data "stable_profile" | default "" | quote }}
+  stable_since: {{ get $data "stable_since" | default "0" | quote }}

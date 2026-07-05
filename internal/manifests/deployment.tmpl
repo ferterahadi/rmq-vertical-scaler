@@ -28,11 +28,6 @@ rules:
   - apiGroups: ['']
     resources: ['pods/resize']
     verbs: ['patch']
-{{- if .WatermarkResignal}}
-  - apiGroups: ['']
-    resources: ['pods/exec']
-    verbs: ['create']
-{{- end}}
 ---
 # RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -139,9 +134,4 @@ spec:
             # Scale mode (auto|inplace|rolling)
             - name: SCALE_MODE
               value: '{{.ScaleMode}}'
-{{- if .WatermarkResignal}}
-            # Re-signal RabbitMQ's memory watermark after in-place resizes
-            - name: WATERMARK_RESIGNAL
-              value: 'true'
-{{- end}}
       restartPolicy: Always
