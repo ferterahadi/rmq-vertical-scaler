@@ -42,7 +42,9 @@ type fakeKube struct {
 	resizeErr  error       // returned by ResizePods when set
 	ensures    []struct{}  // EnsureOnDeleteStrategy calls
 	ensureErr  error       // returned by EnsureOnDeleteStrategy when set
-	strategies []string    // SetRollingUpdateStrategy calls
+	strategies  []string   // SetRollingUpdateStrategy calls
+	strategyErr error      // returned by SetRollingUpdateStrategy when set
+	resignals   []string   // ResignalWatermark calls (memory values)
 }
 
 func (f *fakeKube) GetCurrentProfile(context.Context) string                 { return f.current }
@@ -78,8 +80,14 @@ func (f *fakeKube) ResizePods(_ context.Context, cpu, memory string) error {
 	return nil
 }
 func (f *fakeKube) SetRollingUpdateStrategy(context.Context) error {
+	if f.strategyErr != nil {
+		return f.strategyErr
+	}
 	f.strategies = append(f.strategies, "RollingUpdate")
 	return nil
+}
+func (f *fakeKube) ResignalWatermark(_ context.Context, memory string) {
+	f.resignals = append(f.resignals, memory)
 }
 
 func ctrlCfg() *config.Config {
@@ -409,5 +417,74 @@ func TestApplyScaleRollingModeNeverTouchesPods(t *testing.T) {
 	if len(k.resizes) != 0 || len(k.ensures) != 0 || len(k.strategies) != 0 {
 		t.Errorf("resizes/ensures/strategies = %v/%v/%v, want none in rolling mode",
 			k.resizes, k.ensures, k.strategies)
+	}
+}
+
+func TestApplyScaleInPlaceResignalsWatermarkWhenEnabled(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.WatermarkResignal = true
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.resignals) != 1 || k.resignals[0] != "4Gi" {
+		t.Errorf("resignals = %v, want one with 4Gi", k.resignals)
+	}
+}
+
+func TestApplyScaleInPlaceNoResignalWhenDisabled(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	if err := newCtrl(highLoad(), k, 1000).ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.resignals) != 0 {
+		t.Errorf("resignals = %v, want none (flag off)", k.resignals)
+	}
+}
+
+func TestApplyScaleRollingNeverResignals(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeRolling)
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.WatermarkResignal = true
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.resignals) != 0 {
+		t.Errorf("resignals = %v, want none in rolling mode", k.resignals)
+	}
+}
+
+func TestApplyScaleInPlaceFallbackStrategyErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = fmt.Errorf("pod rmq-server-0: %w", scaling.ErrResizeInfeasible)
+	k.strategyErr = errors.New("revert boom")
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeAuto
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (strategy error swallowed like a patch error)", err)
+	}
+	if len(k.patches) != 0 || len(k.tracking) != 0 {
+		t.Errorf("patches/tracking = %v/%v, want none when the fallback revert fails", k.patches, k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceCRSyncErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.patchErr = errors.New("cr patch boom")
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.WatermarkResignal = true
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (CR sync error swallowed)", err)
+	}
+	if len(k.resizes) != 1 {
+		t.Errorf("resizes = %v, want one (pods were resized before the CR sync failed)", k.resizes)
+	}
+	// No watermark re-signal and no tracking reset when the action didn't fully apply.
+	if len(k.resignals) != 0 || len(k.tracking) != 0 {
+		t.Errorf("resignals/tracking = %v/%v, want none", k.resignals, k.tracking)
 	}
 }

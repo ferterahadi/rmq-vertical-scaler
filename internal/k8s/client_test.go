@@ -453,3 +453,107 @@ func TestSetRollingUpdateStrategy(t *testing.T) {
 		t.Errorf("updateStrategy.type = %q, want RollingUpdate", got)
 	}
 }
+
+// --- watermark re-signal ---
+
+type execCall struct {
+	pod, container string
+	cmd            []string
+}
+
+func withExecRecorder(c *Client) *[]execCall {
+	calls := &[]execCall{}
+	c.execFn = func(_ context.Context, _, pod, container string, cmd []string) error {
+		*calls = append(*calls, execCall{pod, container, cmd})
+		return nil
+	}
+	return calls
+}
+
+func TestResignalWatermarkExecsInEveryPod(t *testing.T) {
+	core := corefake.NewSimpleClientset(
+		rmqPod("rmq-server-0", "rmq", "800m", "2Gi"),
+		rmqPod("rmq-server-1", "rmq", "800m", "2Gi"),
+	)
+	c := newTestClient(t, core, newDynamic())
+	calls := withExecRecorder(c)
+
+	c.ResignalWatermark(context.Background(), "4Gi")
+
+	if len(*calls) != 2 {
+		t.Fatalf("exec calls = %d, want 2", len(*calls))
+	}
+	// 40% of 4Gi = 1717986918 bytes.
+	want := []string{"rabbitmqctl", "set_vm_memory_high_watermark", "absolute", "1717986918"}
+	for _, call := range *calls {
+		if call.container != "rabbitmq" {
+			t.Errorf("container = %q, want rabbitmq", call.container)
+		}
+		if len(call.cmd) != len(want) {
+			t.Fatalf("cmd = %v, want %v", call.cmd, want)
+		}
+		for i := range want {
+			if call.cmd[i] != want[i] {
+				t.Errorf("cmd = %v, want %v", call.cmd, want)
+				break
+			}
+		}
+	}
+}
+
+func TestResignalWatermarkExecErrorIsBestEffort(t *testing.T) {
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "800m", "2Gi"))
+	c := newTestClient(t, core, newDynamic())
+	c.execFn = func(context.Context, string, string, string, []string) error {
+		return errors.New("exec denied")
+	}
+	// Must not panic and must not propagate: watermark is best-effort.
+	c.ResignalWatermark(context.Background(), "4Gi")
+}
+
+func TestResignalWatermarkBadQuantityIsBestEffort(t *testing.T) {
+	c := newTestClient(t, corefake.NewSimpleClientset(), newDynamic())
+	calls := withExecRecorder(c)
+	c.ResignalWatermark(context.Background(), "not-a-quantity")
+	if len(*calls) != 0 {
+		t.Errorf("exec calls = %d, want 0 for unparseable memory", len(*calls))
+	}
+}
+
+func TestResignalWatermarkListErrorIsBestEffort(t *testing.T) {
+	core := corefake.NewSimpleClientset()
+	core.Fake.PrependReactor("list", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("list boom")
+	})
+	c := newTestClient(t, core, newDynamic())
+	c.ResignalWatermark(context.Background(), "4Gi")
+}
+
+func TestCheckResizeFeasibleGetErrorIsTolerated(t *testing.T) {
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "330m", "1Gi"))
+	core.Fake.PrependReactor("get", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("get boom")
+	})
+	c := newTestClient(t, core, newDynamic())
+	// Patch is accepted; the post-patch feasibility read failing must not fail the action.
+	if err := c.ResizePods(context.Background(), "800m", "2Gi"); err != nil {
+		t.Errorf("err = %v, want nil when the feasibility re-read fails", err)
+	}
+}
+
+func TestResignalWatermarkNilExecIsBestEffort(t *testing.T) {
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "800m", "2Gi"))
+	c := newTestClient(t, core, newDynamic()) // no execFn wired
+	c.ResignalWatermark(context.Background(), "4Gi")
+}
+
+func TestSetUpdateStrategyPatchErrorPropagates(t *testing.T) {
+	dyn := newDynamic(rabbitmqCluster("rmq", "prod", "330m"))
+	dyn.PrependReactor("patch", "rabbitmqclusters", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("patch boom")
+	})
+	c := newTestClient(t, corefake.NewSimpleClientset(), dyn)
+	if err := c.EnsureOnDeleteStrategy(context.Background()); err == nil {
+		t.Error("EnsureOnDeleteStrategy = nil, want error when the patch fails")
+	}
+}

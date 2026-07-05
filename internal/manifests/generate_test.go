@@ -50,6 +50,15 @@ func TestGenerateMatchesV1Golden(t *testing.T) {
 				t.Fatalf("Generate: %v", err)
 			}
 
+			// UPDATE_GOLDEN=1 go test ./internal/manifests/ rewrites the
+			// golden files after an intentional template change.
+			if os.Getenv("UPDATE_GOLDEN") == "1" {
+				if err := os.WriteFile(tc.golden, []byte(got), 0o644); err != nil {
+					t.Fatalf("update golden: %v", err)
+				}
+				return
+			}
+
 			wantBytes, err := os.ReadFile(tc.golden)
 			if err != nil {
 				t.Fatalf("read golden: %v", err)
@@ -261,5 +270,47 @@ func TestGenerateUsesVersionedDefaultImage(t *testing.T) {
 	}
 	if s.Image != "custom:1" {
 		t.Errorf("Image = %q, want custom:1", s.Image)
+	}
+}
+
+func TestGenerateScalingBlockInPlaceWithWatermark(t *testing.T) {
+	cfg := []byte(`{"profiles":{"LOW":{"cpu":"330m","memory":"2Gi"}},` +
+		`"scaling":{"mode":"inplace","watermarkResignal":true}}`)
+	out, _, err := Generate(Flags{}, cfg)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	for _, want := range []string{
+		"- name: SCALE_MODE\n              value: 'inplace'",
+		"- name: WATERMARK_RESIGNAL\n              value: 'true'",
+		"resources: ['pods']",
+		"resources: ['pods/resize']",
+		"resources: ['pods/exec']",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+}
+
+func TestGenerateScalingDefaultsToAutoWithoutExec(t *testing.T) {
+	cfg := []byte(`{"profiles":{"LOW":{"cpu":"330m","memory":"2Gi"}}}`)
+	out, _, err := Generate(Flags{}, cfg)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if !strings.Contains(out, "- name: SCALE_MODE\n              value: 'auto'") {
+		t.Error("output missing SCALE_MODE=auto default")
+	}
+	// pods + pods/resize are always needed (auto may resolve to inplace)…
+	if !strings.Contains(out, "resources: ['pods/resize']") {
+		t.Error("output missing pods/resize RBAC")
+	}
+	// …but exec is only granted when the watermark re-signal is on.
+	if strings.Contains(out, "pods/exec") {
+		t.Error("output grants pods/exec although watermarkResignal is off")
+	}
+	if strings.Contains(out, "WATERMARK_RESIGNAL") {
+		t.Error("output sets WATERMARK_RESIGNAL although it is off")
 	}
 }

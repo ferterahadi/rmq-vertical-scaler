@@ -34,6 +34,8 @@ helm install rvs rmq-vertical-scaler-2.1.0/charts/rmq-vertical-scaler \
 | `profiles` | LOW→CRITICAL | **Ordered** list; first entry is the floor (no thresholds) |
 | `debounce.scaleUpSeconds` / `scaleDownSeconds` | 30 / 120 | Anti-oscillation delays |
 | `checkInterval` | 5 | Metrics poll interval (seconds) |
+| `scaling.mode` | `auto` | `auto`: in-place pod resize when the cluster supports it (K8s ≥ 1.33), rolling restart otherwise; `inplace`: always resize in place; `rolling`: always patch the CR only (v2.0.0 behaviour) |
+| `scaling.watermarkResignal` | `false` | Re-signal RabbitMQ's memory watermark via `rabbitmqctl` after in-place memory resizes (grants `pods/exec`) |
 | `pdb.enabled` / `pdb.minAvailable` | `true` / 2 | PDB on the RabbitMQ pods |
 | `serviceAccount.create` / `rbac.create` | `true` | Skip to bring your own |
 
