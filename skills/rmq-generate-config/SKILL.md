@@ -16,7 +16,7 @@ The scaler is driven by a JSON config (validated against `schema/config-schema.j
 Do NOT use for deploying — that's `rmq-deploy`. This skill only produces the config file.
 
 ## Interview first
-Ask only what you can't infer. Map answers to config:
+Start from `rmq-vertical-scaler init` (writes `my-config.json`) instead of hand-copying a template when the CLI is available. Ask only what you can't infer. Map answers to config:
 
 | Ask | Drives |
 |---|---|
@@ -38,7 +38,7 @@ Ask only what you can't infer. Map answers to config:
 ## Example output
 ```json
 {
-  "$schema": "../schema/config-schema.json",
+  "$schema": "https://raw.githubusercontent.com/ferterahadi/rmq-vertical-scaler/master/schema/config-schema.json",
   "profiles": {
     "LOW":    { "cpu": "330m",  "memory": "2Gi" },
     "MEDIUM": { "cpu": "800m",  "memory": "3Gi", "queue": 2000,  "rate": 200 },
@@ -55,7 +55,7 @@ Ask only what you can't infer. Map answers to config:
 Start from `examples/template-config.json`, `basic-config.json`, or `production-config.json` if available — adapt rather than build from scratch.
 
 ## Validate before finishing
-- Confirm it parses and matches the schema. Run `rmq-vertical-scaler generate --config <file> -o /tmp/check.yaml` (or the docker equivalent) — a clean generate is the real validation.
+- Confirm it parses and matches the schema. Run `rmq-vertical-scaler generate --config <file> -o /tmp/check.yaml` (or the docker equivalent) — `generate` now **enforces** the schema (non-zero exit with a violation list), so a clean generate is authoritative.
 - Warn loudly if node count <3 or single-node: scaling restarts cause message loss (README safety note).
 
 ## Common mistakes

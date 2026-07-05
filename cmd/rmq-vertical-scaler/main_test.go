@@ -204,3 +204,25 @@ func TestInitRefusesOverwrite(t *testing.T) {
 		t.Error("existing file was clobbered")
 	}
 }
+
+func TestInitOpenFileErrorNotExist(t *testing.T) {
+	// A parent directory that doesn't exist produces a non-IsExist OpenFile
+	// error, exercising the generic "write %s: %w" branch (as opposed to the
+	// "already exists" branch covered by TestInitRefusesOverwrite).
+	out := filepath.Join(t.TempDir(), "missing-parent", "my-config.json")
+
+	cmd := rootCmd()
+	cmd.SetArgs([]string{"init", "--output", out})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("init with a missing parent directory succeeded, want error")
+	}
+	if strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error %q should not claim the file already exists", err.Error())
+	}
+	if !strings.Contains(err.Error(), "write") {
+		t.Errorf("error %q does not mention the write failure", err.Error())
+	}
+}

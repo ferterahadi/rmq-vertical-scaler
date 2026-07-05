@@ -27,10 +27,12 @@ docker run --rm -v "$PWD:/work" -w /work \
   ferterahadi/rmq-vertical-scaler:2 generate \
   --config my-config.json --output my-scaler.yaml
 ```
-Flags: `-c/--config`, `-n/--namespace`, `-s/--service-name`, `-o/--output`, `--image`, `--scaler-name`. CLI flags override config values.
+Flags: `-c/--config`, `-n/--namespace`, `-s/--service-name`, `-o/--output`, `--image`, `--scaler-name`, `--no-pdb` (skip the PodDisruptionBudget). CLI flags override config values.
+
+> Prefer Helm if the operator uses it: `helm install rvs charts/rmq-vertical-scaler -n <ns> --set serviceName=<svc>` — supports secret name/key overrides (`auth.existingSecret`, `auth.usernameKey`, `auth.passwordKey`) and `pdb.enabled=false`.
 
 ### 2. Ensure the credentials secret exists (FIRST — the pod won't start without it)
-The scaler reads RabbitMQ management creds from secret **`<rmqServiceName>-default-user`** in the target namespace, keys `username` + `password`.
+The scaler reads RabbitMQ management creds from secret **`<rmqServiceName>-default-user`** in the target namespace, keys `username` + `password`. This fixed secret name/keys apply only to the `generate` path — the Helm chart can point at any existing secret via `auth.existingSecret`.
 ```bash
 kubectl get secret <service>-default-user -n <namespace>
 ```
@@ -60,10 +62,10 @@ Healthy = logs show it connecting to the RMQ management API and reporting the cu
 | Deployment / ServiceAccount / Role / Binding / ConfigMap | `rmq-vertical-scaler`, `-sa`, `-role`, `-binding`, `-config` |
 | PodDisruptionBudget | `<service>-pdb` |
 | Credentials secret (you supply) | `<service>-default-user` |
-| Image | `ferterahadi/rmq-vertical-scaler:latest` (override with `--image`; pin to `:2`) |
+| Image | Pinned to the CLI's own release version (e.g. `ferterahadi/rmq-vertical-scaler:2.1.0`); dev builds fall back to `:2`, never `:latest`. Override with `--image` |
 
 ## Common mistakes
 - Applying before the `<service>-default-user` secret exists → CrashLoop. Check the secret first.
 - Namespace in the manifest ≠ where RabbitMQ actually runs → RBAC and DNS won't resolve.
-- Forgetting `--image ...:2` and getting `:latest` → pin the tag in production.
+- An old v1-generated manifest still floats on `:latest` → regenerate with v2 to get a pinned tag.
 - If scaling never happens after a clean deploy, hand off to `rmq-troubleshoot`.
