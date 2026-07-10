@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1] - 2026-07-10
+
+### Added
+- **In-place RBAC preflight.** At startup the scaler runs a `SelfSubjectAccessReview` for `pods/resize` (patch) and `pods` (list) — testing *permission*, not just the API *capability* that discovery reports. `SCALE_MODE=auto` degrades to rolling with a warning that names the missing RBAC; explicit `SCALE_MODE=inplace` **fails fast** at startup with a message naming the exact verbs to grant, instead of a silent 403 at the first resize.
+
+### Fixed
+- **No stranded `OnDelete` override on missing RBAC.** In `auto` mode a resize rejected for lack of `pods/resize` RBAC (HTTP 403 Forbidden) is now treated like an infeasible resize — the scaler reverts the override and falls back to rolling — where before it hard-failed after already flipping the cluster to `OnDelete`. The startup preflight normally prevents this path from being reached at all.
+- Startup log now reads `Scale mode: inplace (pods/resize permitted)` — "permitted" (permission) rather than "supported" (capability).
+
+### Compatibility
+- No change to the Helm chart or `generate` RBAC output (both already grant `pods/resize`), env-var contract, or `SCALE_MODE` semantics. A hand-rolled deployment missing the `pods/resize` grant now surfaces the gap loudly instead of failing silently. Patching resource *limits* for Guaranteed-QoS pods (request ≤ limit) is out of scope here and deferred to a later release.
+
 ## [2.2.0] - 2026-07-05
 
 ### Added

@@ -15,15 +15,19 @@ import (
 )
 
 type fakeMetrics struct {
-	ov      metrics.Overview
-	ok      bool
-	queues  []metrics.Queue
-	waitErr error // returned by WaitForRabbitMQ when set
+	ov         metrics.Overview
+	ok         bool
+	queues     []metrics.Queue
+	waitErr    error // returned by WaitForRabbitMQ when set
+	waitCalled bool  // set when WaitForRabbitMQ is invoked
 }
 
 func (f *fakeMetrics) GetQueueMetrics(context.Context) (metrics.Overview, bool) { return f.ov, f.ok }
 func (f *fakeMetrics) GetDetailedQueues(context.Context) []metrics.Queue        { return f.queues }
-func (f *fakeMetrics) WaitForRabbitMQ(context.Context) error                    { return f.waitErr }
+func (f *fakeMetrics) WaitForRabbitMQ(context.Context) error {
+	f.waitCalled = true
+	return f.waitErr
+}
 
 type trackCall struct {
 	profile string
@@ -38,6 +42,7 @@ type fakeKube struct {
 	patchErr error // returned by ApplyPatch when set
 
 	mode       string      // returned by EffectiveScaleMode ("" -> rolling)
+	modeErr    error       // returned by EffectiveScaleMode when set (fail-fast)
 	resizes    [][2]string // ResizePods calls
 	resizeErr  error       // returned by ResizePods when set
 	ensures    []struct{}  // EnsureOnDeleteStrategy calls
@@ -58,11 +63,14 @@ func (f *fakeKube) ApplyPatch(_ context.Context, cpu, memory string) error {
 	f.patches = append(f.patches, [2]string{cpu, memory})
 	return nil
 }
-func (f *fakeKube) EffectiveScaleMode() string {
-	if f.mode == "" {
-		return config.ScaleModeRolling
+func (f *fakeKube) EffectiveScaleMode(context.Context) (string, error) {
+	if f.modeErr != nil {
+		return "", f.modeErr
 	}
-	return f.mode
+	if f.mode == "" {
+		return config.ScaleModeRolling, nil
+	}
+	return f.mode, nil
 }
 func (f *fakeKube) EnsureOnDeleteStrategy(context.Context) error {
 	if f.ensureErr != nil {
@@ -356,6 +364,56 @@ func TestApplyScaleInPlaceInfeasibleAutoFallsBackToRolling(t *testing.T) {
 	}
 	if len(k.tracking) != 1 {
 		t.Errorf("tracking = %v, want one reset after fallback scaling", k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceForbiddenAutoFallsBackToRolling(t *testing.T) {
+	// Defence-in-depth: a runtime RBAC 403 (missing pods/resize) in auto mode
+	// degrades to rolling and reverts the OnDelete override, just like Infeasible.
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = fmt.Errorf("pod rmq-server-0: %w", scaling.ErrResizePermission)
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeAuto
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.strategies) != 1 || k.strategies[0] != "RollingUpdate" {
+		t.Errorf("strategies = %v, want one RollingUpdate revert", k.strategies)
+	}
+	if len(k.patches) != 1 {
+		t.Errorf("patches = %v, want one CR patch (rolling fallback)", k.patches)
+	}
+	if len(k.tracking) != 1 {
+		t.Errorf("tracking = %v, want one reset after fallback scaling", k.tracking)
+	}
+}
+
+func TestApplyScaleModeResolutionErrorSwallowed(t *testing.T) {
+	// If mode resolution errors when reached lazily from applyResources (not
+	// pre-resolved by Run), the scaling loop logs and continues (returns nil).
+	k := inPlaceKube("")
+	k.modeErr = errors.New("SCALE_MODE=inplace lacks RBAC")
+	if err := newCtrl(highLoad(), k, 1000).ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (error swallowed by the loop)", err)
+	}
+	if len(k.resizes) != 0 || len(k.patches) != 0 || len(k.tracking) != 0 {
+		t.Errorf("resizes/patches/tracking = %v/%v/%v, want none", k.resizes, k.patches, k.tracking)
+	}
+}
+
+func TestRunFailsFastWhenModeResolutionErrors(t *testing.T) {
+	// An explicit SCALE_MODE=inplace without RBAC surfaces as a mode-resolution
+	// error; Run must return it before waiting for RabbitMQ (no stranded state).
+	failFast := errors.New("SCALE_MODE=inplace but the scaler lacks RBAC: pods/resize (patch)")
+	k := &fakeKube{modeErr: failFast}
+	m := &fakeMetrics{}
+	err := newCtrl(m, k, 1000).Run(context.Background())
+	if !errors.Is(err, failFast) {
+		t.Fatalf("Run err = %v, want the fail-fast error", err)
+	}
+	if m.waitCalled {
+		t.Error("WaitForRabbitMQ was called; Run must fail fast before waiting")
 	}
 }
 

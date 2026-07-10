@@ -17,8 +17,8 @@ helm install rvs charts/rmq-vertical-scaler \
 Or from a GitHub tag tarball (extract first — Helm needs the chart directory):
 
 ```bash
-curl -sL https://github.com/ferterahadi/rmq-vertical-scaler/archive/refs/tags/v2.2.0.tar.gz | tar xz
-helm install rvs rmq-vertical-scaler-2.2.0/charts/rmq-vertical-scaler \
+curl -sL https://github.com/ferterahadi/rmq-vertical-scaler/archive/refs/tags/v2.2.1.tar.gz | tar xz
+helm install rvs rmq-vertical-scaler-2.2.1/charts/rmq-vertical-scaler \
   --namespace production --create-namespace
 ```
 

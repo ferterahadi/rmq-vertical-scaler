@@ -16,6 +16,7 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,26 +87,93 @@ func (c *Client) ResizeSupported() bool {
 	return false
 }
 
+// CheckResizePermissions asks the API server, via SelfSubjectAccessReview,
+// whether this pod's service account may perform the in-place resize
+// operations: patch on the pods/resize subresource and list on pods, both in
+// the scaler's namespace. It returns the human-readable RBAC descriptions of
+// any verbs that are denied (empty slice = fully permitted). This tests
+// *permission*, complementing ResizeSupported which only tests API capability.
+func (c *Client) CheckResizePermissions(ctx context.Context) ([]string, error) {
+	checks := []struct {
+		desc        string
+		resource    string
+		subresource string
+		verb        string
+	}{
+		{"pods/resize (patch)", "pods", "resize", "patch"},
+		{"pods (list)", "pods", "", "list"},
+	}
+	var missing []string
+	for _, chk := range checks {
+		review := &authorizationv1.SelfSubjectAccessReview{
+			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &authorizationv1.ResourceAttributes{
+					Namespace:   c.cfg.Namespace,
+					Verb:        chk.verb,
+					Group:       "",
+					Resource:    chk.resource,
+					Subresource: chk.subresource,
+				},
+			},
+		}
+		resp, err := c.core.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, review, metav1.CreateOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("SelfSubjectAccessReview for %s: %w", chk.desc, err)
+		}
+		if !resp.Status.Allowed {
+			missing = append(missing, chk.desc)
+		}
+	}
+	return missing, nil
+}
+
 // EffectiveScaleMode resolves the configured SCALE_MODE against what the
-// cluster actually supports: auto picks inplace when pods/resize exists and
-// rolling otherwise; an explicit inplace is honoured even without support (the
-// resize patches will fail visibly) but logged.
-func (c *Client) EffectiveScaleMode() string {
+// cluster supports (API discovery) AND what this service account is permitted
+// to do (SelfSubjectAccessReview):
+//   - rolling: honoured as-is, no checks.
+//   - inplace (explicit): the operator asserted the capability, so a missing
+//     permission is a misconfiguration — return an error naming the exact RBAC
+//     so startup fails fast rather than 403-ing silently at the first resize.
+//   - auto: pick inplace only when pods/resize is both supported and permitted;
+//     otherwise degrade to rolling with a loud warning naming what's missing.
+//
+// It returns an error only in the explicit-inplace-denied case; all other
+// paths resolve to a usable mode.
+func (c *Client) EffectiveScaleMode(ctx context.Context) (string, error) {
 	switch c.cfg.ScaleMode {
 	case config.ScaleModeRolling:
-		return config.ScaleModeRolling
+		return config.ScaleModeRolling, nil
 	case config.ScaleModeInPlace:
 		if !c.ResizeSupported() {
 			c.logger.Println("⚠️  SCALE_MODE=inplace but the cluster does not advertise pods/resize; resizes will likely fail")
 		}
-		return config.ScaleModeInPlace
-	default: // auto
-		if c.ResizeSupported() {
-			c.logger.Println("🔧 Scale mode: inplace (pods/resize supported)")
-			return config.ScaleModeInPlace
+		missing, err := c.CheckResizePermissions(ctx)
+		if err != nil {
+			return "", fmt.Errorf("SCALE_MODE=inplace: could not verify in-place resize permissions: %w", err)
 		}
-		c.logger.Println("🔧 Scale mode: rolling (pods/resize not supported)")
-		return config.ScaleModeRolling
+		if len(missing) > 0 {
+			return "", fmt.Errorf("SCALE_MODE=inplace but the scaler's service account lacks required RBAC: %s — grant these verbs (see the chart's rbac.yaml) or set SCALE_MODE=auto to degrade to rolling",
+				strings.Join(missing, ", "))
+		}
+		c.logger.Println("🔧 Scale mode: inplace (pods/resize permitted)")
+		return config.ScaleModeInPlace, nil
+	default: // auto
+		if !c.ResizeSupported() {
+			c.logger.Println("🔧 Scale mode: rolling (pods/resize not supported)")
+			return config.ScaleModeRolling, nil
+		}
+		missing, err := c.CheckResizePermissions(ctx)
+		if err != nil {
+			c.logger.Printf("⚠️  Scale mode: rolling — could not verify pods/resize permissions (%v)", err)
+			return config.ScaleModeRolling, nil
+		}
+		if len(missing) > 0 {
+			c.logger.Printf("⚠️  Scale mode: rolling — pods/resize is supported but the scaler lacks RBAC: %s (grant these for in-place resize)",
+				strings.Join(missing, ", "))
+			return config.ScaleModeRolling, nil
+		}
+		c.logger.Println("🔧 Scale mode: inplace (pods/resize permitted)")
+		return config.ScaleModeInPlace, nil
 	}
 }
 
@@ -181,6 +249,12 @@ func (c *Client) ResizePods(ctx context.Context, cpu, memory string) error {
 		LabelSelector: "app.kubernetes.io/name=" + c.cfg.RMQServiceName,
 	})
 	if err != nil {
+		// A 403 here is missing `pods (list)` RBAC — tag it so auto mode can
+		// degrade to rolling instead of hard-failing (defence-in-depth behind
+		// the startup preflight).
+		if apierrors.IsForbidden(err) {
+			return fmt.Errorf("listing pods for %s: %w: %v", c.cfg.RMQServiceName, scaling.ErrResizePermission, err)
+		}
 		return fmt.Errorf("listing pods for %s: %w", c.cfg.RMQServiceName, err)
 	}
 	if len(pods.Items) == 0 {
@@ -211,9 +285,13 @@ func (c *Client) ResizePods(ctx context.Context, cpu, memory string) error {
 			// Newer API servers reject an unschedulable resize synchronously
 			// ("node didn't have enough allocatable resources") instead of the
 			// async kubelet Infeasible condition — same semantics, same error.
-			if apierrors.IsForbidden(err) && strings.Contains(err.Error(), "allocatable") {
+			switch {
+			case apierrors.IsForbidden(err) && strings.Contains(err.Error(), "allocatable"):
 				errs = append(errs, fmt.Errorf("pod %s: %w: %v", pod.Name, scaling.ErrResizeInfeasible, err))
-			} else {
+			case apierrors.IsForbidden(err):
+				// 403 without an allocatable verdict = missing pods/resize RBAC.
+				errs = append(errs, fmt.Errorf("pod %s: %w: %v", pod.Name, scaling.ErrResizePermission, err))
+			default:
 				errs = append(errs, fmt.Errorf("pod %s: %w", pod.Name, err))
 			}
 			continue

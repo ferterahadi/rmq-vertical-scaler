@@ -31,6 +31,14 @@ var ErrNoMetrics = errors.New("connection error: unable to fetch metrics")
 // when it sees this.
 var ErrResizeInfeasible = errors.New("in-place resize infeasible on node")
 
+// ErrResizePermission marks an in-place resize (or its pod list) rejected for
+// lack of RBAC — a 403 Forbidden that is NOT an allocatable/feasibility verdict.
+// Like ErrResizeInfeasible it lives here so the controller can match it with
+// errors.Is without a client-go dependency. Auto mode degrades to a rolling
+// scale when it sees this (defence-in-depth; the startup preflight normally
+// resolves to rolling before any resize is attempted).
+var ErrResizePermission = errors.New("in-place resize forbidden: missing pods/resize RBAC")
+
 // CalculateScaleProfile derives metrics from the RabbitMQ payloads and selects
 // the target profile. overviewOK is false when the overview fetch failed (v1's
 // empty `{}`); like v1, an empty queue list is also treated as a skip.
