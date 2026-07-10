@@ -1,10 +1,10 @@
 {
   "name": "rmq-vertical-scaler",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Helps operators configure, deploy, troubleshoot, and upgrade the RabbitMQ Vertical Scaler on Kubernetes. Provides skills that interview you about your workload, generate manifests, and diagnose why scaling isn't happening.",
   "author": {
     "name": "ferterahadi",
-    "email": "fernandi@oddle.me",
+    "email": "fernanditerahadi@gmail.com",
     "url": "https://github.com/ferterahadi"
   },
   "homepage": "https://github.com/ferterahadi/rmq-vertical-scaler",

@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"testing"
@@ -35,6 +36,14 @@ type fakeKube struct {
 	patches  [][2]string
 	tracking []trackCall
 	patchErr error // returned by ApplyPatch when set
+
+	mode       string      // returned by EffectiveScaleMode ("" -> rolling)
+	resizes    [][2]string // ResizePods calls
+	resizeErr  error       // returned by ResizePods when set
+	ensures    []struct{}  // EnsureOnDeleteStrategy calls
+	ensureErr  error       // returned by EnsureOnDeleteStrategy when set
+	strategies  []string   // SetRollingUpdateStrategy calls
+	strategyErr error      // returned by SetRollingUpdateStrategy when set
 }
 
 func (f *fakeKube) GetCurrentProfile(context.Context) string                 { return f.current }
@@ -47,6 +56,33 @@ func (f *fakeKube) ApplyPatch(_ context.Context, cpu, memory string) error {
 		return f.patchErr
 	}
 	f.patches = append(f.patches, [2]string{cpu, memory})
+	return nil
+}
+func (f *fakeKube) EffectiveScaleMode() string {
+	if f.mode == "" {
+		return config.ScaleModeRolling
+	}
+	return f.mode
+}
+func (f *fakeKube) EnsureOnDeleteStrategy(context.Context) error {
+	if f.ensureErr != nil {
+		return f.ensureErr
+	}
+	f.ensures = append(f.ensures, struct{}{})
+	return nil
+}
+func (f *fakeKube) ResizePods(_ context.Context, cpu, memory string) error {
+	if f.resizeErr != nil {
+		return f.resizeErr
+	}
+	f.resizes = append(f.resizes, [2]string{cpu, memory})
+	return nil
+}
+func (f *fakeKube) SetRollingUpdateStrategy(context.Context) error {
+	if f.strategyErr != nil {
+		return f.strategyErr
+	}
+	f.strategies = append(f.strategies, "RollingUpdate")
 	return nil
 }
 
@@ -266,5 +302,148 @@ func TestRunStopsOnContextCancel(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Run did not return after context cancel")
+	}
+}
+
+// --- in-place resize routing ---
+
+func inPlaceKube(mode string) *fakeKube {
+	return &fakeKube{
+		current: "MEDIUM",
+		state:   scaling.StabilityState{StableProfile: "HIGH", StableSince: 900},
+		mode:    mode,
+	}
+}
+
+// highLoad recommends HIGH with a stable debounce window at now=1000.
+func highLoad() *fakeMetrics {
+	return &fakeMetrics{ov: ovWith(15000, 500, 300), ok: true, queues: []metrics.Queue{{Messages: 12000}}}
+}
+
+func TestApplyScaleInPlaceResizesPodsAndSyncsCR(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	if err := newCtrl(highLoad(), k, 1000).ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.ensures) != 1 {
+		t.Errorf("EnsureOnDeleteStrategy calls = %d, want 1", len(k.ensures))
+	}
+	if len(k.resizes) != 1 || k.resizes[0] != [2]string{"1600m", "4Gi"} {
+		t.Errorf("resizes = %v, want one HIGH resize", k.resizes)
+	}
+	if len(k.patches) != 1 || k.patches[0] != [2]string{"1600m", "4Gi"} {
+		t.Errorf("patches = %v, want one CR sync patch", k.patches)
+	}
+	if len(k.tracking) != 1 {
+		t.Errorf("tracking = %v, want one reset after scaling", k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceInfeasibleAutoFallsBackToRolling(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = fmt.Errorf("pod rmq-server-0: %w", scaling.ErrResizeInfeasible)
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeAuto
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.strategies) != 1 || k.strategies[0] != "RollingUpdate" {
+		t.Errorf("strategies = %v, want one RollingUpdate revert", k.strategies)
+	}
+	if len(k.patches) != 1 {
+		t.Errorf("patches = %v, want one CR patch (rolling fallback)", k.patches)
+	}
+	if len(k.tracking) != 1 {
+		t.Errorf("tracking = %v, want one reset after fallback scaling", k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceInfeasibleForcedModeDoesNotFallBack(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = fmt.Errorf("pod rmq-server-0: %w", scaling.ErrResizeInfeasible)
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeInPlace // forced: no rolling fallback
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (swallowed like a patch error)", err)
+	}
+	if len(k.strategies) != 0 || len(k.patches) != 0 {
+		t.Errorf("strategies/patches = %v/%v, want none", k.strategies, k.patches)
+	}
+	if len(k.tracking) != 0 {
+		t.Errorf("tracking = %v, want none (scale did not apply)", k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceGenericResizeErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = errors.New("apiserver hiccup")
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeAuto
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil", err)
+	}
+	if len(k.patches) != 0 || len(k.strategies) != 0 || len(k.tracking) != 0 {
+		t.Errorf("patches/strategies/tracking = %v/%v/%v, want none",
+			k.patches, k.strategies, k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceEnsureStrategyErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.ensureErr = errors.New("cr missing")
+	if err := newCtrl(highLoad(), k, 1000).ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil", err)
+	}
+	if len(k.resizes) != 0 || len(k.patches) != 0 {
+		t.Errorf("resizes/patches = %v/%v, want none after ensure failure", k.resizes, k.patches)
+	}
+}
+
+func TestApplyScaleRollingModeNeverTouchesPods(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeRolling)
+	if err := newCtrl(highLoad(), k, 1000).ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if len(k.patches) != 1 || k.patches[0] != [2]string{"1600m", "4Gi"} {
+		t.Errorf("patches = %v, want one CR patch (v2.0.0 behaviour)", k.patches)
+	}
+	if len(k.resizes) != 0 || len(k.ensures) != 0 || len(k.strategies) != 0 {
+		t.Errorf("resizes/ensures/strategies = %v/%v/%v, want none in rolling mode",
+			k.resizes, k.ensures, k.strategies)
+	}
+}
+
+func TestApplyScaleInPlaceFallbackStrategyErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.resizeErr = fmt.Errorf("pod rmq-server-0: %w", scaling.ErrResizeInfeasible)
+	k.strategyErr = errors.New("revert boom")
+	c := newCtrl(highLoad(), k, 1000)
+	c.cfg.ScaleMode = config.ScaleModeAuto
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (strategy error swallowed like a patch error)", err)
+	}
+	if len(k.patches) != 0 || len(k.tracking) != 0 {
+		t.Errorf("patches/tracking = %v/%v, want none when the fallback revert fails", k.patches, k.tracking)
+	}
+}
+
+func TestApplyScaleInPlaceCRSyncErrorSwallowed(t *testing.T) {
+	k := inPlaceKube(config.ScaleModeInPlace)
+	k.patchErr = errors.New("cr patch boom")
+	c := newCtrl(highLoad(), k, 1000)
+
+	if err := c.ApplyScale(context.Background()); err != nil {
+		t.Fatalf("err = %v, want nil (CR sync error swallowed)", err)
+	}
+	if len(k.resizes) != 1 {
+		t.Errorf("resizes = %v, want one (pods were resized before the CR sync failed)", k.resizes)
+	}
+	// No tracking reset when the action didn't fully apply.
+	if len(k.tracking) != 0 {
+		t.Errorf("tracking = %v, want none", k.tracking)
 	}
 }

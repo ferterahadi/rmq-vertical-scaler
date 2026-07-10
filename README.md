@@ -8,10 +8,13 @@ Automatically scales RabbitMQ cluster resources (CPU/Memory) based on real-time 
 
 A small, dependency-light Kubernetes control loop written in **Go**. It watches the RabbitMQ management API and patches the `RabbitmqCluster` custom resource's CPU/memory requests up or down as load changes — shipped as a single static binary in a `distroless` container.
 
-> ⚠️ **Note**  
-> Vertically scaling RabbitMQ is *not* generally recommended, since node restarts can cause **temporary disruption and potential message loss**. I understand and accept this trade-off. This scaler is intended as an **alternative** for **infrequent or bursty workloads** where some disruption is acceptable to save resources.  
+> ℹ️ **Zero-restart scaling (v2.2.0+)**  
+> On Kubernetes ≥ 1.33 the scaler resizes pods **in place** through the `pods/resize` subresource — CPU and memory change without restarting a single pod. On older clusters it automatically falls back to the classic rolling scale below. See [Scale Modes](#scale-modes).
+>
+> ⚠️ **Note (rolling mode)**  
+> When in-place resize is unavailable, vertical scaling restarts pods, which can cause **temporary disruption and potential message loss**. This trade-off is acceptable for **infrequent or bursty workloads** where some disruption is worth the resource savings.  
 >  
-> ⚠️ **Important**: This scaler is recommended only for **quorum queues with 3+ nodes**. Using it on **single-node** RabbitMQ deployments will result in **message loss** during scaling operations.
+> ⚠️ **Important**: This scaler is recommended only for **quorum queues with 3+ nodes**. Using it on **single-node** RabbitMQ deployments will result in **message loss** during rolling scaling operations.
 
 > ℹ️ **v2.0.0** is a behaviour-identical rewrite of the Node.js v1 in Go — same scaling decisions, same env-var contract, same generated manifests, smaller footprint. See [Upgrading from v1](#-upgrading-from-v1).
 
@@ -147,6 +150,44 @@ scans highest-to-lowest and takes the first match.
 - Higher resource limits: MINIMAL (500m/4Gi) → MAXIMUM (4000m/32Gi)
 - Conservative scaling: Longer debounce times (60s up, 300s down)
 - Higher thresholds: Queue depths from 5K to 100K messages
+
+### Scale Modes
+
+How a profile change reaches the cluster is controlled by `scaling.mode` in the
+config (env var `SCALE_MODE`):
+
+|Mode|Behaviour|
+|-|-|
+|`auto` (default)|In-place pod resize when the cluster advertises `pods/resize` (Kubernetes ≥ 1.33); rolling otherwise|
+|`inplace`|Always resize pods in place — **zero restarts**, both scale-up and scale-down|
+|`rolling`|Always patch the `RabbitmqCluster` CR only — the operator rolls pods (v2.0.0 behaviour)|
+
+```json
+{
+  "scaling": { "mode": "auto" }
+}
+```
+
+**How in-place mode works.** The scaler sets the RabbitmqCluster's StatefulSet
+override to `updateStrategy: OnDelete`, then on every scale action patches each
+pod's resource **requests** through the `pods/resize` subresource *and* patches
+the CR so it stays the source of truth — a pod recreated for any reason comes
+back at the current profile's size. If the kubelet reports a resize as
+`Infeasible` (the node can never fit it), `auto` mode reverts the override and
+falls back to a rolling scale for that action.
+
+Caveats:
+
+- **`OnDelete` trade-off**: while in-place mode is active, operator-driven
+  template changes (e.g. a RabbitMQ image bump) no longer roll pods
+  automatically — delete pods one at a time to roll them, or set
+  `scaling.mode: rolling`.
+- **Memory watermark**: no action needed. RabbitMQ computes its memory
+  high-watermark from the container's memory *limit* (or node total) at boot —
+  and the scaler only ever changes *requests*, so the watermark stays correct
+  across in-place resizes.
+- Only resource **requests** are patched (as in every previous version);
+  limits defined on the RabbitmqCluster are untouched.
 
 ### CLI Options
 

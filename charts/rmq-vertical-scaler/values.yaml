@@ -46,6 +46,14 @@ debounce:
 
 checkInterval: 5
 
+# How profile changes are applied (v2.2.0+).
+#   auto: in-place pod resize when the cluster supports it (K8s >= 1.33),
+#         rolling restart otherwise
+#   inplace: always resize pods in place (no restart)
+#   rolling: always patch the RabbitmqCluster CR only (v2.0.0 behaviour)
+scaling:
+  mode: auto
+
 # PDB protecting the RabbitMQ nodes during scaling restarts (requires 3+ nodes).
 pdb:
   enabled: true

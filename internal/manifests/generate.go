@@ -88,6 +88,9 @@ type rawTop struct {
 		Namespace      string `json:"namespace"`
 		RMQServiceName string `json:"rmqServiceName"`
 	} `json:"kubernetes"`
+	Scaling *struct {
+		Mode string `json:"mode"`
+	} `json:"scaling"`
 }
 
 type tmplData struct {
@@ -109,6 +112,8 @@ type tmplData struct {
 	ScaleUpSeconds  string
 	ScaleDnSeconds  string
 	CheckInterval   string
+
+	ScaleMode string
 }
 
 // Generate renders the manifest YAML. configJSON is nil when no --config file
@@ -165,6 +170,8 @@ func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
 		ScaleUpSeconds:  scaleUp,
 		ScaleDnSeconds:  scaleDn,
 		CheckInterval:   interval,
+
+		ScaleMode: resolveScaleMode(top),
 	}
 
 	var buf bytes.Buffer
@@ -402,6 +409,15 @@ func resolveCheckInterval(top rawTop) string {
 		}
 	}
 	return "5"
+}
+
+// resolveScaleMode reads scaling.mode from the config, defaulting to auto
+// (values are schema-validated before Generate runs).
+func resolveScaleMode(top rawTop) string {
+	if top.Scaling != nil && top.Scaling.Mode != "" {
+		return top.Scaling.Mode
+	}
+	return "auto"
 }
 
 func resolveRMQ(top rawTop, serviceName, namespace string) (host, port string) {

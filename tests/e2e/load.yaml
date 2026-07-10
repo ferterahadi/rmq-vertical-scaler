@@ -1,0 +1,85 @@
+# Load generation for the e2e run.
+# - producer: builds a backlog on a quorum queue (deleted to stop load)
+# - consumer: long-lived, rate-limited; its restartCount staying 0 across
+#   resizes proves consumer connections survive in-place scaling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-producer
+  namespace: default
+  labels: {app: e2e-producer}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: e2e-producer}
+  template:
+    metadata:
+      labels: {app: e2e-producer}
+    spec:
+      containers:
+        - name: perf-test
+          image: pivotalrabbitmq/perf-test:latest
+          env:
+            - name: RMQ_USER
+              valueFrom: {secretKeyRef: {name: rabbitmq-default-user, key: username}}
+            - name: RMQ_PASS
+              valueFrom: {secretKeyRef: {name: rabbitmq-default-user, key: password}}
+          args:
+            - --uri
+            - amqp://$(RMQ_USER):$(RMQ_PASS)@rabbitmq:5672
+            - --queue
+            - e2e-load
+            - --quorum-queue
+            - --producers
+            - "1"
+            - --consumers
+            - "0"
+            - --rate
+            - "200"
+            - --size
+            - "100"
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-consumer
+  namespace: default
+  labels: {app: e2e-consumer}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: e2e-consumer}
+  template:
+    metadata:
+      labels: {app: e2e-consumer}
+    spec:
+      containers:
+        - name: perf-test
+          image: pivotalrabbitmq/perf-test:latest
+          env:
+            - name: RMQ_USER
+              valueFrom: {secretKeyRef: {name: rabbitmq-default-user, key: username}}
+            - name: RMQ_PASS
+              valueFrom: {secretKeyRef: {name: rabbitmq-default-user, key: password}}
+          args:
+            - --uri
+            - amqp://$(RMQ_USER):$(RMQ_PASS)@rabbitmq:5672
+            - --queue
+            - e2e-load
+            - --quorum-queue
+            - --producers
+            - "0"
+            - --consumers
+            - "1"
+            - --consumer-rate
+            - "5"
+            # prefetch 1: the consumer never buffers unacked messages, so a
+            # queue purge actually empties the queue during scale-down
+            - --qos
+            - "1"
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}

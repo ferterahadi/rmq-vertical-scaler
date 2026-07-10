@@ -115,6 +115,19 @@
       "required": ["host", "port"],
       "additionalProperties": false
     },
+    "scaling": {
+      "type": "object",
+      "description": "How profile changes are applied to the cluster (v2.2.0+)",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "auto: in-place pod resize when the cluster supports it (K8s >= 1.33), rolling otherwise; inplace: always resize in place; rolling: always patch the CR only (v2.0.0 behaviour)",
+          "enum": ["auto", "inplace", "rolling"],
+          "default": "auto"
+        }
+      },
+      "additionalProperties": false
+    },
     "kubernetes": {
       "type": "object",
       "description": "Kubernetes deployment settings",

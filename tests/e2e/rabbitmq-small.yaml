@@ -1,0 +1,29 @@
+# 3-node quorum-capable RabbitMQ cluster sized for a local kind e2e run.
+# Requests match the e2e LOW profile; limits leave headroom for in-place
+# request resizes (requests must stay <= limits).
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+  namespace: default
+spec:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 300Mi
+    # Limits are deliberately roomy: limits don't reserve node resources, and
+    # the infeasible-fallback scenario needs an oversized *request* that is
+    # still <= the pod's limit (valid patch) yet > node capacity, so the
+    # kubelet — not API validation — rejects it as Infeasible.
+    limits:
+      cpu: "2"
+      memory: 16Gi
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_management
+  persistence:
+    storageClassName: standard
+    storage: 1Gi
+  service:
+    type: ClusterIP

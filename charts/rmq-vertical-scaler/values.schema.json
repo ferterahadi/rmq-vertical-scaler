@@ -55,6 +55,13 @@
       "additionalProperties": false
     },
     "checkInterval": { "type": "number", "minimum": 1 },
+    "scaling": {
+      "type": "object",
+      "properties": {
+        "mode": { "enum": ["auto", "inplace", "rolling"] }
+      },
+      "additionalProperties": false
+    },
     "pdb": {
       "type": "object",
       "properties": {
