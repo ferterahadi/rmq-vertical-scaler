@@ -25,8 +25,10 @@ type KubeClient interface {
 	ApplyPatch(ctx context.Context, cpu, memory string) error
 
 	// In-place resize (v2.2.0). EffectiveScaleMode resolves SCALE_MODE against
-	// cluster capability; the rest only run when it resolves to inplace.
-	EffectiveScaleMode() string
+	// cluster capability AND permission (v2.2.1); it errors only when an
+	// explicit SCALE_MODE=inplace lacks the required RBAC (fail fast). The rest
+	// only run when it resolves to inplace.
+	EffectiveScaleMode(ctx context.Context) (string, error)
 	EnsureOnDeleteStrategy(ctx context.Context) error
 	ResizePods(ctx context.Context, cpu, memory string) error
 	SetRollingUpdateStrategy(ctx context.Context) error
@@ -129,10 +131,19 @@ func (c *Controller) ApplyScale(ctx context.Context) error {
 // selects. Rolling is the v2.0.0 behaviour: one CR patch, the operator rolls
 // pods. In-place resizes the pods directly (no restart) and then patches the
 // CR too, keeping it the source of truth — under the OnDelete override that
-// patch does not roll anything. An Infeasible resize in auto mode reverts the
-// override and falls back to a rolling scale for this action.
+// patch does not roll anything.
+//
+// In auto mode a resize that comes back Infeasible (node can't fit it) or
+// Forbidden (missing pods/resize RBAC) reverts the OnDelete override and falls
+// back to a rolling scale for this action. The RBAC case is defence-in-depth:
+// the startup preflight (EffectiveScaleMode) normally resolves auto to rolling
+// before any resize is attempted, so OnDelete is never set without permission.
 func (c *Controller) applyResources(ctx context.Context, r config.Profile) error {
-	if c.scaleMode() != config.ScaleModeInPlace {
+	mode, err := c.scaleMode(ctx)
+	if err != nil {
+		return err
+	}
+	if mode != config.ScaleModeInPlace {
 		return c.kube.ApplyPatch(ctx, r.CPU, r.Memory)
 	}
 
@@ -140,8 +151,13 @@ func (c *Controller) applyResources(ctx context.Context, r config.Profile) error
 		return err
 	}
 	if err := c.kube.ResizePods(ctx, r.CPU, r.Memory); err != nil {
-		if c.cfg.ScaleMode == config.ScaleModeAuto && errors.Is(err, scaling.ErrResizeInfeasible) {
-			c.logger.Println("↩️  In-place resize infeasible on node; falling back to a rolling scale")
+		if c.cfg.ScaleMode == config.ScaleModeAuto &&
+			(errors.Is(err, scaling.ErrResizeInfeasible) || errors.Is(err, scaling.ErrResizePermission)) {
+			if errors.Is(err, scaling.ErrResizePermission) {
+				c.logger.Println("↩️  In-place resize forbidden (missing pods/resize RBAC); falling back to a rolling scale")
+			} else {
+				c.logger.Println("↩️  In-place resize infeasible on node; falling back to a rolling scale")
+			}
 			if serr := c.kube.SetRollingUpdateStrategy(ctx); serr != nil {
 				return serr
 			}
@@ -153,12 +169,18 @@ func (c *Controller) applyResources(ctx context.Context, r config.Profile) error
 }
 
 // scaleMode resolves the effective mode once and caches it for the loop's
-// lifetime (capability discovery doesn't change under a running process).
-func (c *Controller) scaleMode() string {
+// lifetime (capability + permission don't change under a running process). It
+// propagates the fail-fast error from an explicit SCALE_MODE=inplace that lacks
+// RBAC; Run resolves it eagerly so the process exits before the scaling loop.
+func (c *Controller) scaleMode(ctx context.Context) (string, error) {
 	if c.mode == "" {
-		c.mode = c.kube.EffectiveScaleMode()
+		m, err := c.kube.EffectiveScaleMode(ctx)
+		if err != nil {
+			return "", err
+		}
+		c.mode = m
 	}
-	return c.mode
+	return c.mode, nil
 }
 
 // logStability reproduces v1's per-branch stability log lines.
@@ -185,6 +207,13 @@ func (c *Controller) logStability(current, recommended string, state scaling.Sta
 // until ctx is cancelled (SIGTERM/SIGINT).
 func (c *Controller) Run(ctx context.Context) error {
 	c.logger.Println("🚀 RabbitMQ Vertical Scaler (Go)")
+
+	// Resolve the scale mode up front: an explicit SCALE_MODE=inplace without
+	// the required RBAC fails fast here, before we wait for RabbitMQ or touch
+	// the cluster (no stranded OnDelete override).
+	if _, err := c.scaleMode(ctx); err != nil {
+		return err
+	}
 
 	if err := c.metrics.WaitForRabbitMQ(ctx); err != nil {
 		if ctx.Err() != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -202,6 +203,39 @@ func v1Resources(names ...string) *metav1.APIResourceList {
 	return rl
 }
 
+// ssarKey names a verb+resource(+subresource) the way withSSAR matches denials.
+func ssarKey(ra *authorizationv1.ResourceAttributes) string {
+	if ra.Subresource != "" {
+		return ra.Verb + ":" + ra.Resource + "/" + ra.Subresource
+	}
+	return ra.Verb + ":" + ra.Resource
+}
+
+// withSSAR installs a reactor answering SelfSubjectAccessReview creates: any
+// key in `denied` (e.g. "patch:pods/resize", "list:pods") is reported
+// not-allowed, everything else allowed. A non-nil errOut makes the review call
+// itself fail. Without this reactor the fake returns Allowed=false for every
+// review (zero value), i.e. fully denied.
+func withSSAR(core *corefake.Clientset, errOut error, denied ...string) *corefake.Clientset {
+	core.Fake.PrependReactor("create", "selfsubjectaccessreviews", func(a k8stesting.Action) (bool, runtime.Object, error) {
+		if errOut != nil {
+			return true, nil, errOut
+		}
+		ssar := a.(k8stesting.CreateAction).GetObject().(*authorizationv1.SelfSubjectAccessReview)
+		key := ssarKey(ssar.Spec.ResourceAttributes)
+		allowed := true
+		for _, d := range denied {
+			if d == key {
+				allowed = false
+			}
+		}
+		return true, &authorizationv1.SelfSubjectAccessReview{
+			Status: authorizationv1.SubjectAccessReviewStatus{Allowed: allowed},
+		}, nil
+	})
+	return core
+}
+
 func TestResizeSupportedTrue(t *testing.T) {
 	core := withDiscovery(corefake.NewSimpleClientset(), v1Resources("pods", "pods/resize"))
 	c := newTestClient(t, core, newDynamic())
@@ -228,31 +262,100 @@ func TestResizeSupportedFalseOnDiscoveryError(t *testing.T) {
 
 func TestEffectiveScaleMode(t *testing.T) {
 	cases := []struct {
+		name      string
 		mode      string
 		supported bool
-		want      string
+		denied    []string // SSAR keys reported not-allowed
+		ssarErr   error    // review call itself fails
+		wantMode  string
+		wantErr   bool
 	}{
-		{config.ScaleModeRolling, true, config.ScaleModeRolling},
-		{config.ScaleModeRolling, false, config.ScaleModeRolling},
-		{config.ScaleModeInPlace, true, config.ScaleModeInPlace},
-		{config.ScaleModeInPlace, false, config.ScaleModeInPlace}, // forced, warn only
-		{config.ScaleModeAuto, true, config.ScaleModeInPlace},
-		{config.ScaleModeAuto, false, config.ScaleModeRolling},
+		// rolling is honoured as-is, no capability or permission check.
+		{"rolling supported", config.ScaleModeRolling, true, nil, nil, config.ScaleModeRolling, false},
+		{"rolling unsupported", config.ScaleModeRolling, false, nil, nil, config.ScaleModeRolling, false},
+
+		// explicit inplace: permitted -> inplace; denied -> fail fast (error).
+		{"inplace permitted", config.ScaleModeInPlace, true, nil, nil, config.ScaleModeInPlace, false},
+		{"inplace resize-denied fails fast", config.ScaleModeInPlace, true, []string{"patch:pods/resize"}, nil, "", true},
+		{"inplace list-denied fails fast", config.ScaleModeInPlace, true, []string{"list:pods"}, nil, "", true},
+		{"inplace ssar-error fails fast", config.ScaleModeInPlace, true, nil, errors.New("ssar boom"), "", true},
+		// forced inplace without discovery still checks permission (warn on capability).
+		{"inplace unsupported but permitted", config.ScaleModeInPlace, false, nil, nil, config.ScaleModeInPlace, false},
+
+		// auto: inplace only when supported AND permitted; otherwise degrade.
+		{"auto supported+permitted", config.ScaleModeAuto, true, nil, nil, config.ScaleModeInPlace, false},
+		{"auto supported+denied degrades", config.ScaleModeAuto, true, []string{"patch:pods/resize"}, nil, config.ScaleModeRolling, false},
+		{"auto supported+ssar-error degrades", config.ScaleModeAuto, true, nil, errors.New("ssar boom"), config.ScaleModeRolling, false},
+		{"auto unsupported degrades", config.ScaleModeAuto, false, nil, nil, config.ScaleModeRolling, false},
 	}
 	for _, tc := range cases {
-		core := corefake.NewSimpleClientset()
-		if tc.supported {
-			withDiscovery(core, v1Resources("pods", "pods/resize"))
-		} else {
-			withDiscovery(core, v1Resources("pods"))
-		}
-		cfg := testConfig()
-		cfg.ScaleMode = tc.mode
-		c := newClient(cfg, core, newDynamic(), log.New(io.Discard, "", 0))
-		if got := c.EffectiveScaleMode(); got != tc.want {
-			t.Errorf("mode=%s supported=%v: EffectiveScaleMode = %q, want %q",
-				tc.mode, tc.supported, got, tc.want)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			core := corefake.NewSimpleClientset()
+			if tc.supported {
+				withDiscovery(core, v1Resources("pods", "pods/resize"))
+			} else {
+				withDiscovery(core, v1Resources("pods"))
+			}
+			withSSAR(core, tc.ssarErr, tc.denied...)
+			cfg := testConfig()
+			cfg.ScaleMode = tc.mode
+			c := newClient(cfg, core, newDynamic(), log.New(io.Discard, "", 0))
+
+			got, err := c.EffectiveScaleMode(context.Background())
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("EffectiveScaleMode err = nil, want fail-fast error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("EffectiveScaleMode err = %v, want nil", err)
+			}
+			if got != tc.wantMode {
+				t.Errorf("EffectiveScaleMode = %q, want %q", got, tc.wantMode)
+			}
+		})
+	}
+}
+
+func TestCheckResizePermissions(t *testing.T) {
+	cases := []struct {
+		name        string
+		denied      []string
+		ssarErr     error
+		wantMissing []string
+		wantErr     bool
+	}{
+		{"all permitted", nil, nil, nil, false},
+		{"resize denied", []string{"patch:pods/resize"}, nil, []string{"pods/resize (patch)"}, false},
+		{"list denied", []string{"list:pods"}, nil, []string{"pods (list)"}, false},
+		{"both denied", []string{"patch:pods/resize", "list:pods"}, nil, []string{"pods/resize (patch)", "pods (list)"}, false},
+		{"ssar error", nil, errors.New("boom"), nil, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			core := withSSAR(corefake.NewSimpleClientset(), tc.ssarErr, tc.denied...)
+			c := newTestClient(t, core, newDynamic())
+
+			missing, err := c.CheckResizePermissions(context.Background())
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("CheckResizePermissions err = nil, want error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CheckResizePermissions err = %v, want nil", err)
+			}
+			if len(missing) != len(tc.wantMissing) {
+				t.Fatalf("missing = %v, want %v", missing, tc.wantMissing)
+			}
+			for i, m := range tc.wantMissing {
+				if missing[i] != m {
+					t.Errorf("missing[%d] = %q, want %q", i, missing[i], m)
+				}
+			}
+		})
 	}
 }
 
@@ -495,8 +598,9 @@ func TestResizePodsSynchronousAllocatableRejectionIsInfeasible(t *testing.T) {
 	}
 }
 
-func TestResizePodsOtherForbiddenIsNotInfeasible(t *testing.T) {
-	// RBAC denial is also Forbidden but must NOT trigger the rolling fallback.
+func TestResizePodsForbiddenIsPermissionError(t *testing.T) {
+	// RBAC denial is also Forbidden but must NOT be Infeasible — it is tagged
+	// ErrResizePermission so auto mode degrades to rolling (defence-in-depth).
 	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "330m", "1Gi"))
 	core.Fake.PrependReactor("patch", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewForbidden(
@@ -506,7 +610,26 @@ func TestResizePodsOtherForbiddenIsNotInfeasible(t *testing.T) {
 	c := newTestClient(t, core, newDynamic())
 
 	err := c.ResizePods(context.Background(), "200m", "2Gi")
-	if err == nil || errors.Is(err, scaling.ErrResizeInfeasible) {
-		t.Errorf("err = %v, want a non-infeasible error for RBAC denial", err)
+	if !errors.Is(err, scaling.ErrResizePermission) {
+		t.Errorf("err = %v, want ErrResizePermission for RBAC denial", err)
+	}
+	if errors.Is(err, scaling.ErrResizeInfeasible) {
+		t.Errorf("err = %v, must not be ErrResizeInfeasible for RBAC denial", err)
+	}
+}
+
+func TestResizePodsListForbiddenIsPermissionError(t *testing.T) {
+	// Missing `pods (list)` RBAC surfaces before any patch — also tagged.
+	core := corefake.NewSimpleClientset(rmqPod("rmq-server-0", "rmq", "330m", "1Gi"))
+	core.Fake.PrependReactor("list", "pods", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(
+			schema.GroupResource{Resource: "pods"}, "",
+			errors.New(`user "system:serviceaccount:default:scaler" cannot list resource "pods"`))
+	})
+	c := newTestClient(t, core, newDynamic())
+
+	err := c.ResizePods(context.Background(), "200m", "2Gi")
+	if !errors.Is(err, scaling.ErrResizePermission) {
+		t.Errorf("err = %v, want ErrResizePermission for forbidden list", err)
 	}
 }

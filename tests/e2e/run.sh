@@ -8,6 +8,9 @@
 #   2. scale-down MEDIUM -> LOW in place (memory decrease, requests only)
 #   3. self-heal  deleted pod comes back at the current profile's size
 #   4. infeasible oversized profile falls back to a rolling scale (auto mode)
+#   5. rbac      missing pods/resize permission — auto degrades to rolling with
+#                a warning; explicit SCALE_MODE=inplace fails fast at startup
+#                (v2.2.1 preflight)
 #
 # Usage: tests/e2e/run.sh [--keep]   (--keep skips cluster teardown)
 set -euo pipefail
@@ -63,7 +66,7 @@ pods_cpu_is() { # $1 cpu — every server pod at this request
   done
 }
 
-echo "=== [0/6] kind cluster + operator + images ==="
+echo "=== [0/7] kind cluster + operator + images ==="
 if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
   kind create cluster --name "$CLUSTER" --wait 120s
 fi
@@ -85,13 +88,13 @@ wait_for 300 "cluster operator ready" \
 kind load docker-image rmq-vertical-scaler:e2e --name "$CLUSTER" > /dev/null
 note "scaler image built + loaded"
 
-echo "=== [1/6] RabbitMQ cluster (3 nodes) ==="
+echo "=== [1/7] RabbitMQ cluster (3 nodes) ==="
 kubectl apply -f "$DIR/rabbitmq-small.yaml" > /dev/null
 wait_for 600 "RabbitmqCluster AllReplicasReady" \
   kubectl wait rabbitmqclusters.rabbitmq.com/rabbitmq -n "$NS" --for=condition=AllReplicasReady --timeout=5s
 assert_requests 100m 300Mi "baseline"
 
-echo "=== [2/6] scaler (helm) ==="
+echo "=== [2/7] scaler (helm) ==="
 helm upgrade --install rmq-scaler "$ROOT/charts/rmq-vertical-scaler" -n "$NS" -f "$DIR/values.yaml" > /dev/null
 wait_for 120 "scaler deployment ready" \
   kubectl wait deploy/rmq-vertical-scaler -n "$NS" --for=condition=Available --timeout=5s
@@ -99,7 +102,7 @@ wait_for 120 "scaler deployment ready" \
 UIDS_BEFORE=$(snapshot_uids)
 RESTARTS_BEFORE=$(snapshot_restarts)
 
-echo "=== [3/6] scale-up LOW -> MEDIUM (in place) ==="
+echo "=== [3/7] scale-up LOW -> MEDIUM (in place) ==="
 kubectl apply -f "$DIR/load.yaml" > /dev/null
 wait_for 120 "consumer connected" \
   kubectl wait deploy/e2e-consumer -n "$NS" --for=condition=Available --timeout=5s
@@ -133,7 +136,7 @@ fi
 CONSUMER_RESTARTS=$(kubectl get pods -n "$NS" -l app=e2e-consumer -o jsonpath='{.items[0].status.containerStatuses[0].restartCount}')
 [ "$CONSUMER_RESTARTS" = "0" ] && ok "consumer connection uninterrupted" || bad "consumer restarted $CONSUMER_RESTARTS times"
 
-echo "=== [4/6] scale-down MEDIUM -> LOW (in place, memory decrease) ==="
+echo "=== [4/7] scale-down MEDIUM -> LOW (in place, memory decrease) ==="
 kubectl delete deploy e2e-producer -n "$NS" > /dev/null
 # Purging while the producer pod is still terminating repopulates the queue.
 kubectl wait --for=delete pod -l app=e2e-producer -n "$NS" --timeout=120s > /dev/null 2>&1 || true
@@ -150,14 +153,14 @@ assert_requests 100m 300Mi "scale-down"
 [ "$(snapshot_uids)" = "$UIDS_BEFORE" ] && ok "scale-down: pod UIDs unchanged (memory decrease in place)" || bad "scale-down: pods were recreated"
 [ "$(snapshot_restarts)" = "$RESTARTS_BEFORE" ] && ok "scale-down: restartCount unchanged" || bad "scale-down: containers restarted"
 
-echo "=== [5/6] self-heal: deleted pod returns at current profile ==="
+echo "=== [5/7] self-heal: deleted pod returns at current profile ==="
 kubectl delete pod rabbitmq-server-1 -n "$NS" > /dev/null
 wait_for 300 "rabbitmq-server-1 ready again" \
   kubectl wait pod/rabbitmq-server-1 -n "$NS" --for=condition=Ready --timeout=5s
 HEAL_CPU=$(pod_field pod/rabbitmq-server-1 '{.spec.containers[?(@.name=="rabbitmq")].resources.requests.cpu}')
 [ "$HEAL_CPU" = "100m" ] && ok "self-heal: recreated pod at current profile (100m)" || bad "self-heal: recreated pod at $HEAL_CPU"
 
-echo "=== [6/6] infeasible resize falls back to rolling (auto mode) ==="
+echo "=== [6/7] infeasible resize falls back to rolling (auto mode) ==="
 # A MEDIUM profile larger than the node can ever fit: the kubelet marks the
 # resize Infeasible and auto mode must revert to a rolling scale. The rolling
 # attempt itself can never complete (nothing can fit 12Gi here) — the point
@@ -177,6 +180,73 @@ fi
 # sane profile and remove the load so the scaler settles back to LOW.
 kubectl set env deploy/rmq-vertical-scaler -n "$NS" PROFILE_MEDIUM_MEMORY- > /dev/null
 kubectl delete -f "$DIR/load.yaml" --ignore-not-found > /dev/null 2>&1 || true
+
+echo "=== [7/7] rbac preflight: missing pods/resize (v2.2.1) ==="
+# Simulate a hand-rolled deployment that forgot the pods/resize grant: strip
+# the resize rule from the scaler's Role, keeping everything else it needs.
+# (The Helm chart grants it; this proves the scaler no longer 403s silently.)
+ROLE=$(kubectl get role -n "$NS" -l app.kubernetes.io/name=rmq-vertical-scaler -o name | head -1)
+if [ -z "$ROLE" ]; then
+  bad "rbac: could not find the scaler Role"
+else
+  # Rewrite rules to the chart's set minus pods/resize (deterministic).
+  kubectl patch "$ROLE" -n "$NS" --type=json -p '[{"op":"replace","path":"/rules","value":[
+      {"apiGroups":["rabbitmq.com"],"resources":["rabbitmqclusters"],"verbs":["get","patch","update"]},
+      {"apiGroups":[""],"resources":["secrets"],"verbs":["get"]},
+      {"apiGroups":[""],"resources":["configmaps"],"verbs":["get","create","update","patch"]},
+      {"apiGroups":[""],"resources":["pods"],"verbs":["get","list"]}
+    ]}]' > /dev/null
+  note "stripped pods/resize from $ROLE"
+
+  # 5a. auto mode: preflight should degrade to rolling with a naming warning.
+  kubectl set env deploy/rmq-vertical-scaler -n "$NS" SCALE_MODE=auto > /dev/null
+  kubectl rollout restart deploy/rmq-vertical-scaler -n "$NS" > /dev/null
+  kubectl rollout status deploy/rmq-vertical-scaler -n "$NS" --timeout=90s > /dev/null 2>&1 || true
+  if wait_for 90 "auto degrade log" \
+    sh -c "kubectl logs deploy/rmq-vertical-scaler -n $NS --tail=-1 | grep -Eq 'Scale mode: rolling|lacks RBAC'"; then
+    LOGS=$(kubectl logs deploy/rmq-vertical-scaler -n "$NS" --tail=-1)
+    echo "$LOGS" | grep -q "pods/resize" && ok "auto: degraded to rolling, warning names pods/resize" \
+      || bad "auto: degraded but warning did not name pods/resize"
+  else
+    bad "auto: no rolling-degrade warning when pods/resize is missing"
+  fi
+
+  # 5b. explicit inplace: preflight should fail fast — the container exits
+  # non-zero at startup and crash-loops. We assert on the log message plus a
+  # climbing restartCount, NOT deployment Availability or rollout status: the
+  # scaler has no readiness probe, so during the brief "Running" window before
+  # os.Exit(1) the pod is counted Ready and the rollout can report complete.
+  # The crash-loop (restartCount >= 1) is the reliable proof it actually exited.
+  # True once any scaler pod's container has restarted at least once — the
+  # crash-loop that proves the process exited non-zero (wait_for calls it like
+  # pods_cpu_is above).
+  scaler_crashed() {
+    local r
+    r=$(kubectl get pods -n "$NS" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[0].restartCount}{"\n"}{end}' 2>/dev/null \
+        | awk '/^rmq-vertical-scaler-/ {print $2}' | sort -rn | head -1)
+    [ "${r:-0}" -ge 1 ]
+  }
+  kubectl set env deploy/rmq-vertical-scaler -n "$NS" SCALE_MODE=inplace > /dev/null
+  kubectl rollout restart deploy/rmq-vertical-scaler -n "$NS" > /dev/null
+  if wait_for 90 "inplace fail-fast log" \
+    sh -c "kubectl logs deploy/rmq-vertical-scaler -n $NS --tail=-1 --all-containers 2>/dev/null | grep -q 'lacks required RBAC'"; then
+    if wait_for 90 "scaler crash-loop (restartCount >= 1)" scaler_crashed; then
+      ok "inplace: failed fast with RBAC message and crash-looped (no silent 403)"
+    else
+      bad "inplace: logged the RBAC error but did not exit/restart (should fail fast)"
+    fi
+  else
+    bad "inplace: did not surface the fail-fast RBAC message"
+  fi
+
+  # Restore RBAC + auto mode so a --keep cluster is left healthy. Best-effort:
+  # kubectl patch/set take server-side-apply field ownership, so helm's re-apply
+  # can conflict — never let cleanup fail the suite (the cluster is torn down
+  # next anyway unless --keep).
+  kubectl set env deploy/rmq-vertical-scaler -n "$NS" SCALE_MODE- > /dev/null 2>&1 || true
+  helm upgrade --install rmq-scaler "$ROOT/charts/rmq-vertical-scaler" -n "$NS" \
+    -f "$DIR/values.yaml" --force > /dev/null 2>&1 || note "rbac restore skipped (SSA conflict; cluster torn down next)"
+fi
 
 echo
 echo "=== RESULT: $PASS passed, $FAIL failed ==="
