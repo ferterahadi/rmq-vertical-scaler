@@ -1,0 +1,75 @@
+{
+  "configVersion": 2,
+  "profileOrder": [
+    "LOW",
+    "HIGH"
+  ],
+  "profiles": {
+    "LOW": {
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      },
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      }
+    },
+    "HIGH": {
+      "requests": {
+        "cpu": "800m",
+        "memory": "512Mi"
+      },
+      "limits": {
+        "cpu": "2",
+        "memory": "1Gi"
+      }
+    }
+  },
+  "triggers": [
+    {
+      "type": "rabbitmq",
+      "metadata": {
+        "mode": "QueueLength",
+        "aggregation": "sum",
+        "thresholds": {
+          "HIGH": 2000
+        }
+      }
+    },
+    {
+      "type": "rabbitmq",
+      "metadata": {
+        "mode": "MessageRate",
+        "thresholds": {
+          "HIGH": 200
+        }
+      }
+    }
+  ],
+  "pollingInterval": 15,
+  "updatePolicy": {
+    "mode": "Off",
+    "allowRollingFallback": false
+  },
+  "behavior": {
+    "scaleUp": {
+      "stabilizationSeconds": 30
+    },
+    "scaleDown": {
+      "stepIntervalSeconds": 300,
+      "memoryHeadroomPercent": 20
+    },
+    "metrics": {
+      "maxAgeSeconds": 60
+    }
+  },
+  "kubernetes": {
+    "namespace": "production",
+    "rmqServiceName": "rabbitmq"
+  },
+  "rmq": {
+    "host": "rabbitmq.production.svc.cluster.local",
+    "port": "15672"
+  }
+}

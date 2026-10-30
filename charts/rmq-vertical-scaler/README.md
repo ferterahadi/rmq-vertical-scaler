@@ -39,3 +39,15 @@ helm install rvs rmq-vertical-scaler-2.2.1/charts/rmq-vertical-scaler \
 | `serviceAccount.create` / `rbac.create` | `true` | Skip to bring your own |
 
 `values.schema.json` validates your overrides at install time.
+
+## Version-2 policies (2.3.x)
+
+Set `policy` to a complete configVersion2 object; omitted/null retains legacy
+values. New policies start in Off. See [values-v2.example.yaml](values-v2.example.yaml)
+and the [policy guide](../../docs/v2.3-policy.md). Use a locally built image until
+2.3 is published. Target namespace/serviceName must agree with the release.
+
+The policy ConfigMap is read-only to the container and checksum changes restart
+the scaler through Recreate. Runtime status is created by the controller, not
+Helm. Off omits broker mutation/resize grants. Strict memory-limit transitions
+are blocked on the tested platform; rolling fallback requires explicit opt-in.

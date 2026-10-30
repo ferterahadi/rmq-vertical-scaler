@@ -1,32 +1,61 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["serviceName", "profiles"],
+  "required": [
+    "serviceName",
+    "profiles"
+  ],
   "properties": {
-    "serviceName": { "type": "string", "minLength": 1 },
+    "serviceName": {
+      "type": "string",
+      "minLength": 1
+    },
     "image": {
       "type": "object",
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "tag": { "type": "string" },
-        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string"
+        },
+        "pullPolicy": {
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
       },
       "additionalProperties": false
     },
     "rmq": {
       "type": "object",
       "properties": {
-        "host": { "type": "string" },
-        "port": { "type": "string" }
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "auth": {
       "type": "object",
       "properties": {
-        "existingSecret": { "type": "string" },
-        "usernameKey": { "type": "string", "minLength": 1 },
-        "passwordKey": { "type": "string", "minLength": 1 }
+        "existingSecret": {
+          "type": "string"
+        },
+        "usernameKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passwordKey": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "additionalProperties": false
     },
@@ -35,13 +64,32 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "cpu", "memory"],
+        "required": [
+          "name",
+          "cpu",
+          "memory"
+        ],
         "properties": {
-          "name": { "type": "string", "pattern": "^[A-Z_]+$" },
-          "cpu": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?m?$" },
-          "memory": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|Ti)$" },
-          "queue": { "type": "number", "minimum": 0 },
-          "rate": { "type": "number", "minimum": 0 }
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Z_]+$"
+          },
+          "cpu": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?m?$"
+          },
+          "memory": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?(Mi|Gi|Ti)$"
+          },
+          "queue": {
+            "type": "number",
+            "minimum": 0
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0
+          }
         },
         "additionalProperties": false
       }
@@ -49,41 +97,338 @@
     "debounce": {
       "type": "object",
       "properties": {
-        "scaleUpSeconds": { "type": "number", "minimum": 0 },
-        "scaleDownSeconds": { "type": "number", "minimum": 0 }
+        "scaleUpSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "scaleDownSeconds": {
+          "type": "number",
+          "minimum": 0
+        }
       },
       "additionalProperties": false
     },
-    "checkInterval": { "type": "number", "minimum": 1 },
+    "checkInterval": {
+      "type": "number",
+      "minimum": 1
+    },
     "scaling": {
       "type": "object",
       "properties": {
-        "mode": { "enum": ["auto", "inplace", "rolling"] }
+        "mode": {
+          "enum": [
+            "auto",
+            "inplace",
+            "rolling"
+          ]
+        }
       },
       "additionalProperties": false
     },
     "pdb": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "minAvailable": { "type": "number", "minimum": 1 }
+        "enabled": {
+          "type": "boolean"
+        },
+        "minAvailable": {
+          "type": "number",
+          "minimum": 1
+        }
       },
       "additionalProperties": false
     },
-    "resources": { "type": "object" },
+    "resources": {
+      "type": "object"
+    },
     "rbac": {
       "type": "object",
-      "properties": { "create": { "type": "boolean" } },
+      "properties": {
+        "create": {
+          "type": "boolean"
+        }
+      },
       "additionalProperties": false
     },
     "serviceAccount": {
       "type": "object",
       "properties": {
-        "create": { "type": "boolean" },
-        "name": { "type": "string" }
+        "create": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
-    "fullnameOverride": { "type": "string" }
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "policy": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "title": "RabbitMQ scaler version-2 policy",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$schema": {
+              "type": "string"
+            },
+            "configVersion": {
+              "const": 2
+            },
+            "profileOrder": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,62}$"
+              }
+            },
+            "profiles": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "requests": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cpu": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "memory": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "cpu",
+                      "memory"
+                    ]
+                  },
+                  "limits": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cpu": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "memory": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "cpu",
+                      "memory"
+                    ]
+                  }
+                },
+                "required": [
+                  "requests",
+                  "limits"
+                ]
+              }
+            },
+            "triggers": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "rabbitmq",
+                      "cpu",
+                      "memory"
+                    ]
+                  },
+                  "metricType": {
+                    "const": "Utilization"
+                  },
+                  "aggregation": {
+                    "const": "max"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "mode": {
+                        "enum": [
+                          "QueueLength",
+                          "MessageRate"
+                        ]
+                      },
+                      "aggregation": {
+                        "enum": [
+                          "sum",
+                          "max"
+                        ]
+                      },
+                      "thresholds": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "additionalProperties": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "selector": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "vhosts": {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "queueNameRegex": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "containerName": {
+                        "const": "rabbitmq"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "type",
+                  "metadata"
+                ]
+              }
+            },
+            "pollingInterval": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "updatePolicy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "Off",
+                    "Auto"
+                  ]
+                },
+                "allowRollingFallback": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "behavior": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "scaleUp": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "stabilizationSeconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400
+                    }
+                  }
+                },
+                "scaleDown": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "stepIntervalSeconds": {
+                      "type": "integer",
+                      "minimum": 60,
+                      "maximum": 86400
+                    },
+                    "memoryHeadroomPercent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 99
+                    }
+                  }
+                },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "maxAgeSeconds": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3600
+                    }
+                  }
+                }
+              }
+            },
+            "kubernetes": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "namespace": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rmqServiceName": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "namespace",
+                "rmqServiceName"
+              ]
+            },
+            "rmq": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "port": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              },
+              "required": [
+                "host",
+                "port"
+              ]
+            }
+          },
+          "required": [
+            "configVersion",
+            "profileOrder",
+            "profiles",
+            "triggers",
+            "kubernetes"
+          ],
+          "description": "Structural schema. The CLI/runtime also enforce cross-field quantity, ordering, trigger and target validation."
+        }
+      ]
+    }
   }
 }

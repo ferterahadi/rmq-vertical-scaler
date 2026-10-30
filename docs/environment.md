@@ -42,7 +42,7 @@ secret rather than literal values.
 |-|-|-|
 | `SCALE_MODE` | `auto` | `auto`, `inplace`, or `rolling`. An unrecognised value falls back to `auto` |
 
-See [Scale modes](../README.md#scale-modes) for what each one does.
+See [Scale modes](usage.md#scale-modes) for what each one does.
 
 ## Profiles
 
@@ -54,7 +54,7 @@ name.
 | `PROFILE_NAMES` | `LOW MEDIUM HIGH CRITICAL` | Ordered, smallest first. The **first** name is the floor |
 | `PROFILE_<NAME>_CPU` | `1000m` | CPU request for that profile |
 | `PROFILE_<NAME>_MEMORY` | `2Gi` | Memory request for that profile |
-| `QUEUE_THRESHOLD_<NAME>` | `1000` | Total queue depth that selects this profile |
+| `QUEUE_THRESHOLD_<NAME>` | `1000` | Maximum individual queue depth that selects this profile |
 | `RATE_THRESHOLD_<NAME>` | `100` | Messages/second that selects this profile |
 
 The first profile is the floor and takes **no** thresholds — any threshold
@@ -104,3 +104,15 @@ Equivalent to this config file, which is the recommended way to author it:
   }
 }
 ```
+
+## Version-2 policy files
+
+The values above describe the legacy environment path. `run --config <file>`
+loads a strict configVersion2 policy and rejects legacy scaling environment
+variables. New defaults are CPU60%, memory75%, polling15s, upward stabilization30s,
+downward interval300s (minimum60), memory headroom20%, and source max age60s.
+
+`STATUS_CONFIG_MAP` selects the separate controller-owned operation/status object
+(default `rmq-vertical-scaler-status`). RabbitMQ triggers require `RMQ_USER` and
+`RMQ_PASS` from a Secret. Resource-only policies do not need management credentials.
+See the [policy guide](v2.3-policy.md) for schema, modes and constraints.

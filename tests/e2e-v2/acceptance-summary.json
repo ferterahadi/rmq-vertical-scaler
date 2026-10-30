@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-30",
+  "imageDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+  "requirements": 31,
+  "runtimeGroups": [
+    "deferred",
+    "native",
+    "operator",
+    "pagination",
+    "paired_and_rolling",
+    "platform",
+    "recovery",
+    "scope"
+  ],
+  "gates": {
+    "astra_review": true,
+    "explicit_rolling": true,
+    "full_acceptance": true,
+    "local_checks": true,
+    "native_cycle": true,
+    "paired_inplace": true,
+    "queue_rate_scope": true,
+    "recovery": true,
+    "strict_memory_block": true
+  },
+  "independentScaleUpSeconds": {
+    "native": 90.063934,
+    "paired": 64.333493,
+    "rolling": 76.181485
+  },
+  "boundaries": [
+    "Pinned local Kubernetes1.35.0/Operator2.16.1/RabbitMQ4.4.0/MetricsServer0.8.0 on Linux/arm64 only.",
+    "Rolling120s requires explicit startup/readiness/DNS deployment settings; default timing failures remain retained.",
+    "Strict full memory-limit changes remain unsupported; explicitly configured rolling reloads broker budgets.",
+    "Controlled API/client regressions establish failure/arithmetic semantics; they do not claim real provider failures.",
+    "No production deployment, cost/throughput claim, image publication or shipping."
+  ],
+  "bundle": {
+    "sourceCommit": "44e4a1a3e088c53966f7c5e085ffe6080cb1a7a1",
+    "localPath": "dist/acceptance/2.3.0/rmq-v23-evidence.tar.gz",
+    "sha256": "a2b3d0d18b105b7bd000a16dd23bc5e52efa2a1e0844f49265eb6d73c4652b35",
+    "bytes": 1749907,
+    "files": 713
+  },
+  "packagingSourcesSHA256": {
+    ".github/workflows/acceptance-evidence.yml": "cf2a783c68bbaab6db0c51c8eee2eb3e3152009ada261d015c492581f0950cf4",
+    ".github/workflows/release.yml": "be19774cd08bf6241d02eabc5a06709011e85ae1e800765e68696774ecbdf1c7",
+    "scripts/check-v23-release-evidence.py": "ecfe1da80cd6226c605e4b48558e186b01a85a834bab81dd82bffca5d978b68d",
+    "scripts/package-v23-evidence.py": "761dfd629afc22ba2734dd42c0b86c8d25e7d902cb48de131b9062ac8628727d",
+    "tests/e2e-v2/test_evidence_bundle.py": "f31d3559c698bbf8ad5bb429654f17d7d6d08e4595d148db017839b65695437c",
+    "tests/e2e-v2/test_release_gate.py": "148de50e79014bdf28405f2d87a60502eef5e58ef8b0b19f2d2c1add12f531bd"
+  },
+  "coverage": {
+    "broker_census": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "committed_up_restart": {
+      "passed": true,
+      "source": "live"
+    },
+    "concurrent_submissions": {
+      "passed": true,
+      "source": "live"
+    },
+    "duplicate_samples": {
+      "passed": true,
+      "source": "controlled"
+    },
+    "identity_changes": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "infeasible_permission": {
+      "passed": true,
+      "source": "live"
+    },
+    "jitter": {
+      "passed": true,
+      "source": "controlled"
+    },
+    "legacy": {
+      "passed": true,
+      "source": "local"
+    },
+    "messages": {
+      "passed": true,
+      "source": "live"
+    },
+    "missing_metrics": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "mixed_startup": {
+      "passed": true,
+      "source": "controlled"
+    },
+    "multiple_triggers": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "no_disruption": {
+      "passed": true,
+      "source": "live"
+    },
+    "off": {
+      "passed": true,
+      "source": "live"
+    },
+    "off_pending": {
+      "passed": true,
+      "source": "live"
+    },
+    "operator_convergence": {
+      "passed": true,
+      "source": "live"
+    },
+    "packaging": {
+      "passed": true,
+      "source": "local"
+    },
+    "paired_resources": {
+      "passed": true,
+      "source": "live"
+    },
+    "partial_decrease_restart": {
+      "passed": true,
+      "source": "live"
+    },
+    "partial_deferred": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "persistence": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "queue_scope": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "resource_triggers": {
+      "passed": true,
+      "source": "live and controlled"
+    },
+    "rolling": {
+      "passed": true,
+      "source": "live"
+    },
+    "scale_down": {
+      "passed": true,
+      "source": "live"
+    },
+    "scale_up": {
+      "passed": true,
+      "source": "live"
+    },
+    "scaler_restart": {
+      "passed": true,
+      "source": "live"
+    },
+    "status": {
+      "passed": true,
+      "source": "live"
+    },
+    "supersession": {
+      "passed": true,
+      "source": "live"
+    },
+    "transient_errors": {
+      "passed": true,
+      "source": "controlled"
+    },
+    "write_order": {
+      "passed": true,
+      "source": "live"
+    }
+  }
+}

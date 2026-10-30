@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0] - Unreleased
+
+- Add opt-in configVersion2 JSON/Helm policies with explicit paired requests/limits,
+  queue/rate and busiest-broker CPU/memory triggers, and recommendation-only Off.
+- Separate observations, recommendations and durable asynchronous reconciliation;
+  confirm effective resources rather than treating accepted patches as completion.
+- Preserve legacy defaults and decisions. Use Recreate for scaler rollout on both paths.
+- Require in-place by default, block memory-limit changes before writes on the
+  tested platform, and keep Operator rolling fallback explicit. No broker exec.
+- Add source-timestamped safety windows, memory headroom, partial-source handling,
+  restart recovery, scoped status, strict schemas and versioned examples.
+- Add pinned feasibility/API probes, actual-controller AMQP harness and Astra
+  regressions. Final immutable-build acceptance covers 31 requirements on the
+  pinned local platform; rolling meets 120 seconds with explicit startup/readiness/DNS
+  tuning. See `docs/v2.3-acceptance-results.md` for evidence and support boundaries.
+
+
 All notable changes to this project will be documented in this file.
 
 ## [2.2.1] - 2026-07-10

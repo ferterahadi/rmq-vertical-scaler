@@ -29,7 +29,7 @@ proves byte-identical decisions to the Node.js v1.
 
 ## The control loop
 
-1. **Collect metrics** — fetch total queue depth and message rate from the
+1. **Collect metrics** — fetch queue lengths and the cluster publish rate from the
    RabbitMQ management API.
 2. **Determine profile** — compare against the configured thresholds, scanning
    highest to lowest; the first match wins.
@@ -39,11 +39,12 @@ proves byte-identical decisions to the Node.js v1.
    so a spike does not thrash the cluster.
 5. **Apply** — in-place resize each pod through the `pods/resize` subresource, or
    patch the `RabbitmqCluster` and let the operator roll pods. See
-   [Scale modes](../README.md#scale-modes).
+   [Scale modes](usage.md#scale-modes).
 
-State (the last applied profile and when it was applied) is persisted in a
-ConfigMap, so a scaler restart does not reset the debounce window or re-apply a
-profile the cluster is already running.
+The tracked recommendation and its stability timestamp are persisted in a
+ConfigMap, so the current legacy controller can resume its debounce tracking
+after a restart. This is not a record of confirmed effective resources. Its
+current-profile lookup reads the desired CPU request from `RabbitmqCluster`.
 
 ## Startup preflight
 
@@ -54,8 +55,11 @@ Before the loop starts, the scaler asks the API server two questions:
 - **Permission** — via `SelfSubjectAccessReview`, may this service account
   `patch` `pods/resize` and `list` `pods`?
 
-`SCALE_MODE=inplace` fails fast when either answer is no, naming the exact verbs
-to grant. `SCALE_MODE=auto` logs a warning and degrades to rolling. This exists
+`SCALE_MODE=inplace` fails fast if permissions are denied or cannot be verified,
+naming missing verbs when available. If discovery does not advertise the resize
+subresource, explicit `inplace` logs a warning and proceeds; later resizes can
+fail. `SCALE_MODE=auto` degrades to rolling when capability or permission is
+unavailable. This exists
 because a missing RBAC grant would otherwise surface as a 403 at the first scale
 action, potentially hours later, after the cluster had already been flipped to
 `updateStrategy: OnDelete`.
@@ -80,3 +84,16 @@ rmq-vertical-scaler/
 ├── Dockerfile                 # Multi-stage → distroless/static:nonroot
 └── Makefile                   # build / test / image / bench
 ```
+
+## Opt-in version-2 architecture
+
+`internal/policy` validates and normalizes versioned policies; `internal/v2`
+separates broker/resource observations, pure recommendations, and durable resize
+reconciliation. The existing modules above remain the legacy path.
+
+The new controller reads effective resources, owns a separate status ConfigMap,
+and persists intent before resource mutations. Strict mode blocks unsupported
+memory-limit transitions; explicitly configured rolling is a separate path.
+The [policy guide](v2.3-policy.md) explains operation and migration; the
+[feasibility report](v2.3-feasibility.md) distinguishes measured constraints from
+release acceptance. No broker exec permission is granted.

@@ -28,3 +28,9 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- define "rmq-vertical-scaler.image" -}}
 {{- printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) -}}
 {{- end -}}
+
+{{- define "rmq-vertical-scaler.needsRabbitMQ" -}}
+{{- $needs := false -}}
+{{- range .Values.policy.triggers -}}{{- if eq .type "rabbitmq" -}}{{- $needs = true -}}{{- end -}}{{- end -}}
+{{- printf "%t" $needs -}}
+{{- end -}}

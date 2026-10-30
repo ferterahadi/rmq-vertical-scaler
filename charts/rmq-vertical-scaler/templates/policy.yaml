@@ -1,0 +1,21 @@
+{{- if ne .Values.policy nil }}
+{{- /* Defaults are inherited by Helm; only non-default legacy values conflict. */}}
+{{- $legacy := .Files.Get "files/legacy-policy-defaults.json" | fromJson }}
+{{- range $key := list "profiles" "debounce" "checkInterval" "scaling" "rmq" }}
+{{- if ne (toJson (get $.Values $key)) (toJson (get $legacy $key)) }}
+{{- fail (printf "legacy value %s conflicts with policy; configure it inside the version-2 policy" $key) }}
+{{- end }}
+{{- end }}
+{{- if ne (int .Values.policy.configVersion) 2 }}{{ fail "policy.configVersion must be 2" }}{{ end }}
+{{- if ne .Values.policy.kubernetes.namespace .Release.Namespace }}{{ fail "policy.kubernetes.namespace must match the release namespace" }}{{ end }}
+{{- if ne .Values.policy.kubernetes.rmqServiceName .Values.serviceName }}{{ fail "policy target must match serviceName" }}{{ end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rmq-vertical-scaler.fullname" . }}-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
+data:
+  policy.json: {{ toJson .Values.policy | quote }}
+{{- end }}

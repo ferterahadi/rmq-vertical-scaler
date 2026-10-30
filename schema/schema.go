@@ -9,11 +9,16 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/policy"
+
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 //go:embed config-schema.json
 var ConfigSchema []byte
+
+//go:embed config-v2-schema.json
+var ConfigV2Schema []byte
 
 // compiled is built at package load; a malformed embedded schema is a
 // programmer error and panics here rather than per-call (same convention as
@@ -39,6 +44,14 @@ func mustCompile() *jsonschema.Schema {
 // Validate checks a raw config JSON document against the embedded schema.
 // The returned error lists every violation with its JSON path.
 func Validate(configJSON []byte) error {
+	v, err := policy.Version(configJSON)
+	if err != nil {
+		return err
+	}
+	if v == 2 {
+		_, err := policy.Parse(configJSON)
+		return err
+	}
 	inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(configJSON))
 	if err != nil {
 		return fmt.Errorf("parse config: %w", err)
