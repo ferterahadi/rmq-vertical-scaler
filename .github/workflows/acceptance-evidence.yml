@@ -33,3 +33,16 @@ jobs:
         run: python3 scripts/package-v23-evidence.py
       - name: Verify archive and acceptance semantics
         run: python3 scripts/check-v23-release-evidence.py v2.3.0
+      - name: Store approved evidence bundle
+        id: evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmq-v23-evidence
+          path: dist/acceptance/2.3.0/rmq-v23-evidence.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+      - name: Record immutable artifact location
+        env:
+          ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
+        run: echo "Verified evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
