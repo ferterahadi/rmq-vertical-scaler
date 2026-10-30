@@ -1,0 +1,39 @@
+{
+  "cases": [
+    {
+      "case": "P-QOS",
+      "passed": true,
+      "time": "2026-10-29T15:53:48.947695+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "expectedRuntimeDigest": "sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "reason": "QoSClassChange",
+      "zeroMutation": true,
+      "confirmed": 50,
+      "duplicates": 0
+    },
+    {
+      "case": "P-RESTART",
+      "passed": true,
+      "time": "2026-10-29T15:56:46.252676+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "expectedRuntimeDigest": "sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "reason": "ContainerResizeRequiresRestart",
+      "zeroMutation": true,
+      "confirmed": 50,
+      "duplicates": 0
+    },
+    {
+      "case": "P-INFEASIBLE",
+      "passed": true,
+      "time": "2026-10-29T16:00:13.882588+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "expectedRuntimeDigest": "sha256:9f9142d2dd884fad846b79f11ecaa12ee9e571693fa339c7d1a6c3a048468702",
+      "targetCPU": "5",
+      "actualKubeletReason": "Infeasible",
+      "targetRetained": true,
+      "noImplicitRolling": true,
+      "confirmed": 50
+    }
+  ],
+  "fullAcceptanceMatrix": false
+}

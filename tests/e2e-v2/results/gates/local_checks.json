@@ -1,0 +1,9 @@
+{
+  "gate": "local_checks",
+  "passed": true,
+  "evidence": [
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/local/checks.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/local/go-tests.jsonl"
+  ],
+  "boundary": "Final immutable-build acceptance on the declared pinned local deployment. See docs/v2.3-rolling-latency.md for explicit rolling prerequisites."
+}

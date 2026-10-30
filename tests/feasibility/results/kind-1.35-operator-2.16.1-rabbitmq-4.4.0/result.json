@@ -1,0 +1,11 @@
+{
+  "time": "2026-10-26T07:53:19.676978+00:00",
+  "test": "phase-0-platform-probe-not-scaler-validation",
+  "context": "kind-rmq-v23",
+  "increasedWithoutRestart": true,
+  "decreasedWithoutRestart": true,
+  "runningBudgetFollowedIncrease": false,
+  "runningBudgetFollowedDecrease": false,
+  "watermarkExceedsSmallerLimit": true,
+  "fullMemoryGatePassed": false
+}

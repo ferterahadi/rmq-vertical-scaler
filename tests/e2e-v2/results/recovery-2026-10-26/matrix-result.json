@@ -1,0 +1,45 @@
+{
+  "time": "2026-10-26T10:56:51.264345+00:00",
+  "cases": [
+    {
+      "name": "cpu-only",
+      "passed": true
+    },
+    {
+      "name": "memory-only",
+      "passed": true
+    },
+    {
+      "name": "resources",
+      "passed": true
+    },
+    {
+      "name": "combined-Off",
+      "passed": true
+    },
+    {
+      "name": "queue-only missing-memory hold and restart reset",
+      "passed": true,
+      "downStartedAfterNewContainerSeconds": 120.11312
+    },
+    {
+      "name": "partial up, supersession, Off, restart without renewed overload",
+      "passed": true,
+      "scalerContainerStartedAt": "2026-10-26T10:48:50Z",
+      "recoveredRevision": 13
+    },
+    {
+      "name": "partial down restart and per-step interval",
+      "passed": true,
+      "nextStepStartGapSeconds": 120.005021
+    }
+  ],
+  "confirmed": 2600,
+  "consumedUnique": 2600,
+  "duplicates": 0,
+  "strictCasesWithoutBrokerReplacement": true,
+  "includesExplicitRollingReplacements": false,
+  "allConfirmedIDsAccounted": true,
+  "fullAcceptanceMatrix": false,
+  "remaining": "explicit rolling, rate/fanout scope, infeasible/QoS alternatives and full failure ordering"
+}

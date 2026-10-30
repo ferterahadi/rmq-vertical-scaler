@@ -1,0 +1,13 @@
+{
+  "scenario": "native",
+  "workloadStart": "2026-10-29T17:44:34.612102+00:00",
+  "loadSeconds": 300,
+  "cooldownBudgetSeconds": 600,
+  "downStepSeconds": 300,
+  "pollingSeconds": 15,
+  "upStabilizationSeconds": 30,
+  "nativeComparisonPolicy": true,
+  "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+  "cluster": "three Operator-managed brokers, one local node",
+  "test": "actual-repository-controller"
+}

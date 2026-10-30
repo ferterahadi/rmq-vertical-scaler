@@ -1,0 +1,2 @@
+# Preserve getent's original padded output in checksummed DNS observations.
+tests/e2e-v2/results/**/*dns-observer.txt -whitespace

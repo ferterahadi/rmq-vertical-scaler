@@ -1,0 +1,11 @@
+{
+  "gate": "explicit_rolling",
+  "passed": true,
+  "evidence": [
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/paired_and_rolling/matrix-result.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/paired_and_rolling/rolling-operations.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/paired_and_rolling/rolling-increased.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/paired_and_rolling/rolling-decreased.json"
+  ],
+  "boundary": "Final immutable-build acceptance on the declared pinned local deployment. See docs/v2.3-rolling-latency.md for explicit rolling prerequisites."
+}

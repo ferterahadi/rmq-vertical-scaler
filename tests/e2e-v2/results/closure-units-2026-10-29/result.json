@@ -1,0 +1,24 @@
+{
+  "passedTests": [
+    "TestConvergenceRecordsVerifiedReplacementIdentity",
+    "TestClosureInfeasibleRetainsTargetWithoutImplicitFallback",
+    "TestClosurePartialQueuePagesCannotDecreaseWithHealthyMemory",
+    "TestClosureFilteredRateFlowsThroughControllerWithExactScope",
+    "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize/cached",
+    "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize/stale",
+    "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize/invalid-window",
+    "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize/old-container",
+    "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize",
+    "TestResourceValidityIsIndependentAndMemoryStillGuardsQueueOnly",
+    "TestInfeasibleRefreshesAllBrokerOutcomesWithoutFurtherWrites",
+    "TestReviewQueueOnlyInvalidMetricWindowBlocksDown"
+  ],
+  "scope": "Controlled source/collector/controller regression evidence; real-provider API behavior is retained separately.",
+  "cases": {
+    "M-PARTIAL": "TestClosurePartialQueuePagesCannotDecreaseWithHealthyMemory",
+    "M-FRESHNESS": "TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize",
+    "M-RATE": "TestClosureFilteredRateFlowsThroughControllerWithExactScope",
+    "P-INFEASIBLE-status": "TestInfeasibleRefreshesAllBrokerOutcomesWithoutFurtherWrites",
+    "O-REPLACE-terminal": "TestConvergenceRecordsVerifiedReplacementIdentity"
+  }
+}

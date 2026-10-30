@@ -1,0 +1,366 @@
+{
+  "revision": 5,
+  "configVersion": 2,
+  "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+  "target": "rmq-v23-e2e-native/rmq-probe",
+  "at": "2026-10-29T16:34:15.43109325Z",
+  "observation": {
+    "at": "2026-10-29T16:34:15.43109325Z",
+    "identity": "0|0ae3da71-1afe-41f3-a0b2-656f1d11d4e9|3|f386544d-5142-4790-bfc4-ef5cfbad9a44|rmq-probe-server-0/d9197c43-f5b4-4d41-aef6-cf0ca2171f9b/containerd://c6dd2a1be895a1a0851137fabde2f2d265e446b421ade2851fd8ef9875a21bf6|rmq-probe-server-1/bff49381-b738-47c1-b070-40bd144376cd/containerd://6d4e0b661df11b3bd380476962e8d7f81217ad89d1fb771bd8671ea9349a1f7f|rmq-probe-server-2/0d248dd1-8a24-451d-b624-75dbef30bc15/containerd://642e78c5953f1ad7e4ef6026c9cf17bcfe746f6e3757bdb68fdd5e392371d331",
+    "complete": true,
+    "brokers": [
+      {
+        "name": "rmq-probe-server-0",
+        "uid": "d9197c43-f5b4-4d41-aef6-cf0ca2171f9b",
+        "containerID": "containerd://c6dd2a1be895a1a0851137fabde2f2d265e446b421ade2851fd8ef9875a21bf6",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T16:21:29Z"
+      },
+      {
+        "name": "rmq-probe-server-1",
+        "uid": "bff49381-b738-47c1-b070-40bd144376cd",
+        "containerID": "containerd://6d4e0b661df11b3bd380476962e8d7f81217ad89d1fb771bd8671ea9349a1f7f",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T16:29:15Z"
+      },
+      {
+        "name": "rmq-probe-server-2",
+        "uid": "0d248dd1-8a24-451d-b624-75dbef30bc15",
+        "containerID": "containerd://642e78c5953f1ad7e4ef6026c9cf17bcfe746f6e3757bdb68fdd5e392371d331",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T16:21:29Z"
+      }
+    ],
+    "samples": [
+      {
+        "pod": "rmq-probe-server-0",
+        "uid": "d9197c43-f5b4-4d41-aef6-cf0ca2171f9b",
+        "containerID": "containerd://c6dd2a1be895a1a0851137fabde2f2d265e446b421ade2851fd8ef9875a21bf6",
+        "timestamp": "2026-10-29T16:33:52Z",
+        "window": 16626000000,
+        "cpuCores": 0.0038046430000000003,
+        "memoryBytes": 162693120
+      },
+      {
+        "pod": "rmq-probe-server-1",
+        "uid": "bff49381-b738-47c1-b070-40bd144376cd",
+        "containerID": "containerd://6d4e0b661df11b3bd380476962e8d7f81217ad89d1fb771bd8671ea9349a1f7f",
+        "timestamp": "2026-10-29T16:33:57Z",
+        "window": 12581000000,
+        "cpuCores": 0.0033316110000000004,
+        "memoryBytes": 159518720
+      },
+      {
+        "pod": "rmq-probe-server-2",
+        "uid": "0d248dd1-8a24-451d-b624-75dbef30bc15",
+        "containerID": "containerd://642e78c5953f1ad7e4ef6026c9cf17bcfe746f6e3757bdb68fdd5e392371d331",
+        "timestamp": "2026-10-29T16:33:58Z",
+        "window": 11213000000,
+        "cpuCores": 0.0033189150000000004,
+        "memoryBytes": 162426880
+      }
+    ],
+    "signals": [
+      {
+        "available": true,
+        "trigger": 0,
+        "type": "QueueLength",
+        "source": "RabbitMQ selected queues",
+        "timestamp": "2026-10-29T16:34:15.43109325Z",
+        "complete": true,
+        "value": 100,
+        "profile": 1
+      }
+    ],
+    "currentProfileIndex": -1
+  },
+  "decision": {
+    "recommendedProfileIndex": 1,
+    "eligibleProfileIndex": -1,
+    "reason": "OperationUnresolved",
+    "episodeStart": "0001-01-01T00:00:00Z"
+  },
+  "phase": "Blocked",
+  "reason": "ExternalResourceChange",
+  "operation": {
+    "templateSource": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "revision": 5,
+    "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+    "clusterUID": "0ae3da71-1afe-41f3-a0b2-656f1d11d4e9",
+    "statefulSetUID": "f386544d-5142-4790-bfc4-ef5cfbad9a44",
+    "target": "HIGH",
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "800m",
+        "memory": "256Mi"
+      }
+    },
+    "source": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "direction": "up",
+    "path": "inplace",
+    "stage": "Submit",
+    "started": "2026-10-29T16:33:16.378781429Z",
+    "episodeStart": "2026-10-29T16:32:31.917196372Z",
+    "completedAt": "0001-01-01T00:00:00Z",
+    "deadlineMissed": false,
+    "disruptionObserved": false,
+    "brokers": {
+      "rmq-probe-server-0": {
+        "acceptedAt": "2026-10-29T16:33:31.25151629Z",
+        "uid": "d9197c43-f5b4-4d41-aef6-cf0ca2171f9b",
+        "containerID": "containerd://c6dd2a1be895a1a0851137fabde2f2d265e446b421ade2851fd8ef9875a21bf6",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Submitted",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T16:33:31.241720351Z"
+      },
+      "rmq-probe-server-1": {
+        "acceptedAt": "0001-01-01T00:00:00Z",
+        "uid": "bff49381-b738-47c1-b070-40bd144376cd",
+        "containerID": "containerd://6d4e0b661df11b3bd380476962e8d7f81217ad89d1fb771bd8671ea9349a1f7f",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "SubmissionFailed",
+        "attempts": 1,
+        "nextAttempt": "2026-10-29T16:33:33.218816635Z",
+        "submittedAt": "2026-10-29T16:33:31.241792856Z",
+        "error": "pods \"rmq-probe-server-1\" is forbidden: ValidatingAdmissionPolicy 'rvs-closure-replacement' with binding 'rvs-closure-replacement' denied request: v23 closure deliberate replacement denial"
+      },
+      "rmq-probe-server-2": {
+        "acceptedAt": "2026-10-29T16:33:31.249951802Z",
+        "uid": "0d248dd1-8a24-451d-b624-75dbef30bc15",
+        "containerID": "containerd://642e78c5953f1ad7e4ef6026c9cf17bcfe746f6e3757bdb68fdd5e392371d331",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Submitted",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T16:33:31.241705446Z"
+      }
+    }
+  },
+  "lastOperation": {
+    "templateSource": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "800m",
+        "memory": "256Mi"
+      }
+    },
+    "revision": 4,
+    "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+    "clusterUID": "0ae3da71-1afe-41f3-a0b2-656f1d11d4e9",
+    "statefulSetUID": "f386544d-5142-4790-bfc4-ef5cfbad9a44",
+    "target": "LOW",
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "source": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "800m",
+        "memory": "256Mi"
+      }
+    },
+    "direction": "down",
+    "path": "inplace",
+    "stage": "Completed",
+    "started": "2026-10-29T16:31:47.628245404Z",
+    "episodeStart": "2026-10-29T16:31:47.628245404Z",
+    "completedAt": "2026-10-29T16:32:17.215113702Z",
+    "deadlineMissed": false,
+    "disruptionObserved": false,
+    "brokers": {
+      "rmq-probe-server-0": {
+        "acceptedAt": "2026-10-29T16:32:02.380547001Z",
+        "uid": "d9197c43-f5b4-4d41-aef6-cf0ca2171f9b",
+        "containerID": "containerd://c6dd2a1be895a1a0851137fabde2f2d265e446b421ade2851fd8ef9875a21bf6",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Effective",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T16:32:02.374714712Z"
+      },
+      "rmq-probe-server-1": {
+        "acceptedAt": "2026-10-29T16:32:02.38057143Z",
+        "uid": "bff49381-b738-47c1-b070-40bd144376cd",
+        "containerID": "containerd://6d4e0b661df11b3bd380476962e8d7f81217ad89d1fb771bd8671ea9349a1f7f",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Effective",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T16:32:02.374756816Z"
+      },
+      "rmq-probe-server-2": {
+        "acceptedAt": "2026-10-29T16:32:02.380612951Z",
+        "uid": "0d248dd1-8a24-451d-b624-75dbef30bc15",
+        "containerID": "containerd://642e78c5953f1ad7e4ef6026c9cf17bcfe746f6e3757bdb68fdd5e392371d331",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "800m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Effective",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T16:32:02.374629211Z"
+      }
+    }
+  }
+}

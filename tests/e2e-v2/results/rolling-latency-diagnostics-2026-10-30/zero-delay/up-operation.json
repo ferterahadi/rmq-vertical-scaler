@@ -1,0 +1,107 @@
+{
+  "templateSource": {
+    "limits": {
+      "cpu": "1",
+      "memory": "1Gi"
+    },
+    "requests": {
+      "cpu": "100m",
+      "memory": "256Mi"
+    }
+  },
+  "revision": 1,
+  "policyHash": "de1226f216fab544d3f510dd3ad10d076aec47a3eec9dab5d6fdefe40ab5f94b",
+  "clusterUID": "fec620df-209c-4278-92c3-c49d13015add",
+  "statefulSetUID": "34feec33-39bf-42d9-beab-de0ae8c4c076",
+  "target": "HIGH",
+  "resources": {
+    "limits": {
+      "cpu": "1500m",
+      "memory": "1536Mi"
+    },
+    "requests": {
+      "cpu": "800m",
+      "memory": "512Mi"
+    }
+  },
+  "source": {
+    "limits": {
+      "cpu": "1",
+      "memory": "1Gi"
+    },
+    "requests": {
+      "cpu": "100m",
+      "memory": "256Mi"
+    }
+  },
+  "direction": "up",
+  "path": "rolling",
+  "stage": "Completed",
+  "started": "2026-10-29T17:28:26.232156383Z",
+  "episodeStart": "2026-10-29T17:27:56.443725462Z",
+  "completedAt": "2026-10-29T17:29:55.556349469Z",
+  "deadlineMissed": false,
+  "disruptionObserved": true,
+  "brokers": {
+    "rmq-probe-server-0": {
+      "acceptedAt": "0001-01-01T00:00:00Z",
+      "uid": "119a352b-c2c2-425c-a3b2-cca07595cb3a",
+      "containerID": "containerd://a7431545fbe90b0ab783e67caa5eacc0097f8196510da421105bd17ad0939f92",
+      "restarts": 0,
+      "source": {
+        "limits": {
+          "cpu": "1500m",
+          "memory": "1536Mi"
+        },
+        "requests": {
+          "cpu": "800m",
+          "memory": "512Mi"
+        }
+      },
+      "outcome": "Effective",
+      "attempts": 0,
+      "nextAttempt": "0001-01-01T00:00:00Z",
+      "submittedAt": "0001-01-01T00:00:00Z"
+    },
+    "rmq-probe-server-1": {
+      "acceptedAt": "0001-01-01T00:00:00Z",
+      "uid": "708a54bb-6157-4bc2-9b3f-d66713e27ae0",
+      "containerID": "containerd://a26f8e37196cac612b941b7982419de5fdf60c3ccfc31ef7a9bc1359af7ecb76",
+      "restarts": 0,
+      "source": {
+        "limits": {
+          "cpu": "1500m",
+          "memory": "1536Mi"
+        },
+        "requests": {
+          "cpu": "800m",
+          "memory": "512Mi"
+        }
+      },
+      "outcome": "Effective",
+      "attempts": 0,
+      "nextAttempt": "0001-01-01T00:00:00Z",
+      "submittedAt": "0001-01-01T00:00:00Z"
+    },
+    "rmq-probe-server-2": {
+      "acceptedAt": "0001-01-01T00:00:00Z",
+      "uid": "c66dc842-64eb-4e41-b221-4552b42f1327",
+      "containerID": "containerd://6311cdd934b351d96c2bd7878dbc86d828216f930b687a0c81de25f7470882d4",
+      "restarts": 0,
+      "source": {
+        "limits": {
+          "cpu": "1500m",
+          "memory": "1536Mi"
+        },
+        "requests": {
+          "cpu": "800m",
+          "memory": "512Mi"
+        }
+      },
+      "outcome": "Effective",
+      "attempts": 0,
+      "nextAttempt": "0001-01-01T00:00:00Z",
+      "submittedAt": "0001-01-01T00:00:00Z"
+    }
+  }
+}

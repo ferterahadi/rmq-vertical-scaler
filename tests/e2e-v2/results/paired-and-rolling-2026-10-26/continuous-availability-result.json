@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "startedAt": "2026-10-26T11:09:38.734950+00:00",
+  "endedAt": "2026-10-26T11:15:17.763912+00:00",
+  "samples": 164,
+  "minimumReady": 2,
+  "intervalSeconds": 2
+}

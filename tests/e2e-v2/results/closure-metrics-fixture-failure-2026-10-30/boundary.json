@@ -1,0 +1,4 @@
+{
+  "passed": false,
+  "classification": "Fixture incompatibility: RabbitMQ 4.4 transient_nonexcl_queues disabled. First queue declaration failed before message publishing. Durable classic fixture used in successful repeat."
+}

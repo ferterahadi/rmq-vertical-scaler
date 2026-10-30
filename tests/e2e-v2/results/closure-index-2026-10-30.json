@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-30",
+  "tasksClosed": [
+    "0.2",
+    "0.3",
+    "0.5"
+  ],
+  "cases": [
+    {
+      "case": "P-QOS",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-platform-2026-10-29/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "P-RESTART",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-platform-2026-10-29/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "P-INFEASIBLE",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-infeasible-status-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-INTENT",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-STRATEGY",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-TEMPLATE",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-PARTIAL",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-DRIFT",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "O-REPLACE",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-operator-2026-10-30/closure-result.json",
+      "passed": true
+    },
+    {
+      "case": "M-PAGING",
+      "source": "live cluster",
+      "evidence": "tests/e2e-v2/results/closure-metrics-2026-10-30/post-run-validation.json",
+      "passed": true
+    },
+    {
+      "case": "M-PARTIAL",
+      "source": "controlled HTTP collector/controller regression",
+      "evidence": "tests/e2e-v2/results/closure-units-2026-10-29/result.json",
+      "passed": true
+    },
+    {
+      "case": "M-FRESHNESS",
+      "source": "controlled Kubernetes metrics collector/controller regression via fake dynamic client",
+      "evidence": "tests/e2e-v2/results/closure-units-2026-10-29/result.json",
+      "passed": true
+    },
+    {
+      "case": "M-RATE",
+      "source": "controlled HTTP collector/controller regression",
+      "evidence": "tests/e2e-v2/results/closure-units-2026-10-29/result.json",
+      "passed": true
+    }
+  ],
+  "liveProviderMappingEvidence": "tests/e2e-v2/results/closure-metrics-2026-10-30/live-metrics-collector.json",
+  "testedPlatform": {
+    "kubernetes": "1.35.0",
+    "operator": "2.16.1",
+    "rabbitmq": "4.4.0-management",
+    "metricsServer": "0.8.0",
+    "architecture": "linux/arm64"
+  },
+  "fullAcceptanceMatrix": false,
+  "releaseReady": false,
+  "remainingTasks": [
+    "6.3",
+    "6.4"
+  ],
+  "boundaries": [
+    "Final whole-suite immutable-build repeat remains required.",
+    "Earlier rolling upward 120-second objective missed; not waived.",
+    "Other platform versions/combinations remain unverified.",
+    "Strict memory-limit changes remain unsupported; no broker exec/Erlang used."
+  ],
+  "astraReview": "tests/e2e-v2/results/closure-astra-review-2026-10-30.json",
+  "localChecks": "tests/e2e-v2/results/closure-local-checks-2026-10-30.json"
+}

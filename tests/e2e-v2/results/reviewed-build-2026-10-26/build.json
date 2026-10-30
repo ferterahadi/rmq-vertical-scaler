@@ -1,0 +1,17 @@
+{
+  "time": "2026-10-26T11:16:10.077502+00:00",
+  "command": [
+    "go",
+    "build",
+    "-ldflags=-s -w -X main.version=2.3.0-dev",
+    "-o",
+    "/private/tmp/rmq-v23-image/rmq-vertical-scaler",
+    "./cmd/rmq-vertical-scaler"
+  ],
+  "platform": "linux/arm64",
+  "version": "2.3.0-dev",
+  "binarySHA256": "2f097f5ec78af72a06f1a488e1445ed5544c2bc0e4bee4fb1df16c49bb76ee97",
+  "dockerfileSHA256": "844fc9e002088da552e835b57138629bd8ecf37e345ccba15728642e78881f8f",
+  "sourceUnchangedDuringBuild": true,
+  "imageTag": "rmq-vertical-scaler:v2.3-reviewed"
+}

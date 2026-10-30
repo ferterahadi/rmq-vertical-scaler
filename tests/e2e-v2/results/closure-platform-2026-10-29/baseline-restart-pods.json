@@ -1,0 +1,1814 @@
+{
+  "rmq-probe-server-0": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+      "creationTimestamp": "2026-10-29T15:54:04Z",
+      "generateName": "rmq-probe-server-",
+      "generation": 1,
+      "labels": {
+        "app.kubernetes.io/component": "rabbitmq",
+        "app.kubernetes.io/name": "rmq-probe",
+        "app.kubernetes.io/part-of": "rabbitmq",
+        "apps.kubernetes.io/pod-index": "0",
+        "controller-revision-hash": "rmq-probe-server-57889d754f",
+        "statefulset.kubernetes.io/pod-name": "rmq-probe-server-0"
+      },
+      "name": "rmq-probe-server-0",
+      "namespace": "rmq-v23-e2e-native",
+      "ownerReferences": [
+        {
+          "apiVersion": "apps/v1",
+          "blockOwnerDeletion": true,
+          "controller": true,
+          "kind": "StatefulSet",
+          "name": "rmq-probe-server",
+          "uid": "4b5f2bce-2a7b-4632-8da2-dcbdeaaa67a6"
+        }
+      ],
+      "resourceVersion": "6428",
+      "uid": "8ecb41af-c15c-4730-b28b-6564e69177e3"
+    },
+    "spec": {
+      "automountServiceAccountToken": true,
+      "containers": [
+        {
+          "env": [
+            {
+              "name": "MY_POD_NAME",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.name"
+                }
+              }
+            },
+            {
+              "name": "MY_POD_NAMESPACE",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.namespace"
+                }
+              }
+            },
+            {
+              "name": "K8S_SERVICE_NAME",
+              "value": "rmq-probe-nodes"
+            },
+            {
+              "name": "RABBITMQ_ENABLED_PLUGINS_FILE",
+              "value": "/operator/enabled_plugins"
+            },
+            {
+              "name": "RABBITMQ_USE_LONGNAME",
+              "value": "true"
+            },
+            {
+              "name": "RABBITMQ_NODENAME",
+              "value": "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            },
+            {
+              "name": "K8S_HOSTNAME_SUFFIX",
+              "value": ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            }
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "lifecycle": {
+            "preStop": {
+              "exec": {
+                "command": [
+                  "/bin/bash",
+                  "-c",
+                  "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 || true && rabbitmq-upgrade drain -t 604800"
+                ]
+              }
+            }
+          },
+          "name": "rabbitmq",
+          "ports": [
+            {
+              "containerPort": 4369,
+              "name": "epmd",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 5672,
+              "name": "amqp",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15672,
+              "name": "management",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15692,
+              "name": "prometheus",
+              "protocol": "TCP"
+            }
+          ],
+          "readinessProbe": {
+            "failureThreshold": 3,
+            "initialDelaySeconds": 10,
+            "periodSeconds": 10,
+            "successThreshold": 1,
+            "tcpSocket": {
+              "port": "amqp"
+            },
+            "timeoutSeconds": 5
+          },
+          "resizePolicy": [
+            {
+              "resourceName": "cpu",
+              "restartPolicy": "RestartContainer"
+            }
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "operatorDefaults.conf"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "userDefinedConfiguration.conf"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-4pfd8",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "dnsPolicy": "ClusterFirst",
+      "enableServiceLinks": true,
+      "hostname": "rmq-probe-server-0",
+      "initContainers": [
+        {
+          "command": [
+            "sh",
+            "-c",
+            "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie && chmod 600 /var/lib/rabbitmq/.erlang.cookie ; cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf && sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf && chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; sleep 30"
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "name": "setup-container",
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-4pfd8",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "nodeName": "rmq-v23-closure-control-plane",
+      "preemptionPolicy": "PreemptLowerPriority",
+      "priority": 0,
+      "restartPolicy": "Always",
+      "schedulerName": "default-scheduler",
+      "securityContext": {
+        "fsGroup": 0,
+        "runAsUser": 999
+      },
+      "serviceAccount": "rmq-probe-server",
+      "serviceAccountName": "rmq-probe-server",
+      "subdomain": "rmq-probe-nodes",
+      "terminationGracePeriodSeconds": 604800,
+      "tolerations": [
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/not-ready",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        },
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/unreachable",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        }
+      ],
+      "topologySpreadConstraints": [
+        {
+          "labelSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/name": "rmq-probe"
+            }
+          },
+          "maxSkew": 1,
+          "topologyKey": "topology.kubernetes.io/zone",
+          "whenUnsatisfiable": "ScheduleAnyway"
+        }
+      ],
+      "volumes": [
+        {
+          "name": "persistence",
+          "persistentVolumeClaim": {
+            "claimName": "persistence-rmq-probe-server-0"
+          }
+        },
+        {
+          "configMap": {
+            "defaultMode": 420,
+            "name": "rmq-probe-plugins-conf"
+          },
+          "name": "plugins-conf"
+        },
+        {
+          "name": "rabbitmq-confd",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "operatorDefaults.conf",
+                      "path": "operatorDefaults.conf"
+                    },
+                    {
+                      "key": "userDefinedConfiguration.conf",
+                      "path": "userDefinedConfiguration.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-server-conf"
+                }
+              },
+              {
+                "secret": {
+                  "items": [
+                    {
+                      "key": "default_user.conf",
+                      "path": "default_user.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-default-user"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-erlang-cookie"
+        },
+        {
+          "name": "erlang-cookie-secret",
+          "secret": {
+            "defaultMode": 420,
+            "secretName": "rmq-probe-erlang-cookie"
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-plugins"
+        },
+        {
+          "downwardAPI": {
+            "defaultMode": 420,
+            "items": [
+              {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.labels['skipPreStopChecks']"
+                },
+                "path": "skipPreStopChecks"
+              }
+            ]
+          },
+          "name": "pod-info"
+        },
+        {
+          "name": "kube-api-access-4pfd8",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "serviceAccountToken": {
+                  "expirationSeconds": 3607,
+                  "path": "token"
+                }
+              },
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "ca.crt",
+                      "path": "ca.crt"
+                    }
+                  ],
+                  "name": "kube-root-ca.crt"
+                }
+              },
+              {
+                "downwardAPI": {
+                  "items": [
+                    {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      },
+                      "path": "namespace"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "status": {
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:10Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:41Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:53Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:53Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:08Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ],
+      "containerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          },
+          "containerID": "containerd://795f59edb46a9383f7b1d63e1053f28bdbf76dbbe7d436b67cd73146bc256fd9",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "rabbitmq",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-29T15:54:41Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-4pfd8",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "hostIP": "172.19.0.2",
+      "hostIPs": [
+        {
+          "ip": "172.19.0.2"
+        }
+      ],
+      "initContainerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "20m",
+            "memory": "64Mi"
+          },
+          "containerID": "containerd://c5425be67b435b7c41200caa94cf67ed9f0e32c237c521d0bda69e9af5b8a4db",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "setup-container",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": false,
+          "state": {
+            "terminated": {
+              "containerID": "containerd://c5425be67b435b7c41200caa94cf67ed9f0e32c237c521d0bda69e9af5b8a4db",
+              "exitCode": 0,
+              "finishedAt": "2026-10-29T15:54:41Z",
+              "reason": "Completed",
+              "startedAt": "2026-10-29T15:54:10Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-4pfd8",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "observedGeneration": 1,
+      "phase": "Running",
+      "podIP": "10.244.0.64",
+      "podIPs": [
+        {
+          "ip": "10.244.0.64"
+        }
+      ],
+      "qosClass": "Burstable",
+      "startTime": "2026-10-29T15:54:08Z"
+    }
+  },
+  "rmq-probe-server-1": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+      "creationTimestamp": "2026-10-29T15:54:04Z",
+      "generateName": "rmq-probe-server-",
+      "generation": 1,
+      "labels": {
+        "app.kubernetes.io/component": "rabbitmq",
+        "app.kubernetes.io/name": "rmq-probe",
+        "app.kubernetes.io/part-of": "rabbitmq",
+        "apps.kubernetes.io/pod-index": "1",
+        "controller-revision-hash": "rmq-probe-server-57889d754f",
+        "statefulset.kubernetes.io/pod-name": "rmq-probe-server-1"
+      },
+      "name": "rmq-probe-server-1",
+      "namespace": "rmq-v23-e2e-native",
+      "ownerReferences": [
+        {
+          "apiVersion": "apps/v1",
+          "blockOwnerDeletion": true,
+          "controller": true,
+          "kind": "StatefulSet",
+          "name": "rmq-probe-server",
+          "uid": "4b5f2bce-2a7b-4632-8da2-dcbdeaaa67a6"
+        }
+      ],
+      "resourceVersion": "6433",
+      "uid": "f6ec7159-caff-40a0-ba3b-9e69bc0db903"
+    },
+    "spec": {
+      "automountServiceAccountToken": true,
+      "containers": [
+        {
+          "env": [
+            {
+              "name": "MY_POD_NAME",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.name"
+                }
+              }
+            },
+            {
+              "name": "MY_POD_NAMESPACE",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.namespace"
+                }
+              }
+            },
+            {
+              "name": "K8S_SERVICE_NAME",
+              "value": "rmq-probe-nodes"
+            },
+            {
+              "name": "RABBITMQ_ENABLED_PLUGINS_FILE",
+              "value": "/operator/enabled_plugins"
+            },
+            {
+              "name": "RABBITMQ_USE_LONGNAME",
+              "value": "true"
+            },
+            {
+              "name": "RABBITMQ_NODENAME",
+              "value": "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            },
+            {
+              "name": "K8S_HOSTNAME_SUFFIX",
+              "value": ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            }
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "lifecycle": {
+            "preStop": {
+              "exec": {
+                "command": [
+                  "/bin/bash",
+                  "-c",
+                  "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 || true && rabbitmq-upgrade drain -t 604800"
+                ]
+              }
+            }
+          },
+          "name": "rabbitmq",
+          "ports": [
+            {
+              "containerPort": 4369,
+              "name": "epmd",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 5672,
+              "name": "amqp",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15672,
+              "name": "management",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15692,
+              "name": "prometheus",
+              "protocol": "TCP"
+            }
+          ],
+          "readinessProbe": {
+            "failureThreshold": 3,
+            "initialDelaySeconds": 10,
+            "periodSeconds": 10,
+            "successThreshold": 1,
+            "tcpSocket": {
+              "port": "amqp"
+            },
+            "timeoutSeconds": 5
+          },
+          "resizePolicy": [
+            {
+              "resourceName": "cpu",
+              "restartPolicy": "RestartContainer"
+            }
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "operatorDefaults.conf"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "userDefinedConfiguration.conf"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-xqrnq",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "dnsPolicy": "ClusterFirst",
+      "enableServiceLinks": true,
+      "hostname": "rmq-probe-server-1",
+      "initContainers": [
+        {
+          "command": [
+            "sh",
+            "-c",
+            "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie && chmod 600 /var/lib/rabbitmq/.erlang.cookie ; cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf && sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf && chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; sleep 30"
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "name": "setup-container",
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-xqrnq",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "nodeName": "rmq-v23-closure-control-plane",
+      "preemptionPolicy": "PreemptLowerPriority",
+      "priority": 0,
+      "restartPolicy": "Always",
+      "schedulerName": "default-scheduler",
+      "securityContext": {
+        "fsGroup": 0,
+        "runAsUser": 999
+      },
+      "serviceAccount": "rmq-probe-server",
+      "serviceAccountName": "rmq-probe-server",
+      "subdomain": "rmq-probe-nodes",
+      "terminationGracePeriodSeconds": 604800,
+      "tolerations": [
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/not-ready",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        },
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/unreachable",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        }
+      ],
+      "topologySpreadConstraints": [
+        {
+          "labelSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/name": "rmq-probe"
+            }
+          },
+          "maxSkew": 1,
+          "topologyKey": "topology.kubernetes.io/zone",
+          "whenUnsatisfiable": "ScheduleAnyway"
+        }
+      ],
+      "volumes": [
+        {
+          "name": "persistence",
+          "persistentVolumeClaim": {
+            "claimName": "persistence-rmq-probe-server-1"
+          }
+        },
+        {
+          "configMap": {
+            "defaultMode": 420,
+            "name": "rmq-probe-plugins-conf"
+          },
+          "name": "plugins-conf"
+        },
+        {
+          "name": "rabbitmq-confd",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "operatorDefaults.conf",
+                      "path": "operatorDefaults.conf"
+                    },
+                    {
+                      "key": "userDefinedConfiguration.conf",
+                      "path": "userDefinedConfiguration.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-server-conf"
+                }
+              },
+              {
+                "secret": {
+                  "items": [
+                    {
+                      "key": "default_user.conf",
+                      "path": "default_user.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-default-user"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-erlang-cookie"
+        },
+        {
+          "name": "erlang-cookie-secret",
+          "secret": {
+            "defaultMode": 420,
+            "secretName": "rmq-probe-erlang-cookie"
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-plugins"
+        },
+        {
+          "downwardAPI": {
+            "defaultMode": 420,
+            "items": [
+              {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.labels['skipPreStopChecks']"
+                },
+                "path": "skipPreStopChecks"
+              }
+            ]
+          },
+          "name": "pod-info"
+        },
+        {
+          "name": "kube-api-access-xqrnq",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "serviceAccountToken": {
+                  "expirationSeconds": 3607,
+                  "path": "token"
+                }
+              },
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "ca.crt",
+                      "path": "ca.crt"
+                    }
+                  ],
+                  "name": "kube-root-ca.crt"
+                }
+              },
+              {
+                "downwardAPI": {
+                  "items": [
+                    {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      },
+                      "path": "namespace"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "status": {
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:11Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:42Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:53Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:53Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:09Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ],
+      "containerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          },
+          "containerID": "containerd://5e4cbe51dd64d906a46525fe2cc6865bb19b5b2ffe2b97749a5131f91ec6b1b4",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "rabbitmq",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-29T15:54:42Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-xqrnq",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "hostIP": "172.19.0.2",
+      "hostIPs": [
+        {
+          "ip": "172.19.0.2"
+        }
+      ],
+      "initContainerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "20m",
+            "memory": "64Mi"
+          },
+          "containerID": "containerd://b47cae99949f4f07b1d260d7deeec0be5f3fd425e8ddc74bf142a50e3531f0ef",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "setup-container",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": false,
+          "state": {
+            "terminated": {
+              "containerID": "containerd://b47cae99949f4f07b1d260d7deeec0be5f3fd425e8ddc74bf142a50e3531f0ef",
+              "exitCode": 0,
+              "finishedAt": "2026-10-29T15:54:41Z",
+              "reason": "Completed",
+              "startedAt": "2026-10-29T15:54:11Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-xqrnq",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "observedGeneration": 1,
+      "phase": "Running",
+      "podIP": "10.244.0.66",
+      "podIPs": [
+        {
+          "ip": "10.244.0.66"
+        }
+      ],
+      "qosClass": "Burstable",
+      "startTime": "2026-10-29T15:54:09Z"
+    }
+  },
+  "rmq-probe-server-2": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+      "creationTimestamp": "2026-10-29T15:54:04Z",
+      "generateName": "rmq-probe-server-",
+      "generation": 1,
+      "labels": {
+        "app.kubernetes.io/component": "rabbitmq",
+        "app.kubernetes.io/name": "rmq-probe",
+        "app.kubernetes.io/part-of": "rabbitmq",
+        "apps.kubernetes.io/pod-index": "2",
+        "controller-revision-hash": "rmq-probe-server-57889d754f",
+        "statefulset.kubernetes.io/pod-name": "rmq-probe-server-2"
+      },
+      "name": "rmq-probe-server-2",
+      "namespace": "rmq-v23-e2e-native",
+      "ownerReferences": [
+        {
+          "apiVersion": "apps/v1",
+          "blockOwnerDeletion": true,
+          "controller": true,
+          "kind": "StatefulSet",
+          "name": "rmq-probe-server",
+          "uid": "4b5f2bce-2a7b-4632-8da2-dcbdeaaa67a6"
+        }
+      ],
+      "resourceVersion": "6443",
+      "uid": "f81c820a-677c-4b01-b428-7fca5c61f4e2"
+    },
+    "spec": {
+      "automountServiceAccountToken": true,
+      "containers": [
+        {
+          "env": [
+            {
+              "name": "MY_POD_NAME",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.name"
+                }
+              }
+            },
+            {
+              "name": "MY_POD_NAMESPACE",
+              "valueFrom": {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.namespace"
+                }
+              }
+            },
+            {
+              "name": "K8S_SERVICE_NAME",
+              "value": "rmq-probe-nodes"
+            },
+            {
+              "name": "RABBITMQ_ENABLED_PLUGINS_FILE",
+              "value": "/operator/enabled_plugins"
+            },
+            {
+              "name": "RABBITMQ_USE_LONGNAME",
+              "value": "true"
+            },
+            {
+              "name": "RABBITMQ_NODENAME",
+              "value": "rabbit@$(MY_POD_NAME).$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            },
+            {
+              "name": "K8S_HOSTNAME_SUFFIX",
+              "value": ".$(K8S_SERVICE_NAME).$(MY_POD_NAMESPACE)"
+            }
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "lifecycle": {
+            "preStop": {
+              "exec": {
+                "command": [
+                  "/bin/bash",
+                  "-c",
+                  "if [ ! -z \"$(cat /etc/pod-info/skipPreStopChecks)\" ]; then exit 0; fi; rabbitmq-upgrade await_online_quorum_plus_one -t 604800 && rabbitmq-upgrade await_online_synchronized_mirror -t 604800 || true && rabbitmq-upgrade drain -t 604800"
+                ]
+              }
+            }
+          },
+          "name": "rabbitmq",
+          "ports": [
+            {
+              "containerPort": 4369,
+              "name": "epmd",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 5672,
+              "name": "amqp",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15672,
+              "name": "management",
+              "protocol": "TCP"
+            },
+            {
+              "containerPort": 15692,
+              "name": "prometheus",
+              "protocol": "TCP"
+            }
+          ],
+          "readinessProbe": {
+            "failureThreshold": 3,
+            "initialDelaySeconds": 10,
+            "periodSeconds": 10,
+            "successThreshold": 1,
+            "tcpSocket": {
+              "port": "amqp"
+            },
+            "timeoutSeconds": 5
+          },
+          "resizePolicy": [
+            {
+              "resourceName": "cpu",
+              "restartPolicy": "RestartContainer"
+            }
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "operatorDefaults.conf"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "userDefinedConfiguration.conf"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-p57kd",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "dnsPolicy": "ClusterFirst",
+      "enableServiceLinks": true,
+      "hostname": "rmq-probe-server-2",
+      "initContainers": [
+        {
+          "command": [
+            "sh",
+            "-c",
+            "cp /tmp/erlang-cookie-secret/.erlang.cookie /var/lib/rabbitmq/.erlang.cookie && chmod 600 /var/lib/rabbitmq/.erlang.cookie ; cp /tmp/rabbitmq-plugins/enabled_plugins /operator/enabled_plugins ; echo '[default]' > /var/lib/rabbitmq/.rabbitmqadmin.conf && sed -e 's/default_user/username/' -e 's/default_pass/password/' /tmp/default_user.conf >> /var/lib/rabbitmq/.rabbitmqadmin.conf && chmod 600 /var/lib/rabbitmq/.rabbitmqadmin.conf ; sleep 30"
+          ],
+          "image": "rabbitmq:4.4.0-management",
+          "imagePullPolicy": "IfNotPresent",
+          "name": "setup-container",
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "terminationMessagePath": "/dev/termination-log",
+          "terminationMessagePolicy": "File",
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd",
+              "subPath": "default_user.conf"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-p57kd",
+              "readOnly": true
+            }
+          ]
+        }
+      ],
+      "nodeName": "rmq-v23-closure-control-plane",
+      "preemptionPolicy": "PreemptLowerPriority",
+      "priority": 0,
+      "restartPolicy": "Always",
+      "schedulerName": "default-scheduler",
+      "securityContext": {
+        "fsGroup": 0,
+        "runAsUser": 999
+      },
+      "serviceAccount": "rmq-probe-server",
+      "serviceAccountName": "rmq-probe-server",
+      "subdomain": "rmq-probe-nodes",
+      "terminationGracePeriodSeconds": 604800,
+      "tolerations": [
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/not-ready",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        },
+        {
+          "effect": "NoExecute",
+          "key": "node.kubernetes.io/unreachable",
+          "operator": "Exists",
+          "tolerationSeconds": 300
+        }
+      ],
+      "topologySpreadConstraints": [
+        {
+          "labelSelector": {
+            "matchLabels": {
+              "app.kubernetes.io/name": "rmq-probe"
+            }
+          },
+          "maxSkew": 1,
+          "topologyKey": "topology.kubernetes.io/zone",
+          "whenUnsatisfiable": "ScheduleAnyway"
+        }
+      ],
+      "volumes": [
+        {
+          "name": "persistence",
+          "persistentVolumeClaim": {
+            "claimName": "persistence-rmq-probe-server-2"
+          }
+        },
+        {
+          "configMap": {
+            "defaultMode": 420,
+            "name": "rmq-probe-plugins-conf"
+          },
+          "name": "plugins-conf"
+        },
+        {
+          "name": "rabbitmq-confd",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "operatorDefaults.conf",
+                      "path": "operatorDefaults.conf"
+                    },
+                    {
+                      "key": "userDefinedConfiguration.conf",
+                      "path": "userDefinedConfiguration.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-server-conf"
+                }
+              },
+              {
+                "secret": {
+                  "items": [
+                    {
+                      "key": "default_user.conf",
+                      "path": "default_user.conf"
+                    }
+                  ],
+                  "name": "rmq-probe-default-user"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-erlang-cookie"
+        },
+        {
+          "name": "erlang-cookie-secret",
+          "secret": {
+            "defaultMode": 420,
+            "secretName": "rmq-probe-erlang-cookie"
+          }
+        },
+        {
+          "emptyDir": {},
+          "name": "rabbitmq-plugins"
+        },
+        {
+          "downwardAPI": {
+            "defaultMode": 420,
+            "items": [
+              {
+                "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "metadata.labels['skipPreStopChecks']"
+                },
+                "path": "skipPreStopChecks"
+              }
+            ]
+          },
+          "name": "pod-info"
+        },
+        {
+          "name": "kube-api-access-p57kd",
+          "projected": {
+            "defaultMode": 420,
+            "sources": [
+              {
+                "serviceAccountToken": {
+                  "expirationSeconds": 3607,
+                  "path": "token"
+                }
+              },
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "ca.crt",
+                      "path": "ca.crt"
+                    }
+                  ],
+                  "name": "kube-root-ca.crt"
+                }
+              },
+              {
+                "downwardAPI": {
+                  "items": [
+                    {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      },
+                      "path": "namespace"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "status": {
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:10Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:42Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:54Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:54Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T15:54:08Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ],
+      "containerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          },
+          "containerID": "containerd://a2cbdcf4ba37369f63d961e7e2e21fef0898f391123cd792cf88d17fd879e643",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "rabbitmq",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": true,
+          "state": {
+            "running": {
+              "startedAt": "2026-10-29T15:54:42Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/10-operatorDefaults.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/90-userDefinedConfiguration.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/etc/pod-info/",
+              "name": "pod-info"
+            },
+            {
+              "mountPath": "/etc/rabbitmq/conf.d/11-default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-p57kd",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "hostIP": "172.19.0.2",
+      "hostIPs": [
+        {
+          "ip": "172.19.0.2"
+        }
+      ],
+      "initContainerStatuses": [
+        {
+          "allocatedResources": {
+            "cpu": "20m",
+            "memory": "64Mi"
+          },
+          "containerID": "containerd://f68017e1c02002b9cd630f86b7e3e85daad6983bdaae7516b6da7a83921d1112",
+          "image": "docker.io/library/rabbitmq:4.4.0-management",
+          "imageID": "docker.io/library/rabbitmq@sha256:af6f50d38098d8bd52fef7f3fa85015dd8b2bf6def58e995bf584ae9ba0f6407",
+          "lastState": {},
+          "name": "setup-container",
+          "ready": true,
+          "resources": {
+            "limits": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            },
+            "requests": {
+              "cpu": "20m",
+              "memory": "64Mi"
+            }
+          },
+          "restartCount": 0,
+          "started": false,
+          "state": {
+            "terminated": {
+              "containerID": "containerd://f68017e1c02002b9cd630f86b7e3e85daad6983bdaae7516b6da7a83921d1112",
+              "exitCode": 0,
+              "finishedAt": "2026-10-29T15:54:41Z",
+              "reason": "Completed",
+              "startedAt": "2026-10-29T15:54:10Z"
+            }
+          },
+          "user": {
+            "linux": {
+              "gid": 999,
+              "supplementalGroups": [
+                0,
+                999
+              ],
+              "uid": 999
+            }
+          },
+          "volumeMounts": [
+            {
+              "mountPath": "/tmp/rabbitmq-plugins/",
+              "name": "plugins-conf"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/",
+              "name": "rabbitmq-erlang-cookie"
+            },
+            {
+              "mountPath": "/tmp/erlang-cookie-secret/",
+              "name": "erlang-cookie-secret"
+            },
+            {
+              "mountPath": "/operator",
+              "name": "rabbitmq-plugins"
+            },
+            {
+              "mountPath": "/var/lib/rabbitmq/mnesia/",
+              "name": "persistence"
+            },
+            {
+              "mountPath": "/tmp/default_user.conf",
+              "name": "rabbitmq-confd"
+            },
+            {
+              "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+              "name": "kube-api-access-p57kd",
+              "readOnly": true,
+              "recursiveReadOnly": "Disabled"
+            }
+          ]
+        }
+      ],
+      "observedGeneration": 1,
+      "phase": "Running",
+      "podIP": "10.244.0.65",
+      "podIPs": [
+        {
+          "ip": "10.244.0.65"
+        }
+      ],
+      "qosClass": "Burstable",
+      "startTime": "2026-10-29T15:54:08Z"
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "time": "2026-10-26T08:35:58.218853+00:00",
+  "operatorMemoryOverride": 858993460,
+  "expectedMemoryOverride": 858993460,
+  "budgetSource": "RabbitMQ GET /api/nodes mem_limit",
+  "brokers": [
+    {
+      "name": "rmq-probe-server-0",
+      "uid": "8964c48f-4d7a-4fc0-8b43-c80558007735",
+      "containerID": "containerd://9a0f932533a0b9e2f826b0422c3673f622616c924cafa510c2945276b258ebb1",
+      "restarts": 0,
+      "ready": true,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "watermarkBytes": 515396076,
+      "brokerMemoryBytes": 190382080,
+      "memoryAlarm": false,
+      "imageID": "docker.io/library/rabbitmq@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109",
+      "generation": 1,
+      "observedGeneration": 1,
+      "qosClass": "Burstable",
+      "resizePolicy": []
+    },
+    {
+      "name": "rmq-probe-server-1",
+      "uid": "99dfb6a5-11e1-480f-a8bf-5505894dd5b1",
+      "containerID": "containerd://10e2803c774e48a2ca3eb02b50e89c069252729e0bb8b5c902665182b5200781",
+      "restarts": 0,
+      "ready": true,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "watermarkBytes": 515396076,
+      "brokerMemoryBytes": 187637760,
+      "memoryAlarm": false,
+      "imageID": "docker.io/library/rabbitmq@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109",
+      "generation": 1,
+      "observedGeneration": 1,
+      "qosClass": "Burstable",
+      "resizePolicy": []
+    },
+    {
+      "name": "rmq-probe-server-2",
+      "uid": "04ded470-2d00-4b5f-8602-a02d1c10781f",
+      "containerID": "containerd://022380f388c07a8b132d1a3a0c5d46629d999554f71f8f9008298061e6d5e9d4",
+      "restarts": 0,
+      "ready": true,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "watermarkBytes": 515396076,
+      "brokerMemoryBytes": 188272640,
+      "memoryAlarm": false,
+      "imageID": "docker.io/library/rabbitmq@sha256:c200fd496482cda18c412be4e6f244830e1e75949b8cf5f0e887cea9ea456109",
+      "generation": 1,
+      "observedGeneration": 1,
+      "qosClass": "Burstable",
+      "resizePolicy": []
+    }
+  ]
+}

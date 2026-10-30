@@ -1,0 +1,23 @@
+{
+  "apiVersion": "admissionregistration.k8s.io/v1",
+  "kind": "ValidatingAdmissionPolicyBinding",
+  "metadata": {
+    "name": "rmq-v23-deny-native",
+    "labels": {
+      "rmq-vertical-scaler-test": "v23-matrix"
+    }
+  },
+  "spec": {
+    "policyName": "rmq-v23-deny-native",
+    "validationActions": [
+      "Deny"
+    ],
+    "matchResources": {
+      "namespaceSelector": {
+        "matchLabels": {
+          "rmq-v23-matrix": "rmq-v23-e2e-native"
+        }
+      }
+    }
+  }
+}

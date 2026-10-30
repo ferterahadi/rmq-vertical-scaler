@@ -38,9 +38,13 @@ jobs:
         run: |
           helm lint charts/rmq-vertical-scaler
           helm template rvs charts/rmq-vertical-scaler > /dev/null
+          helm template rvs charts/rmq-vertical-scaler --namespace production -f charts/rmq-vertical-scaler/values-v2.example.yaml > /dev/null
           if helm template rvs charts/rmq-vertical-scaler --set pdb.enabled=false | grep -q PodDisruptionBudget; then
             echo "pdb.enabled=false still renders a PDB"; exit 1
           fi
+
+      - name: Require recorded 2.3 acceptance evidence
+        run: python3 scripts/check-v23-release-evidence.py "${GITHUB_REF_NAME}"
 
       - name: Cross-compile release binaries
         env:

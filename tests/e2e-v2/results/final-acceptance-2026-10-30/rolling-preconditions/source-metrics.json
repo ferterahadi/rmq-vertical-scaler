@@ -1,0 +1,107 @@
+{
+  "kind": "PodMetricsList",
+  "apiVersion": "metrics.k8s.io/v1beta1",
+  "metadata": {},
+  "items": [
+    {
+      "metadata": {
+        "name": "rmq-probe-server-0",
+        "namespace": "rmq-v23-e2e-native",
+        "creationTimestamp": "2026-10-29T18:19:44Z",
+        "labels": {
+          "app.kubernetes.io/component": "rabbitmq",
+          "app.kubernetes.io/name": "rmq-probe",
+          "app.kubernetes.io/part-of": "rabbitmq",
+          "apps.kubernetes.io/pod-index": "0",
+          "controller-revision-hash": "rmq-probe-server-6fc86b4cb8",
+          "statefulset.kubernetes.io/pod-name": "rmq-probe-server-0"
+        }
+      },
+      "timestamp": "2026-10-29T18:19:24Z",
+      "window": "23.483s",
+      "containers": [
+        {
+          "name": "rabbitmq",
+          "usage": {
+            "cpu": "20070306n",
+            "memory": "182068Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "rmq-probe-server-1",
+        "namespace": "rmq-v23-e2e-native",
+        "creationTimestamp": "2026-10-29T18:19:44Z",
+        "labels": {
+          "app.kubernetes.io/component": "rabbitmq",
+          "app.kubernetes.io/name": "rmq-probe",
+          "app.kubernetes.io/part-of": "rabbitmq",
+          "apps.kubernetes.io/pod-index": "1",
+          "controller-revision-hash": "rmq-probe-server-6fc86b4cb8",
+          "statefulset.kubernetes.io/pod-name": "rmq-probe-server-1"
+        }
+      },
+      "timestamp": "2026-10-29T18:19:38Z",
+      "window": "15.576s",
+      "containers": [
+        {
+          "name": "rabbitmq",
+          "usage": {
+            "cpu": "4074794n",
+            "memory": "184528Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "rmq-probe-server-2",
+        "namespace": "rmq-v23-e2e-native",
+        "creationTimestamp": "2026-10-29T18:19:44Z",
+        "labels": {
+          "app.kubernetes.io/component": "rabbitmq",
+          "app.kubernetes.io/name": "rmq-probe",
+          "app.kubernetes.io/part-of": "rabbitmq",
+          "apps.kubernetes.io/pod-index": "2",
+          "controller-revision-hash": "rmq-probe-server-6fc86b4cb8",
+          "statefulset.kubernetes.io/pod-name": "rmq-probe-server-2"
+        }
+      },
+      "timestamp": "2026-10-29T18:19:28Z",
+      "window": "17.001s",
+      "containers": [
+        {
+          "name": "rabbitmq",
+          "usage": {
+            "cpu": "4040056n",
+            "memory": "189268Ki"
+          }
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "name": "rmq-vertical-scaler-5d975854dc-f5htv",
+        "namespace": "rmq-v23-e2e-native",
+        "creationTimestamp": "2026-10-29T18:19:44Z",
+        "labels": {
+          "app": "rmq-vertical-scaler",
+          "pod-template-hash": "5d975854dc"
+        }
+      },
+      "timestamp": "2026-10-29T18:19:27Z",
+      "window": "16.374s",
+      "containers": [
+        {
+          "name": "scaler",
+          "usage": {
+            "cpu": "600158n",
+            "memory": "9416Ki"
+          }
+        }
+      ]
+    }
+  ]
+}

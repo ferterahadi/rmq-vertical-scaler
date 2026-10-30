@@ -1,0 +1,63 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "annotations": {
+      "rabbitmq.com/queueRebalanceNeededAt": "2026-10-29T18:16:04Z"
+    },
+    "creationTimestamp": "2026-10-29T17:44:02Z",
+    "labels": {
+      "app.kubernetes.io/component": "rabbitmq",
+      "app.kubernetes.io/name": "rmq-probe",
+      "app.kubernetes.io/part-of": "rabbitmq"
+    },
+    "name": "rmq-probe-nodes",
+    "namespace": "rmq-v23-e2e-native",
+    "ownerReferences": [
+      {
+        "apiVersion": "rabbitmq.com/v1beta1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "RabbitmqCluster",
+        "name": "rmq-probe",
+        "uid": "3ce28849-85fe-441c-b3ae-7e0f31f23543"
+      }
+    ],
+    "resourceVersion": "10538",
+    "uid": "f0502bfb-b295-460b-ab0f-9138abf5dd31"
+  },
+  "spec": {
+    "clusterIP": "None",
+    "clusterIPs": [
+      "None"
+    ],
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "name": "epmd",
+        "port": 4369,
+        "protocol": "TCP",
+        "targetPort": 4369
+      },
+      {
+        "name": "cluster-rpc",
+        "port": 25672,
+        "protocol": "TCP",
+        "targetPort": 25672
+      }
+    ],
+    "publishNotReadyAddresses": true,
+    "selector": {
+      "app.kubernetes.io/name": "rmq-probe"
+    },
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}

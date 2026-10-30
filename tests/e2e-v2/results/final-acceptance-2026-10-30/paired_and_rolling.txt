@@ -1,0 +1,54 @@
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Case: paired-requests-and-CPU-limits
+Waiting: new paired-inplace policy observed
+Waiting: pinned scaler image verified
+Waiting: all declared paired fields effective
+Waiting: paired tuple safely returns to baseline
+Case: strict-memory-limit-block
+Waiting: new strict-memory-block policy observed
+Waiting: pinned scaler image verified
+Waiting: unsupported whole profile blocked
+Case: explicit-rolling-full-memory-cycle
+Waiting: new explicit-rolling policy observed
+Waiting: pinned scaler image verified
+Waiting: AMQP loopback connection
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Recorded rolling-increased: Operator memory override=1288490189
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Recorded rolling-decreased: Operator memory override=858993460
+{
+  "time": "2026-10-29T18:31:45.530757+00:00",
+  "cases": [
+    {
+      "name": "paired CPU/memory requests and CPU limits in place",
+      "passed": true,
+      "withoutMemoryCeilingChange": true,
+      "stableCompletedRevision": 11
+    },
+    {
+      "name": "strict memory transition blocks before writes",
+      "passed": true
+    },
+    {
+      "name": "explicit full-memory rolling cycle",
+      "passed": true,
+      "brokerReplacementsExpected": true,
+      "minimumReadySampled": 2,
+      "upRevision": 13,
+      "upDeadlineMissed": false,
+      "uncertainPublishAttempts": 1,
+      "allConfirmedIDsAccounted": true
+    }
+  ],
+  "confirmed": 12614,
+  "consumedUnique": 12614,
+  "duplicates": 0,
+  "strictCasesWithoutBrokerReplacement": true,
+  "includesExplicitRollingReplacements": true,
+  "allConfirmedIDsAccounted": true,
+  "fullAcceptanceMatrix": false,
+  "remaining": "explicit rolling, rate/fanout scope, infeasible/QoS alternatives and full failure ordering"
+}

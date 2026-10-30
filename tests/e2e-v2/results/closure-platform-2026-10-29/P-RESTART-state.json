@@ -1,0 +1,151 @@
+{
+  "revision": 0,
+  "configVersion": 2,
+  "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+  "target": "rmq-v23-e2e-native/rmq-probe",
+  "at": "2026-10-29T15:56:36.952545947Z",
+  "observation": {
+    "at": "2026-10-29T15:56:36.952545947Z",
+    "identity": "0|3|4b5f2bce-2a7b-4632-8da2-dcbdeaaa67a6|6ff33f82-1eb6-421b-82c0-99a9cfd4b67f|rmq-probe-server-0/8ecb41af-c15c-4730-b28b-6564e69177e3/containerd://795f59edb46a9383f7b1d63e1053f28bdbf76dbbe7d436b67cd73146bc256fd9|rmq-probe-server-1/f6ec7159-caff-40a0-ba3b-9e69bc0db903/containerd://5e4cbe51dd64d906a46525fe2cc6865bb19b5b2ffe2b97749a5131f91ec6b1b4|rmq-probe-server-2/f81c820a-677c-4b01-b428-7fca5c61f4e2/containerd://a2cbdcf4ba37369f63d961e7e2e21fef0898f391123cd792cf88d17fd879e643",
+    "complete": true,
+    "brokers": [
+      {
+        "name": "rmq-probe-server-0",
+        "uid": "8ecb41af-c15c-4730-b28b-6564e69177e3",
+        "containerID": "containerd://795f59edb46a9383f7b1d63e1053f28bdbf76dbbe7d436b67cd73146bc256fd9",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T15:54:41Z"
+      },
+      {
+        "name": "rmq-probe-server-1",
+        "uid": "f6ec7159-caff-40a0-ba3b-9e69bc0db903",
+        "containerID": "containerd://5e4cbe51dd64d906a46525fe2cc6865bb19b5b2ffe2b97749a5131f91ec6b1b4",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T15:54:42Z"
+      },
+      {
+        "name": "rmq-probe-server-2",
+        "uid": "f81c820a-677c-4b01-b428-7fca5c61f4e2",
+        "containerID": "containerd://a2cbdcf4ba37369f63d961e7e2e21fef0898f391123cd792cf88d17fd879e643",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T15:54:42Z"
+      }
+    ],
+    "samples": [
+      {
+        "pod": "rmq-probe-server-0",
+        "uid": "8ecb41af-c15c-4730-b28b-6564e69177e3",
+        "containerID": "containerd://795f59edb46a9383f7b1d63e1053f28bdbf76dbbe7d436b67cd73146bc256fd9",
+        "timestamp": "2026-10-29T15:56:27Z",
+        "window": 15027000000,
+        "cpuCores": 0.005226592,
+        "memoryBytes": 161107968
+      },
+      {
+        "pod": "rmq-probe-server-1",
+        "uid": "f6ec7159-caff-40a0-ba3b-9e69bc0db903",
+        "containerID": "containerd://5e4cbe51dd64d906a46525fe2cc6865bb19b5b2ffe2b97749a5131f91ec6b1b4",
+        "timestamp": "2026-10-29T15:56:32Z",
+        "window": 14461000000,
+        "cpuCores": 0.0046274110000000005,
+        "memoryBytes": 160485376
+      },
+      {
+        "pod": "rmq-probe-server-2",
+        "uid": "f81c820a-677c-4b01-b428-7fca5c61f4e2",
+        "containerID": "containerd://a2cbdcf4ba37369f63d961e7e2e21fef0898f391123cd792cf88d17fd879e643",
+        "timestamp": "2026-10-29T15:56:22Z",
+        "window": 14609000000,
+        "cpuCores": 0.004206174,
+        "memoryBytes": 159678464
+      }
+    ],
+    "signals": [
+      {
+        "available": true,
+        "trigger": 0,
+        "type": "QueueLength",
+        "source": "RabbitMQ selected queues",
+        "timestamp": "2026-10-29T15:56:36.952545947Z",
+        "complete": true,
+        "value": 50,
+        "profile": 1
+      }
+    ],
+    "currentProfileIndex": 0
+  },
+  "decision": {
+    "recommendedProfileIndex": 1,
+    "eligibleProfileIndex": 1,
+    "reason": "SustainedIncrease",
+    "episodeStart": "2026-10-29T15:55:21.957473181Z"
+  },
+  "phase": "Blocked",
+  "reason": "ContainerResizeRequiresRestart"
+}

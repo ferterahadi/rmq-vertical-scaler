@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {
+      "case": "M-PAGING",
+      "passed": true,
+      "time": "2026-10-29T16:40:58.201337+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:04c17e5cd431ddbd5d03c7431985a28164f0f4b9e1483dc72e12943cb4df2e21",
+      "expectedRuntimeDigest": "sha256:04c17e5cd431ddbd5d03c7431985a28164f0f4b9e1483dc72e12943cb4df2e21",
+      "realAPIPages": 2,
+      "selectedQueues": 502,
+      "sum": 37,
+      "maximum": 20,
+      "confirmedMessages": 37,
+      "brokerResourcesUnchanged": true
+    }
+  ],
+  "fullAcceptanceMatrix": false
+}

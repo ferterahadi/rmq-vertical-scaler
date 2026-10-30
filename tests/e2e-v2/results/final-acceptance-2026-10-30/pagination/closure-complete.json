@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "group": "metrics",
+  "time": "2026-10-29T19:21:16.810974+00:00",
+  "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+  "cases": [
+    "M-PAGING"
+  ],
+  "workloadAccountingAndCleanupCompleted": true
+}

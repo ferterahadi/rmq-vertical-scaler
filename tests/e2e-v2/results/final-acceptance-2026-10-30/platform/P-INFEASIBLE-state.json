@@ -1,0 +1,291 @@
+{
+  "revision": 1,
+  "configVersion": 2,
+  "policyHash": "34d8acdf3f5698b97ac6a6ffc27eae6ab201fe89820a531320100446bc82610a",
+  "target": "rmq-v23-e2e-native/rmq-probe",
+  "at": "2026-10-29T18:50:34.736026259Z",
+  "observation": {
+    "at": "2026-10-29T18:50:34.736026259Z",
+    "identity": "0|3|8ef5b79f-2b9e-4595-a619-15598798a161|c2e73807-4228-4a05-ac36-e9952d39abf8|rmq-probe-server-0/5c3dd09a-d074-4901-a3bc-2f37d1b39bb1/containerd://dfeaf79ca6458c0967a83f787020a1032fd9b038ddcd8b4c1aa0a577f872ac88|rmq-probe-server-1/043a58e8-6b4e-4ee6-ad87-278cc61b5a71/containerd://4c15b923f0029fa1402de55ce0d3cf76544491efd37ea0551acc7672932c1886|rmq-probe-server-2/f4d2ed0c-e623-4209-8b4c-0c69f7372c58/containerd://084de79ed87053d9f2b52b941b44265ac29c6e91a9857b6e27455b47a4f51878",
+    "complete": true,
+    "brokers": [
+      {
+        "name": "rmq-probe-server-0",
+        "uid": "5c3dd09a-d074-4901-a3bc-2f37d1b39bb1",
+        "containerID": "containerd://dfeaf79ca6458c0967a83f787020a1032fd9b038ddcd8b4c1aa0a577f872ac88",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "5",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "5",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "resizeConditions": [
+          {
+            "type": "PodResizePending",
+            "observedGeneration": 2,
+            "status": "True",
+            "lastProbeTime": "2026-10-29T18:49:49Z",
+            "lastTransitionTime": "2026-10-29T18:49:49Z",
+            "reason": "Infeasible",
+            "message": "Node didn't have enough capacity: cpu, requested: 5000, capacity: 4000"
+          }
+        ],
+        "started": "2026-10-29T18:48:08Z"
+      },
+      {
+        "name": "rmq-probe-server-1",
+        "uid": "043a58e8-6b4e-4ee6-ad87-278cc61b5a71",
+        "containerID": "containerd://4c15b923f0029fa1402de55ce0d3cf76544491efd37ea0551acc7672932c1886",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "5",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "5",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "resizeConditions": [
+          {
+            "type": "PodResizePending",
+            "observedGeneration": 2,
+            "status": "True",
+            "lastProbeTime": "2026-10-29T18:49:49Z",
+            "lastTransitionTime": "2026-10-29T18:49:49Z",
+            "reason": "Infeasible",
+            "message": "Node didn't have enough capacity: cpu, requested: 5000, capacity: 4000"
+          }
+        ],
+        "started": "2026-10-29T18:48:09Z"
+      },
+      {
+        "name": "rmq-probe-server-2",
+        "uid": "f4d2ed0c-e623-4209-8b4c-0c69f7372c58",
+        "containerID": "containerd://084de79ed87053d9f2b52b941b44265ac29c6e91a9857b6e27455b47a4f51878",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "5",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "5",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "resizeConditions": [
+          {
+            "type": "PodResizePending",
+            "observedGeneration": 2,
+            "status": "True",
+            "lastProbeTime": "2026-10-29T18:49:49Z",
+            "lastTransitionTime": "2026-10-29T18:49:49Z",
+            "reason": "Infeasible",
+            "message": "Node didn't have enough capacity: cpu, requested: 5000, capacity: 4000"
+          }
+        ],
+        "started": "2026-10-29T18:48:07Z"
+      }
+    ],
+    "samples": [
+      {
+        "pod": "rmq-probe-server-0",
+        "uid": "5c3dd09a-d074-4901-a3bc-2f37d1b39bb1",
+        "containerID": "containerd://dfeaf79ca6458c0967a83f787020a1032fd9b038ddcd8b4c1aa0a577f872ac88",
+        "timestamp": "2026-10-29T18:50:17Z",
+        "window": 18566000000,
+        "cpuCores": 0.0037581600000000004,
+        "memoryBytes": 160882688
+      },
+      {
+        "pod": "rmq-probe-server-1",
+        "uid": "043a58e8-6b4e-4ee6-ad87-278cc61b5a71",
+        "containerID": "containerd://4c15b923f0029fa1402de55ce0d3cf76544491efd37ea0551acc7672932c1886",
+        "timestamp": "2026-10-29T18:50:10Z",
+        "window": 18280000000,
+        "cpuCores": 0.0035930520000000002,
+        "memoryBytes": 160878592
+      },
+      {
+        "pod": "rmq-probe-server-2",
+        "uid": "f4d2ed0c-e623-4209-8b4c-0c69f7372c58",
+        "containerID": "containerd://084de79ed87053d9f2b52b941b44265ac29c6e91a9857b6e27455b47a4f51878",
+        "timestamp": "2026-10-29T18:50:20Z",
+        "window": 16727000000,
+        "cpuCores": 0.003540802,
+        "memoryBytes": 160296960
+      }
+    ],
+    "signals": [
+      {
+        "available": true,
+        "trigger": 0,
+        "type": "QueueLength",
+        "source": "RabbitMQ selected queues",
+        "timestamp": "2026-10-29T18:50:34.736026259Z",
+        "complete": true,
+        "value": 50,
+        "profile": 1
+      }
+    ],
+    "currentProfileIndex": -1
+  },
+  "decision": {
+    "recommendedProfileIndex": 1,
+    "eligibleProfileIndex": 1,
+    "reason": "SustainedIncrease",
+    "episodeStart": "2026-10-29T18:48:49.745051096Z"
+  },
+  "phase": "Blocked",
+  "reason": "ResizeInfeasibleTargetRetained",
+  "operation": {
+    "templateSource": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "revision": 1,
+    "policyHash": "34d8acdf3f5698b97ac6a6ffc27eae6ab201fe89820a531320100446bc82610a",
+    "clusterUID": "8ef5b79f-2b9e-4595-a619-15598798a161",
+    "statefulSetUID": "c2e73807-4228-4a05-ac36-e9952d39abf8",
+    "target": "HIGH",
+    "resources": {
+      "limits": {
+        "cpu": "5",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "5",
+        "memory": "256Mi"
+      }
+    },
+    "source": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "direction": "up",
+    "path": "inplace",
+    "stage": "Submit",
+    "started": "2026-10-29T18:49:19.746456506Z",
+    "episodeStart": "2026-10-29T18:48:49.745051096Z",
+    "completedAt": "0001-01-01T00:00:00Z",
+    "deadlineMissed": false,
+    "disruptionObserved": false,
+    "brokers": {
+      "rmq-probe-server-0": {
+        "acceptedAt": "2026-10-29T18:49:49.787612169Z",
+        "uid": "5c3dd09a-d074-4901-a3bc-2f37d1b39bb1",
+        "containerID": "containerd://dfeaf79ca6458c0967a83f787020a1032fd9b038ddcd8b4c1aa0a577f872ac88",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Infeasible",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T18:49:49.782487394Z"
+      },
+      "rmq-probe-server-1": {
+        "acceptedAt": "2026-10-29T18:49:49.786906858Z",
+        "uid": "043a58e8-6b4e-4ee6-ad87-278cc61b5a71",
+        "containerID": "containerd://4c15b923f0029fa1402de55ce0d3cf76544491efd37ea0551acc7672932c1886",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Infeasible",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T18:49:49.782531064Z"
+      },
+      "rmq-probe-server-2": {
+        "acceptedAt": "2026-10-29T18:49:49.786883648Z",
+        "uid": "f4d2ed0c-e623-4209-8b4c-0c69f7372c58",
+        "containerID": "containerd://084de79ed87053d9f2b52b941b44265ac29c6e91a9857b6e27455b47a4f51878",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Infeasible",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T18:49:49.78247581Z"
+      }
+    }
+  }
+}

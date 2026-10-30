@@ -1,9 +1,9 @@
 apiVersion: v2
 name: rmq-vertical-scaler
-description: Vertically scales RabbitmqCluster CPU/memory based on queue depth and message rates.
+description: Vertically scales RabbitmqCluster CPU/memory from queue/rate or CPU/memory policies.
 type: application
-version: 2.2.1
-appVersion: "2.2.1"
+version: 2.3.0
+appVersion: "2.3.0"
 home: https://github.com/ferterahadi/rmq-vertical-scaler
 sources:
   - https://github.com/ferterahadi/rmq-vertical-scaler

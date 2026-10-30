@@ -1,0 +1,259 @@
+{
+  "revision": 1,
+  "configVersion": 2,
+  "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+  "target": "rmq-v23-e2e-native/rmq-probe",
+  "at": "2026-10-29T18:55:00.779268632Z",
+  "observation": {
+    "at": "2026-10-29T18:55:00.779268632Z",
+    "identity": "0|3|68db23aa-359d-48fe-a041-add018406a97|dec8ac87-3e19-4d30-bbac-e872feb4465d|rmq-probe-server-0/f944204f-bcc2-4f19-999b-92dc6641db6c/containerd://981d7423003c07d4602a80466aa900410945616a3428f31122f5e598e5499529|rmq-probe-server-1/d8775da5-1c88-499a-94f2-41c84f0032a8/containerd://c350234ac3d676f13e787045a8728d5a6dc079e0223b5ee1e9a8597317089e32|rmq-probe-server-2/5fa9a340-9c55-4255-b9ca-61272a36a94c/containerd://d4c528a17d354b0f38a911768948c6e801f36699db86230372355102fe6dd89c",
+    "complete": true,
+    "brokers": [
+      {
+        "name": "rmq-probe-server-0",
+        "uid": "f944204f-bcc2-4f19-999b-92dc6641db6c",
+        "containerID": "containerd://981d7423003c07d4602a80466aa900410945616a3428f31122f5e598e5499529",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T18:51:35Z"
+      },
+      {
+        "name": "rmq-probe-server-1",
+        "uid": "d8775da5-1c88-499a-94f2-41c84f0032a8",
+        "containerID": "containerd://c350234ac3d676f13e787045a8728d5a6dc079e0223b5ee1e9a8597317089e32",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T18:51:37Z"
+      },
+      {
+        "name": "rmq-probe-server-2",
+        "uid": "5fa9a340-9c55-4255-b9ca-61272a36a94c",
+        "containerID": "containerd://d4c528a17d354b0f38a911768948c6e801f36699db86230372355102fe6dd89c",
+        "restarts": 0,
+        "ready": true,
+        "currentGeneration": true,
+        "desired": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "effective": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "started": "2026-10-29T18:51:35Z"
+      }
+    ],
+    "samples": [
+      {
+        "pod": "rmq-probe-server-0",
+        "uid": "f944204f-bcc2-4f19-999b-92dc6641db6c",
+        "containerID": "containerd://981d7423003c07d4602a80466aa900410945616a3428f31122f5e598e5499529",
+        "timestamp": "2026-10-29T18:54:52Z",
+        "window": 17128000000,
+        "cpuCores": 0.003890938,
+        "memoryBytes": 163794944
+      },
+      {
+        "pod": "rmq-probe-server-1",
+        "uid": "d8775da5-1c88-499a-94f2-41c84f0032a8",
+        "containerID": "containerd://c350234ac3d676f13e787045a8728d5a6dc079e0223b5ee1e9a8597317089e32",
+        "timestamp": "2026-10-29T18:54:39Z",
+        "window": 11206000000,
+        "cpuCores": 0.003503658,
+        "memoryBytes": 161669120
+      },
+      {
+        "pod": "rmq-probe-server-2",
+        "uid": "5fa9a340-9c55-4255-b9ca-61272a36a94c",
+        "containerID": "containerd://d4c528a17d354b0f38a911768948c6e801f36699db86230372355102fe6dd89c",
+        "timestamp": "2026-10-29T18:54:38Z",
+        "window": 15416000000,
+        "cpuCores": 0.0035550070000000002,
+        "memoryBytes": 160051200
+      }
+    ],
+    "signals": [
+      {
+        "available": true,
+        "trigger": 0,
+        "type": "QueueLength",
+        "source": "RabbitMQ selected queues",
+        "timestamp": "2026-10-29T18:55:00.779268632Z",
+        "complete": true,
+        "value": 100,
+        "profile": 1
+      }
+    ],
+    "currentProfileIndex": -1
+  },
+  "decision": {
+    "recommendedProfileIndex": 1,
+    "eligibleProfileIndex": 1,
+    "reason": "SustainedIncrease",
+    "episodeStart": "2026-10-29T18:54:15.769700584Z"
+  },
+  "phase": "Reconciling",
+  "reason": "ObservingConcurrentInPlaceConvergence",
+  "operation": {
+    "templateSource": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "revision": 1,
+    "policyHash": "b46143916a45fedcde86a88205b9b6492cfb519d75353ee9d4e8223f7f94d9b8",
+    "clusterUID": "dec8ac87-3e19-4d30-bbac-e872feb4465d",
+    "statefulSetUID": "68db23aa-359d-48fe-a041-add018406a97",
+    "target": "HIGH",
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "800m",
+        "memory": "256Mi"
+      }
+    },
+    "source": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "direction": "up",
+    "path": "inplace",
+    "stage": "Submit",
+    "started": "2026-10-29T18:53:02.534735013Z",
+    "episodeStart": "2026-10-29T18:52:17.534490904Z",
+    "completedAt": "0001-01-01T00:00:00Z",
+    "deadlineMissed": true,
+    "disruptionObserved": false,
+    "brokers": {
+      "rmq-probe-server-0": {
+        "acceptedAt": "2026-10-29T18:55:00.807607289Z",
+        "uid": "f944204f-bcc2-4f19-999b-92dc6641db6c",
+        "containerID": "containerd://981d7423003c07d4602a80466aa900410945616a3428f31122f5e598e5499529",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Submitted",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T18:55:00.798839021Z"
+      },
+      "rmq-probe-server-1": {
+        "acceptedAt": "0001-01-01T00:00:00Z",
+        "uid": "d8775da5-1c88-499a-94f2-41c84f0032a8",
+        "containerID": "containerd://c350234ac3d676f13e787045a8728d5a6dc079e0223b5ee1e9a8597317089e32",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "SubmissionFailed",
+        "attempts": 1,
+        "nextAttempt": "2026-10-29T18:55:02.779268632Z",
+        "submittedAt": "2026-10-29T18:55:00.798882273Z",
+        "error": "pods \"rmq-probe-server-1\" is forbidden: ValidatingAdmissionPolicy 'rvs-closure-pod' with binding 'rvs-closure-pod' denied request: v23 closure deliberate pod denial"
+      },
+      "rmq-probe-server-2": {
+        "acceptedAt": "2026-10-29T18:55:00.806197413Z",
+        "uid": "5fa9a340-9c55-4255-b9ca-61272a36a94c",
+        "containerID": "containerd://d4c528a17d354b0f38a911768948c6e801f36699db86230372355102fe6dd89c",
+        "restarts": 0,
+        "source": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          }
+        },
+        "outcome": "Submitted",
+        "attempts": 1,
+        "nextAttempt": "0001-01-01T00:00:00Z",
+        "submittedAt": "2026-10-29T18:55:00.798759144Z"
+      }
+    }
+  }
+}

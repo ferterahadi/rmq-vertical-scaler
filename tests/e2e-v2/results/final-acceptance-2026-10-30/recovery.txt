@@ -1,0 +1,85 @@
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Case: cpu-only-Off
+Waiting: new cpu-only policy observed
+Waiting: pinned scaler image verified
+Waiting: independent resource sources available
+Case: memory-only-Off
+Waiting: new memory-only policy observed
+Waiting: pinned scaler image verified
+Waiting: independent resource sources available
+Case: resources-Off
+Waiting: new resources policy observed
+Waiting: pinned scaler image verified
+Waiting: independent resource sources available
+Case: combined-Off
+Waiting: new combined-Off policy observed
+Waiting: pinned scaler image verified
+Waiting: Off recommends HIGH while resources stay LOW
+Case: queue-up-without-memory-metrics
+Waiting: new queue-Auto policy observed
+Waiting: pinned scaler image verified
+Waiting: queue demand reaches HIGH without Metrics API access
+Waiting: fresh memory starts decrease observation
+Waiting: replacement scaler ready without rollout overlap
+Waiting: fresh full down window after restart
+Case: partial-up-and-higher-supersession
+Waiting: new three-profile-recovery policy observed
+Waiting: pinned scaler image verified
+Waiting: two brokers MEDIUM; one denied and retained
+Waiting: higher HIGH target supersedes unresolved MEDIUM
+Waiting: new Off-with-pending-operation policy observed
+Waiting: pinned scaler image verified
+Waiting: new Auto-rebuild-committed-up-window policy observed
+Waiting: pinned scaler image verified
+Waiting: committed HIGH finishes even after queue demand falls
+Case: partial-down-recovery-rebuilds-window
+Waiting: two brokers decrease to MEDIUM; one remains HIGH
+Waiting: replacement scaler ready without rollout overlap
+Waiting: retained MEDIUM down target finishes without deadlock
+Waiting: next LOW step follows its own complete interval
+{
+  "time": "2026-10-29T18:14:52.512181+00:00",
+  "cases": [
+    {
+      "name": "cpu-only",
+      "passed": true
+    },
+    {
+      "name": "memory-only",
+      "passed": true
+    },
+    {
+      "name": "resources",
+      "passed": true
+    },
+    {
+      "name": "combined-Off",
+      "passed": true
+    },
+    {
+      "name": "queue-only missing-memory hold and restart reset",
+      "passed": true,
+      "downStartedAfterNewContainerSeconds": 119.660819
+    },
+    {
+      "name": "partial up, supersession, Off, restart without renewed overload",
+      "passed": true,
+      "scalerContainerStartedAt": "2026-10-29T18:07:12Z",
+      "recoveredRevision": 6
+    },
+    {
+      "name": "partial down restart and per-step interval",
+      "passed": true,
+      "nextStepStartGapSeconds": 119.433873
+    }
+  ],
+  "confirmed": 2600,
+  "consumedUnique": 2600,
+  "duplicates": 0,
+  "strictCasesWithoutBrokerReplacement": true,
+  "includesExplicitRollingReplacements": false,
+  "allConfirmedIDsAccounted": true,
+  "fullAcceptanceMatrix": false,
+  "remaining": "explicit rolling, rate/fanout scope, infeasible/QoS alternatives and full failure ordering"
+}

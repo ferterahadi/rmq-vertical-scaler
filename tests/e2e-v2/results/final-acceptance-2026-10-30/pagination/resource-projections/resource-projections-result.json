@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "cpu-only",
+      "passed": true,
+      "busiestUtilizationPercent": {
+        "cpu": 25.621669999999998
+      },
+      "recommendedProfileIndex": 1,
+      "brokerResourcesAndStrategyUnchanged": true,
+      "boundary": "Low test targets use actual measured usage to exercise positive recommendations in Off; not an Auto pressure load test."
+    },
+    {
+      "case": "memory-only",
+      "passed": true,
+      "busiestUtilizationPercent": {
+        "memory": 73.956298828125
+      },
+      "recommendedProfileIndex": 1,
+      "brokerResourcesAndStrategyUnchanged": true,
+      "boundary": "Low test targets use actual measured usage to exercise positive recommendations in Off; not an Auto pressure load test."
+    },
+    {
+      "case": "paired-resources",
+      "passed": true,
+      "busiestUtilizationPercent": {
+        "cpu": 6.007955,
+        "memory": 68.24798583984375
+      },
+      "recommendedProfileIndex": 1,
+      "brokerResourcesAndStrategyUnchanged": true,
+      "boundary": "Low test targets use actual measured usage to exercise positive recommendations in Off; not an Auto pressure load test."
+    },
+    {
+      "case": "combined",
+      "passed": true,
+      "busiestUtilizationPercent": {
+        "cpu": 6.577370000000001,
+        "memory": 67.7459716796875
+      },
+      "recommendedProfileIndex": 1,
+      "brokerResourcesAndStrategyUnchanged": true,
+      "boundary": "Low test targets use actual measured usage to exercise positive recommendations in Off; not an Auto pressure load test."
+    }
+  ],
+  "imageDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+  "actualLiveMetrics": true,
+  "pairedProfiles": true
+}

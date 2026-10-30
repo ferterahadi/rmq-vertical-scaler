@@ -1,3 +1,4 @@
+{{- if eq .Values.policy nil }}
 {{- /*
 The scaler owns this ConfigMap's data at runtime (debounce state). On upgrade
 the live values are re-emitted so the apply matches what the scaler wrote —
@@ -17,3 +18,5 @@ metadata:
 data:
   stable_profile: {{ get $data "stable_profile" | default "" | quote }}
   stable_since: {{ get $data "stable_since" | default "0" | quote }}
+
+{{- end }}

@@ -1,0 +1,246 @@
+{
+  "cr": {
+    "delayStartSeconds": 30,
+    "image": "rabbitmq:4.4.0-management",
+    "override": {},
+    "persistence": {
+      "storage": "1Gi",
+      "storageClassName": "standard"
+    },
+    "rabbitmq": {
+      "additionalConfig": "disk_free_limit.absolute = 128MiB\ndefault_queue_type = quorum\nvm_memory_high_watermark.relative = 0.6\n"
+    },
+    "replicas": 3,
+    "resources": {
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      }
+    },
+    "secretBackend": {
+      "externalSecret": {
+        "name": ""
+      }
+    },
+    "service": {
+      "type": "ClusterIP"
+    },
+    "terminationGracePeriodSeconds": 604800,
+    "tls": {}
+  },
+  "strategy": {
+    "rollingUpdate": {
+      "maxUnavailable": 1,
+      "partition": 0
+    },
+    "type": "RollingUpdate"
+  },
+  "templateResources": {
+    "limits": {
+      "cpu": "1",
+      "memory": "1Gi"
+    },
+    "requests": {
+      "cpu": "100m",
+      "memory": "256Mi"
+    }
+  },
+  "brokers": {
+    "rmq-probe-server-0": {
+      "uid": "432839bd-4e2a-4faf-96ba-ebaaac11c593",
+      "containerID": "containerd://317f198c4f213a28dcd5749afa4df997e42bb7aed118600d924e8e9021756a3c",
+      "restarts": 0,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "qos": "Burstable",
+      "resizePolicy": null,
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:06Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:37Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:49Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:49Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:03Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ]
+    },
+    "rmq-probe-server-1": {
+      "uid": "c6fb8f1e-07e4-4919-a66a-3fa083fe0b42",
+      "containerID": "containerd://0a51644e720c5533cbf62bda4113fc1f244c43da7ef9ae3f4d5637d26a325c04",
+      "restarts": 0,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "qos": "Burstable",
+      "resizePolicy": null,
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:06Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:37Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:49Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:49Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:03Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ]
+    },
+    "rmq-probe-server-2": {
+      "uid": "6ab9d678-69c7-4e19-92d3-a86abf7b7432",
+      "containerID": "containerd://74cff7d362f23e5172db81075dc3b190d6287fc60d9c89040d48cda85b6d6999",
+      "restarts": 0,
+      "desired": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "effective": {
+        "limits": {
+          "cpu": "1",
+          "memory": "1Gi"
+        },
+        "requests": {
+          "cpu": "100m",
+          "memory": "256Mi"
+        }
+      },
+      "qos": "Burstable",
+      "resizePolicy": null,
+      "conditions": [
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:08Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodReadyToStartContainers"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:38Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Initialized"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:50Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:50Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "ContainersReady"
+        },
+        {
+          "lastProbeTime": null,
+          "lastTransitionTime": "2026-10-29T16:07:04Z",
+          "observedGeneration": 1,
+          "status": "True",
+          "type": "PodScheduled"
+        }
+      ]
+    }
+  }
+}

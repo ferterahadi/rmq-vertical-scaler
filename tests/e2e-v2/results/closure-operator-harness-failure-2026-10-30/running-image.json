@@ -1,0 +1,5 @@
+{
+  "podUID": "bf7de1f0-181e-4405-9005-e6584ab9491d",
+  "image": "docker.io/library/rmq-vertical-scaler@sha256:04c17e5cd431ddbd5d03c7431985a28164f0f4b9e1483dc72e12943cb4df2e21",
+  "imageID": "docker.io/library/rmq-vertical-scaler@sha256:04c17e5cd431ddbd5d03c7431985a28164f0f4b9e1483dc72e12943cb4df2e21"
+}

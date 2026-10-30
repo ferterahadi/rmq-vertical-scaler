@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "realPages": 2,
+  "selectedUniqueVhostQueuePairs": 502,
+  "sum": 37,
+  "maximum": 20,
+  "confirmedIDs": 37,
+  "consumedIDs": 37,
+  "duplicates": 0,
+  "liveProviderCollectorMatches": 3,
+  "scope": "Durable classic queues across two vhosts; no quorum-replication claim. Controlled HTTP tests exercise partial pages and exact rates; a fake Kubernetes metrics client exercises freshness."
+}

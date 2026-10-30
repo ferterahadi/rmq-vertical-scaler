@@ -1,0 +1,13 @@
+{
+  "compiledSourcesUnchanged": true,
+  "binaryLayerMatchesBuildHash": true,
+  "runtimeConfigDigestMatchesOCIManifest": true,
+  "imageIndexDigest": "sha256:ee860e4f7d92b88bd42273d44f69b20523dbc0f50074c45147371b71ba54f6bf",
+  "platformManifestDigest": "sha256:73c83906cd39505a9c021df21f58cf5a0c8cef32f3622c069ebe2887cb93a9b4",
+  "configDigest": "sha256:3768951ac9d13bcb9ba2d869f2bccbc19d410ca067ed03f7e512ac2ca34abfe6",
+  "harnessChangesAfterBuild": [
+    "tests/e2e-v2/scope.py"
+  ],
+  "harnessCorrection": "Removed invalid MessageRate aggregation fixture field; corrected runner retained with scope evidence.",
+  "currentScopeSHA256": "35c7c76c424156dd59c1eb682cdf854893f8b2926ba4cd4a65b377d8daf95a8f"
+}

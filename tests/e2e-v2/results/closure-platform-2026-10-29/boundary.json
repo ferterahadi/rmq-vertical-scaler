@@ -1,0 +1,4 @@
+{
+  "scope": "Passed QoS/restart preflight and physical infeasible allocation; before per-broker Infeasible status correction. Latest Infeasible status proof is retained separately.",
+  "initialHarnessFailure": "First run expected a config digest whereas the digest-pinned runtime reports repository@index digest; it failed before publishing demand. Corrected runtime identity checks fail immediately."
+}

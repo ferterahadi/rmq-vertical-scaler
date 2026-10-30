@@ -76,3 +76,7 @@ serviceAccount:
   name: ""           # required when create=false
 
 fullnameOverride: ""
+
+# Opt-in version-2 JSON-shaped policy. Omit/null preserves legacy behavior.
+# New policies default to Off. See examples/v2 and docs/v2.3-policy.md.
+policy: null

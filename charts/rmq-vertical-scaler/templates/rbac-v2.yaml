@@ -1,0 +1,51 @@
+{{- if and .Values.rbac.create (ne .Values.policy nil) }}
+{{- $update := .Values.policy.updatePolicy | default dict }}
+{{- $mode := $update.mode | default "Off" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "rmq-vertical-scaler.fullname" . }}-role
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [rabbitmq.com]
+    resources: [rabbitmqclusters]
+    resourceNames: [{{ .Values.serviceName | quote }}]
+    verbs: [get{{ if eq $mode "Auto" }}, patch{{ end }}]
+  - apiGroups: [apps]
+    resources: [statefulsets]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [metrics.k8s.io]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [{{ printf "%s-status" (include "rmq-vertical-scaler.fullname" .) | quote }}]
+    verbs: [get, update]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [create]
+  {{- if eq $mode "Auto" }}
+  - apiGroups: [""]
+    resources: [pods/resize]
+    verbs: [patch]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "rmq-vertical-scaler.fullname" . }}-binding
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "rmq-vertical-scaler.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "rmq-vertical-scaler.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

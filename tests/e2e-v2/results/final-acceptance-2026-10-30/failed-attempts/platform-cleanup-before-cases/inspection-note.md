@@ -1,0 +1,1 @@
+The first platform attempt failed before creating any platform fixture or publishing messages. Read-only API inspection showed an empty Pod/PVC list and Namespace conditions ContentRemoved/ContentHasNoFinalizers while the normal kubernetes finalizer remained. The namespace disappeared normally immediately after the300-second wait expired. No finalizers were removed or overridden.

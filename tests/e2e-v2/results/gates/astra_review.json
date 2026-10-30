@@ -1,0 +1,8 @@
+{
+  "gate": "astra_review",
+  "passed": true,
+  "evidence": [
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/final-astra-review.json"
+  ],
+  "boundary": "Final source/evidence review passed with no actionable findings; local pinned-platform acceptance, not production or publication approval."
+}

@@ -1,0 +1,62 @@
+{
+  "configVersion": 2,
+  "profileOrder": [
+    "LOW",
+    "HIGH"
+  ],
+  "profiles": {
+    "LOW": {
+      "requests": {
+        "cpu": "100m",
+        "memory": "256Mi"
+      },
+      "limits": {
+        "cpu": "1",
+        "memory": "1Gi"
+      }
+    },
+    "HIGH": {
+      "requests": {
+        "cpu": "800m",
+        "memory": "512Mi"
+      },
+      "limits": {
+        "cpu": "2",
+        "memory": "1Gi"
+      }
+    }
+  },
+  "triggers": [
+    {
+      "type": "cpu",
+      "metricType": "Utilization",
+      "metadata": {}
+    },
+    {
+      "type": "memory",
+      "metricType": "Utilization",
+      "metadata": {}
+    }
+  ],
+  "pollingInterval": 15,
+  "updatePolicy": {
+    "mode": "Off",
+    "allowRollingFallback": false
+  },
+  "behavior": {
+    "scaleUp": {
+      "stabilizationSeconds": 30
+    },
+    "scaleDown": {
+      "stepIntervalSeconds": 300,
+      "memoryHeadroomPercent": 20
+    },
+    "metrics": {
+      "maxAgeSeconds": 60
+    }
+  },
+  "kubernetes": {
+    "namespace": "production",
+    "rmqServiceName": "rabbitmq"
+  }
+}

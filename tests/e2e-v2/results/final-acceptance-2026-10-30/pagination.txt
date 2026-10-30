@@ -1,0 +1,10 @@
+Waiting: old owned fixture removed
+Waiting: three normal brokers ready with effective tuples
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Recorded baseline-normal: Operator memory override=858993460
+Waiting: new M-PAGING policy observed
+Waiting: pinned scaler image verified
+Waiting: pinned scaler image verified
+Waiting: actual controller traverses pages and counts vhosts
+PASSED {"case": "M-PAGING", "passed": true, "time": "2026-10-29T19:21:16.772267+00:00", "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9", "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9", "realAPIPages": 2, "selectedQueues": 502, "sum": 37, "maximum": 20, "confirmedMessages": 37, "brokerResourcesUnchanged": true}

@@ -1,0 +1,10 @@
+{
+  "upCompletionSeconds": 208.272537,
+  "healthyUpObjectiveMet": false,
+  "deadlineMissed": true,
+  "purpose": "Reproduce default Operator startup delay, not acceptance",
+  "confirmed": 100,
+  "consumed": 100,
+  "independentConfirmedAt": "2026-10-29T17:25:19.298428+00:00",
+  "independentConfirmationSeconds": 210.039484
+}

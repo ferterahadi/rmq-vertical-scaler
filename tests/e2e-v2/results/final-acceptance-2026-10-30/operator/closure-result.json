@@ -1,0 +1,59 @@
+{
+  "cases": [
+    {
+      "case": "O-INTENT",
+      "passed": true,
+      "time": "2026-10-29T18:52:41.631849+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "zeroMutation": true
+    },
+    {
+      "case": "O-STRATEGY",
+      "passed": true,
+      "time": "2026-10-29T18:53:25.851404+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "retainedRevision": 1,
+      "noResourceWrites": true
+    },
+    {
+      "case": "O-TEMPLATE",
+      "passed": true,
+      "time": "2026-10-29T18:54:15.091164+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "retainedRevision": 1,
+      "observedOnDelete": true
+    },
+    {
+      "case": "O-PARTIAL",
+      "passed": true,
+      "time": "2026-10-29T18:55:35.536760+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "retainedRevision": 1,
+      "successfulBrokersNotResubmitted": true
+    },
+    {
+      "case": "O-REPLACE",
+      "passed": true,
+      "time": "2026-10-29T19:00:04.121265+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "retainedRevision": 3,
+      "newUID": "d503c12a-0778-4dfc-bf50-b146cddb9a78",
+      "generatedConfigAndExplicitChecksumOverrideChanged": true
+    },
+    {
+      "case": "O-DRIFT",
+      "passed": true,
+      "time": "2026-10-29T19:04:25.136940+00:00",
+      "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+      "retainedRevision": 5,
+      "externalTupleNotOverwritten": true
+    }
+  ],
+  "fullAcceptanceMatrix": false
+}

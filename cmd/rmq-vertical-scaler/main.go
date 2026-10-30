@@ -20,6 +20,8 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/k8s"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/manifests"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/policy"
+	scalerV2 "github.com/ferterahadi/rmq-vertical-scaler/v2/internal/v2"
 	"github.com/ferterahadi/rmq-vertical-scaler/v2/schema"
 
 	"github.com/spf13/cobra"
@@ -98,11 +100,19 @@ func generateCmd() *cobra.Command {
 
 func initCmd() *cobra.Command {
 	var output string
+	var configVersion int
 
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Scaffold a starter configuration file for `generate`",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if configVersion != 0 && configVersion != 2 {
+				return fmt.Errorf("--config-version must be 2, or omit it for legacy")
+			}
+			data := examples.TemplateConfig
+			if configVersion == 2 {
+				data = examples.V2TemplateConfig
+			}
 			f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 			if err != nil {
 				if os.IsExist(err) {
@@ -110,7 +120,7 @@ func initCmd() *cobra.Command {
 				}
 				return fmt.Errorf("write %s: %w", output, err)
 			}
-			if _, err := f.Write(examples.TemplateConfig); err != nil {
+			if _, err := f.Write(data); err != nil {
 				f.Close()
 				return fmt.Errorf("write %s: %w", output, err)
 			}
@@ -127,6 +137,7 @@ func initCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().IntVar(&configVersion, "config-version", 0, "Use 2 for an opt-in recommendation-only policy; omit for legacy")
 	cmd.Flags().StringVarP(&output, "output", "o", "my-config.json", "File name for the scaffolded config")
 	return cmd
 }
@@ -153,10 +164,27 @@ func resolveVersion() string {
 }
 
 func runCmd() *cobra.Command {
-	return &cobra.Command{
+	var configPath string
+	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the in-cluster vertical scaling controller",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if cmd.Flags().Changed("config") {
+				if configPath == "" {
+					return fmt.Errorf("--config requires a version-2 policy file")
+				}
+				data, err := os.ReadFile(configPath)
+				if err != nil {
+					return fmt.Errorf("read version-2 policy: %w", err)
+				}
+				p, err := policy.Parse(data)
+				if err != nil {
+					return err
+				}
+				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+				defer stop()
+				return scalerV2.Run(ctx, p)
+			}
 			logger := log.New(os.Stdout, "", 0)
 			logger.Println("🐰 RabbitMQ Vertical Scaler")
 			logger.Println("==============================")
@@ -174,9 +202,16 @@ func runCmd() *cobra.Command {
 			return controller.New(cfg, collector, kube, logger).Run(ctx)
 		},
 	}
+	cmd.Flags().StringVar(&configPath, "config", "", "Read an explicit version-2 policy file; never fall back to legacy env")
+	return cmd
 }
 
 func printSummary(out io.Writer, s manifests.Summary) {
+	if s.ConfigVersion == 2 {
+		fmt.Fprintf(out, "Version-2 policy (%s): generated %s for %s/%s\n", s.UpdateMode, s.Output, s.Namespace, s.ServiceName)
+		fmt.Fprintln(out, "Profiles declare requests and limits. Review the generated policy and platform constraints before enabling Auto.")
+		return
+	}
 	fmt.Fprintln(out, "🔧 Generating Kubernetes manifests...")
 	fmt.Fprintf(out, "📝 Namespace: %s\n", s.Namespace)
 	fmt.Fprintf(out, "🐰 RabbitMQ Service: %s\n", s.ServiceName)

@@ -1,0 +1,11 @@
+{
+  "gate": "queue_rate_scope",
+  "passed": true,
+  "evidence": [
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/scope/scope-result.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/pagination/closure-result.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/pagination/live-metrics-collector.json",
+    "tests/e2e-v2/results/final-acceptance-2026-10-30/local/go-tests.jsonl"
+  ],
+  "boundary": "Final immutable-build acceptance on the declared pinned local deployment. See docs/v2.3-rolling-latency.md for explicit rolling prerequisites."
+}

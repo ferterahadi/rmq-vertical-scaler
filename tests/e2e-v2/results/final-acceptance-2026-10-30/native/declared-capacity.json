@@ -1,0 +1,125 @@
+{
+  "observedAt": "2026-10-29T17:44:34.611508+00:00",
+  "nodes": [
+    {
+      "name": "rmq-v23-closure-control-plane",
+      "allocatableCPU": "4",
+      "allocatableMemoryBytes": "6197440512",
+      "projectedCPU": "3.725",
+      "projectedMemoryBytes": "1977614336",
+      "ready": true,
+      "pressure": false,
+      "pods": [
+        {
+          "namespace": "cert-manager",
+          "name": "cert-manager-6dd9bdbd89-7cflp",
+          "projectedCPU": "0",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "cert-manager",
+          "name": "cert-manager-cainjector-74bf7474d8-w9579",
+          "projectedCPU": "0",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "cert-manager",
+          "name": "cert-manager-webhook-6f9f498c99-7fdqq",
+          "projectedCPU": "0",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "coredns-58bccbd556-878ls",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "73400320"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "coredns-58bccbd556-f5mch",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "73400320"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "etcd-rmq-v23-closure-control-plane",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "104857600"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "kindnet-cksrl",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "52428800"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "kube-apiserver-rmq-v23-closure-control-plane",
+          "projectedCPU": "0.250",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "kube-controller-manager-rmq-v23-closure-control-plane",
+          "projectedCPU": "0.200",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "kube-proxy-mwk5l",
+          "projectedCPU": "0",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "kube-scheduler-rmq-v23-closure-control-plane",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "kube-system",
+          "name": "metrics-server-5db8b86858-l6svl",
+          "projectedCPU": "0.100",
+          "projectedMemoryBytes": "209715200"
+        },
+        {
+          "namespace": "local-path-storage",
+          "name": "local-path-provisioner-67b8995b4b-n72ht",
+          "projectedCPU": "0",
+          "projectedMemoryBytes": "0"
+        },
+        {
+          "namespace": "rabbitmq-system",
+          "name": "rabbitmq-cluster-operator-cbbfdd7f-9vz64",
+          "projectedCPU": "0.200",
+          "projectedMemoryBytes": "524288000"
+        },
+        {
+          "namespace": "rmq-v23-e2e-native",
+          "name": "rmq-probe-server-0",
+          "projectedCPU": "0.800",
+          "projectedMemoryBytes": "268435456"
+        },
+        {
+          "namespace": "rmq-v23-e2e-native",
+          "name": "rmq-probe-server-1",
+          "projectedCPU": "0.800",
+          "projectedMemoryBytes": "268435456"
+        },
+        {
+          "namespace": "rmq-v23-e2e-native",
+          "name": "rmq-probe-server-2",
+          "projectedCPU": "0.800",
+          "projectedMemoryBytes": "268435456"
+        },
+        {
+          "namespace": "rmq-v23-e2e-native",
+          "name": "rmq-vertical-scaler-677787c6d4-k5pbc",
+          "projectedCPU": "0.075",
+          "projectedMemoryBytes": "134217728"
+        }
+      ]
+    }
+  ],
+  "enoughRequestedResources": true
+}

@@ -1,0 +1,51 @@
+{
+  "versions": {
+    "clientVersion": {
+      "major": "1",
+      "minor": "35",
+      "gitVersion": "v1.35.3",
+      "gitCommit": "6c1cd99aef09161ddb07b8ade6c9564e9b9bfe27",
+      "gitTreeState": "clean",
+      "buildDate": "2026-03-18T18:32:54Z",
+      "goVersion": "go1.25.7",
+      "compiler": "gc",
+      "platform": "darwin/arm64"
+    },
+    "kustomizeVersion": "v5.7.1",
+    "serverVersion": {
+      "major": "1",
+      "minor": "35",
+      "emulationMajor": "1",
+      "emulationMinor": "35",
+      "minCompatibilityMajor": "1",
+      "minCompatibilityMinor": "34",
+      "gitVersion": "v1.35.0",
+      "gitCommit": "66452049f3d692768c39c797b21b793dce80314e",
+      "gitTreeState": "clean",
+      "buildDate": "2025-12-17T12:32:07Z",
+      "goVersion": "go1.25.5",
+      "compiler": "gc",
+      "platform": "linux/arm64"
+    }
+  },
+  "nodes": [
+    {
+      "architecture": "arm64",
+      "bootID": "5440411a-888b-4a44-ac6d-f52918e3f4f8",
+      "containerRuntimeVersion": "containerd://2.2.0",
+      "kernelVersion": "6.8.0-117-generic",
+      "kubeProxyVersion": "",
+      "kubeletVersion": "v1.35.0",
+      "machineID": "87d3a3d6f204458fa7952b39ff0986fc",
+      "operatingSystem": "linux",
+      "osImage": "Debian GNU/Linux 12 (bookworm)",
+      "systemUUID": "566d9c60-f463-4a69-b3b1-1e36d5784a6c"
+    }
+  ],
+  "operatorImages": [
+    "rabbitmqoperator/cluster-operator:2.16.1"
+  ],
+  "metricsImages": [
+    "registry.k8s.io/metrics-server/metrics-server:v0.8.0"
+  ]
+}

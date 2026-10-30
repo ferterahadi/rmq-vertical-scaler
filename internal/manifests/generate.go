@@ -1,7 +1,7 @@
 // Package manifests generates the Kubernetes deployment YAML, porting the
-// generate logic of bin/rmq-vertical-scaler. Output is byte-for-byte compatible
-// with v1: object key order is preserved (via streaming JSON parsing) because
-// the emitted env-var order is part of the contract the parity gate checks.
+// generate logic of bin/rmq-vertical-scaler. Legacy values and environment order
+// remain compatible. The isolated Recreate rollout strategy prevents overlapping
+// scaler instances. Version-2 policies use a separate renderer.
 package manifests
 
 import (
@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/policy"
 )
 
 //go:embed deployment.tmpl
@@ -35,6 +37,8 @@ type Flags struct {
 
 // Summary reports the resolved configuration for human-readable CLI output.
 type Summary struct {
+	ConfigVersion   int
+	UpdateMode      string
 	Namespace       string
 	ServiceName     string
 	Image           string
@@ -50,11 +54,13 @@ type Summary struct {
 
 // Profile is one ordered scaling profile parsed from the config.
 type Profile struct {
-	Name   string
-	CPU    string
-	Memory string
-	Queue  *string // formatted threshold, nil if absent
-	Rate   *string
+	LimitCPU    string
+	LimitMemory string
+	Name        string
+	CPU         string
+	Memory      string
+	Queue       *string // formatted threshold, nil if absent
+	Rate        *string
 }
 
 type namedVal struct{ Name, Value string }
@@ -120,6 +126,13 @@ type tmplData struct {
 // was supplied. CLI flags take precedence over config-file values, which take
 // precedence over the v1 defaults.
 func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
+	v, err := policy.Version(configJSON)
+	if err != nil {
+		return "", Summary{}, err
+	}
+	if v == 2 {
+		return GenerateV2(flags, configJSON)
+	}
 	var top rawTop
 	if len(configJSON) > 0 {
 		if err := json.Unmarshal(configJSON, &top); err != nil {

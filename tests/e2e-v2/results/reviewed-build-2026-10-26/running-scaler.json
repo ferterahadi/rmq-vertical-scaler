@@ -1,0 +1,8 @@
+[
+  {
+    "name": "rmq-vertical-scaler-5d949cbbcf-m7cxt",
+    "uid": "e1e71ad3-c448-46d8-aa6c-b59fc93a7b44",
+    "image": "rmq-vertical-scaler:v2.3-reviewed",
+    "imageID": "sha256:3768951ac9d13bcb9ba2d869f2bccbc19d410ca067ed03f7e512ac2ca34abfe6"
+  }
+]

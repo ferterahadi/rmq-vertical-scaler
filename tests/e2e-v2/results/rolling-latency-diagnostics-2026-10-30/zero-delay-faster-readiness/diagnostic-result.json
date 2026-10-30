@@ -1,0 +1,8 @@
+{
+  "upCompletionSeconds": 104.025959,
+  "healthyUpObjectiveMet": true,
+  "deadlineMissed": false,
+  "purpose": "Measure explicit zero-delay startup with low-cache DNS, not full acceptance",
+  "confirmed": 100,
+  "consumed": 100
+}

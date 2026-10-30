@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "group": "operator",
+  "time": "2026-10-29T19:04:30.584351+00:00",
+  "expectedRuntimeDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
+  "cases": [
+    "O-INTENT",
+    "O-STRATEGY",
+    "O-TEMPLATE",
+    "O-PARTIAL",
+    "O-REPLACE",
+    "O-DRIFT"
+  ],
+  "workloadAccountingAndCleanupCompleted": true
+}

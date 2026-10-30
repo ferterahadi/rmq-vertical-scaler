@@ -1,0 +1,10 @@
+{
+  "strictPairedAndBlockIdentityChecks": 210,
+  "strictPodAndContainerIdentitiesAndRestartsUnchanged": true,
+  "availabilitySamples": 250,
+  "sampledMinimumReady": 2,
+  "sampledFrom": "2026-10-26T11:06:31.584008+00:00",
+  "sampledUntil": "2026-10-26T11:15:17.763912+00:00",
+  "maximumSampleGapSeconds": 10.712477,
+  "note": "Original active process loaded the pre-fix wait. Supplemental monitor covers the post-publisher wait. These samples do not prove uninterrupted client availability."
+}

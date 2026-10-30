@@ -1,0 +1,75 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "rmq-v23-e2e-native",
+        "labels": {
+          "rmq-vertical-scaler-test": "v23-feasibility",
+          "rmq-v23-closure": "rmq-v23-e2e-native"
+        }
+      }
+    },
+    {
+      "apiVersion": "rabbitmq.com/v1beta1",
+      "kind": "RabbitmqCluster",
+      "metadata": {
+        "name": "rmq-probe",
+        "namespace": "rmq-v23-e2e-native"
+      },
+      "spec": {
+        "replicas": 3,
+        "image": "rabbitmq:4.4.0-management",
+        "resources": {
+          "requests": {
+            "cpu": "100m",
+            "memory": "256Mi"
+          },
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          }
+        },
+        "rabbitmq": {
+          "additionalConfig": "disk_free_limit.absolute = 128MiB\ndefault_queue_type = quorum\nvm_memory_high_watermark.relative = 0.6\n"
+        },
+        "persistence": {
+          "storageClassName": "standard",
+          "storage": "1Gi"
+        },
+        "service": {
+          "type": "ClusterIP"
+        },
+        "delayStartSeconds": 0,
+        "override": {
+          "statefulSet": {
+            "spec": {
+              "template": {
+                "spec": {
+                  "containers": [
+                    {
+                      "name": "rabbitmq",
+                      "readinessProbe": {
+                        "tcpSocket": {
+                          "port": 5672
+                        },
+                        "initialDelaySeconds": 1,
+                        "periodSeconds": 2,
+                        "timeoutSeconds": 5,
+                        "successThreshold": 1,
+                        "failureThreshold": 3
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

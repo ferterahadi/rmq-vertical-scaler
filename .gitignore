@@ -135,6 +135,9 @@ temp/
 dist/
 build/
 
+# Retained acceptance provenance is source evidence, not generated build output.
+!tests/e2e-v2/results/final-acceptance-*/build/
+
 # Documentation build
 docs/build/
 

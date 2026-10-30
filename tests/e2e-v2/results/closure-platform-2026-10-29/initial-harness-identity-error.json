@@ -1,0 +1,5 @@
+{
+  "time": "2026-10-29T15:33:30.168685+00:00",
+  "error": "timeout: pinned scaler image verified; last error: running scaler image differs from pinned build",
+  "group": "platform"
+}

@@ -1,0 +1,33 @@
+Waiting: management API through loopback port-forward
+Waiting: AMQP loopback connection
+Case: real-deferred-capacity-recovery
+Waiting: new deferred-capacity policy observed
+Waiting: pinned scaler image verified
+Waiting: capacity filler running
+Waiting: actual kubelet Deferred capacity condition
+Waiting: retained target converges after capacity returns
+Waiting: baseline after deferred recovery
+{
+  "time": "2026-10-29T18:19:43.707183+00:00",
+  "cases": [
+    {
+      "name": "real Deferred capacity recovery",
+      "passed": true,
+      "revision": 9,
+      "attemptsRetained": {
+        "rmq-probe-server-0": 1,
+        "rmq-probe-server-1": 1,
+        "rmq-probe-server-2": 1
+      },
+      "timingBoundary": "declared capacity block; not a healthy timing case"
+    }
+  ],
+  "confirmed": 100,
+  "consumedUnique": 100,
+  "duplicates": 0,
+  "strictCasesWithoutBrokerReplacement": true,
+  "includesExplicitRollingReplacements": false,
+  "allConfirmedIDsAccounted": true,
+  "fullAcceptanceMatrix": false,
+  "remaining": "explicit rolling, rate/fanout scope, infeasible/QoS alternatives and full failure ordering"
+}

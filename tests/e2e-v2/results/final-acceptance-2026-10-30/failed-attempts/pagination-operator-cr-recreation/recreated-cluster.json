@@ -1,0 +1,178 @@
+{
+    "apiVersion": "rabbitmq.com/v1beta1",
+    "kind": "RabbitmqCluster",
+    "metadata": {
+        "creationTimestamp": "2026-10-29T19:04:31Z",
+        "finalizers": [
+            "deletion.finalizers.rabbitmqclusters.rabbitmq.com"
+        ],
+        "generation": 2,
+        "managedFields": [
+            {
+                "apiVersion": "rabbitmq.com/v1beta1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:metadata": {
+                        "f:finalizers": {
+                            ".": {},
+                            "v:\"deletion.finalizers.rabbitmqclusters.rabbitmq.com\"": {}
+                        }
+                    },
+                    "f:spec": {
+                        ".": {},
+                        "f:delayStartSeconds": {},
+                        "f:image": {},
+                        "f:override": {},
+                        "f:persistence": {
+                            ".": {},
+                            "f:storage": {}
+                        },
+                        "f:rabbitmq": {},
+                        "f:replicas": {},
+                        "f:resources": {
+                            ".": {},
+                            "f:limits": {
+                                ".": {},
+                                "f:cpu": {},
+                                "f:memory": {}
+                            },
+                            "f:requests": {
+                                ".": {},
+                                "f:cpu": {},
+                                "f:memory": {}
+                            }
+                        },
+                        "f:secretBackend": {
+                            ".": {},
+                            "f:externalSecret": {}
+                        },
+                        "f:service": {
+                            ".": {},
+                            "f:type": {}
+                        },
+                        "f:terminationGracePeriodSeconds": {},
+                        "f:tls": {}
+                    }
+                },
+                "manager": "manager",
+                "operation": "Update",
+                "time": "2026-10-29T19:04:31Z"
+            },
+            {
+                "apiVersion": "rabbitmq.com/v1beta1",
+                "fieldsType": "FieldsV1",
+                "fieldsV1": {
+                    "f:status": {
+                        ".": {},
+                        "f:binding": {},
+                        "f:conditions": {},
+                        "f:defaultUser": {
+                            ".": {},
+                            "f:secretReference": {
+                                ".": {},
+                                "f:keys": {
+                                    ".": {},
+                                    "f:password": {},
+                                    "f:username": {}
+                                },
+                                "f:name": {},
+                                "f:namespace": {}
+                            },
+                            "f:serviceReference": {
+                                ".": {},
+                                "f:name": {},
+                                "f:namespace": {}
+                            }
+                        },
+                        "f:observedGeneration": {}
+                    }
+                },
+                "manager": "manager",
+                "operation": "Update",
+                "subresource": "status",
+                "time": "2026-10-29T19:05:27Z"
+            }
+        ],
+        "name": "rmq-probe",
+        "namespace": "rmq-v23-e2e-native",
+        "resourceVersion": "19477",
+        "uid": "aefb5d07-74dd-4f2f-bd7b-328077e78b2f"
+    },
+    "spec": {
+        "delayStartSeconds": 30,
+        "image": "rabbitmq:4.1.3-management",
+        "override": {},
+        "persistence": {
+            "storage": "10Gi"
+        },
+        "rabbitmq": {},
+        "replicas": 1,
+        "resources": {
+            "limits": {
+                "cpu": "2",
+                "memory": "2Gi"
+            },
+            "requests": {
+                "cpu": "1",
+                "memory": "2Gi"
+            }
+        },
+        "secretBackend": {
+            "externalSecret": {
+                "name": ""
+            }
+        },
+        "service": {
+            "type": "ClusterIP"
+        },
+        "terminationGracePeriodSeconds": 604800,
+        "tls": {}
+    },
+    "status": {
+        "binding": {
+            "name": "rmq-probe-default-user"
+        },
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-29T19:05:27Z",
+                "reason": "AllPodsAreReady",
+                "status": "True",
+                "type": "AllReplicasReady"
+            },
+            {
+                "lastTransitionTime": "2026-10-29T19:05:27Z",
+                "reason": "AtLeastOneEndpointAvailable",
+                "status": "True",
+                "type": "ClusterAvailable"
+            },
+            {
+                "lastTransitionTime": "2026-10-29T19:04:32Z",
+                "reason": "NoWarnings",
+                "status": "True",
+                "type": "NoWarnings"
+            },
+            {
+                "lastTransitionTime": "2026-10-29T19:05:27Z",
+                "message": "Finish reconciling",
+                "reason": "Success",
+                "status": "True",
+                "type": "ReconcileSuccess"
+            }
+        ],
+        "defaultUser": {
+            "secretReference": {
+                "keys": {
+                    "password": "password",
+                    "username": "username"
+                },
+                "name": "rmq-probe-default-user",
+                "namespace": "rmq-v23-e2e-native"
+            },
+            "serviceReference": {
+                "name": "rmq-probe",
+                "namespace": "rmq-v23-e2e-native"
+            }
+        },
+        "observedGeneration": 2
+    }
+}
