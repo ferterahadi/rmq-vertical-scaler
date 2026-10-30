@@ -1,0 +1,35 @@
+name: Acceptance evidence bundle
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/acceptance-evidence.yml'
+      - '.github/workflows/release.yml'
+      - 'scripts/package-v23-evidence.py'
+      - 'scripts/check-v23-release-evidence.py'
+      - 'tests/e2e-v2/acceptance-summary.json'
+      - 'tests/e2e-v2/test_evidence_bundle.py'
+      - 'tests/e2e-v2/test_release_gate.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test evidence validation
+        run: |
+          python3 -m pip install -r tests/e2e-v2/requirements.txt
+          python3 -m unittest discover -s tests/e2e-v2 -p 'test_*.py'
+      - name: Reproduce immutable evidence
+        run: python3 scripts/package-v23-evidence.py
+      - name: Verify archive and acceptance semantics
+        run: python3 scripts/check-v23-release-evidence.py v2.3.0

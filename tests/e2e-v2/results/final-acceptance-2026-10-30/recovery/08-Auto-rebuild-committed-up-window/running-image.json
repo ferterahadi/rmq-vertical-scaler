@@ -1,7 +1,0 @@
-{
-  "podUID": "e5d1ebf7-7f7a-4fa7-b82a-8dd9de827859",
-  "image": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
-  "imageID": "docker.io/library/rmq-vertical-scaler@sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
-  "policyHash": "1ad46c0d894a85c2c9c4255049df43630c291eb560592da03e46213913d80ae7",
-  "clusterUID": "3ce28849-85fe-441c-b3ae-7e0f31f23543"
-}

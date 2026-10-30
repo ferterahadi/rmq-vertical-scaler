@@ -1,8 +1,0 @@
-{
-  "upCompletionSeconds": 208.272537,
-  "healthyUpObjectiveMet": false,
-  "deadlineMissed": true,
-  "purpose": "Reproduce default Operator startup delay, not acceptance",
-  "confirmed": 100,
-  "consumed": 100
-}

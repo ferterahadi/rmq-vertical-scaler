@@ -105,8 +105,8 @@ not commands in the current harness.
 
 ## Evidence and cleanup
 
-Generated output is ignored under `evidence/`. Reviewed captures live under
-`results/`; [the feasibility report](../../docs/v2.3-feasibility.md) explains
+Generated output and reviewed captures are ignored under `evidence/` and
+`results/`. Retained proof is in the [immutable bundle](../../docs/v2.3-evidence-bundle.md); [the feasibility report](../../docs/v2.3-feasibility.md) explains
 their scope. Output contains no management passwords or Secret data.
 
 The fixture remains running for inspection. Remove this disposable kind cluster

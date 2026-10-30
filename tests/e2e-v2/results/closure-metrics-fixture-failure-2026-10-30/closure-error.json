@@ -1,5 +1,0 @@
-{
-  "time": "2026-10-29T16:37:01.358039+00:00",
-  "error": "(541, 'INTERNAL_ERROR - Feature `transient_nonexcl_queues` is deprecated.\\nBy default, this feature is not permitted anymore.\\nThe feature will be removed from a future major RabbitMQ version, regardless of the configuration; actual version to be determined.\\nTo...')",
-  "group": "metrics"
-}

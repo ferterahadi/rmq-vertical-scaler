@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
-"""Fail 2.3 publication unless its checked-in acceptance evidence is complete."""
+"""Fail 2.3 publication unless its pinned evidence bundle is complete and valid."""
+import argparse
 import hashlib
 import json
 import datetime as dt
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import sys
+import tarfile
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+EVIDENCE_ROOT = None
+SUMMARY = "tests/e2e-v2/acceptance-summary.json"
+# These verification/packaging changes do not change the accepted controller.
+# Every current byte is separately pinned by the tracked summary. Production
+# inputs must continue to match the original runtime evidence without amendment.
+PACKAGING_SOURCES = {"scripts/check-v23-release-evidence.py", "scripts/package-v23-evidence.py",
+    ".github/workflows/release.yml", ".github/workflows/acceptance-evidence.yml",
+    "tests/e2e-v2/test_release_gate.py", "tests/e2e-v2/test_evidence_bundle.py"}
 REQUIRED = {"local_checks", "astra_review", "native_cycle", "paired_inplace", "strict_memory_block",
             "recovery", "queue_rate_scope", "explicit_rolling", "full_acceptance"}
 ACCEPTANCE_RUNS = {"native", "recovery", "deferred", "paired_and_rolling", "scope", "platform", "operator", "pagination"}
@@ -19,7 +30,8 @@ ACCEPTANCE_CASES = {
     "committed_up_restart", "off_pending", "identity_changes", "mixed_startup", "write_order",
     "persistence", "rolling", "no_disruption", "operator_convergence", "messages", "status", "packaging"}
 FIXED_SOURCES = {"go.mod", "go.sum", "Dockerfile", "Makefile", ".github/workflows/release.yml",
-                 "scripts/check-v23-release-evidence.py"}
+                 "scripts/check-v23-release-evidence.py", "scripts/package-v23-evidence.py",
+                 ".github/workflows/acceptance-evidence.yml"}
 SOURCE_GLOBS = ("cmd/**/*.go", "internal/**/*", "schema/**/*", "examples/v2/*.json",
                 "examples/*.json", "examples/embed.go", "charts/rmq-vertical-scaler/**/*", "tests/feasibility/*.py",
                 "tests/feasibility/*.yaml", "tests/e2e-v2/*.py", "tests/e2e-v2/requirements.txt")
@@ -67,8 +79,10 @@ def production_sources(root):
 
 
 def checked_path(name):
-    candidate = (ROOT / name).resolve()
-    if not candidate.is_relative_to(ROOT) or not candidate.is_file():
+    base = EVIDENCE_ROOT if EVIDENCE_ROOT is not None and name.startswith(
+        ("tests/e2e-v2/results/", "tests/feasibility/results/")) else ROOT
+    candidate = (base / name).resolve()
+    if not candidate.is_relative_to(base) or not candidate.is_file():
         raise ValueError(f"missing or invalid evidence path: {name}")
     return candidate
 
@@ -247,9 +261,15 @@ def verify_full_acceptance(report, artifacts):
             raise ValueError("healthy scale-up failed the 120-second objective")
 
 
-def verify_evidence(report):
+def verify_evidence(report, packaging_sources=None):
+    if report.get("releaseReady") is not True or any(report.get("gates", {}).get(g) is not True for g in REQUIRED):
+        raise ValueError("acceptance is not ready or a required runtime gate failed")
     sources = report.get("sourceSHA256", {})
-    if set(sources) != canonical_sources(ROOT):
+    packaging_sources = {} if packaging_sources is None else packaging_sources
+    if packaging_sources and set(packaging_sources) != PACKAGING_SOURCES:
+        raise ValueError("source amendments must cover only the declared packaging/verification files")
+    current_sources = {**sources, **packaging_sources}
+    if set(current_sources) != canonical_sources(ROOT):
         raise ValueError("source fingerprint must cover the complete canonical source set")
     artifacts = report.get("artifactSHA256", {})
     if any(not name.startswith(("tests/e2e-v2/results/", "tests/feasibility/results/")) or
@@ -271,7 +291,7 @@ def verify_evidence(report):
         for reference in references:
             if reference not in artifacts or not reference.startswith(("tests/e2e-v2/results/", "tests/feasibility/results/")) or reference == name:
                 raise ValueError(f"unfingerprinted supporting evidence for {gate}: {reference}")
-    for name, expected in {**sources, **artifacts}.items():
+    for name, expected in {**current_sources, **artifacts}.items():
         if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
             raise ValueError(f"invalid fingerprint for {name}")
         if hashlib.sha256(checked_path(name).read_bytes()).hexdigest() != expected:
@@ -279,23 +299,96 @@ def verify_evidence(report):
     verify_full_acceptance(report, artifacts)
 
 
+def verify_bundle(summary, bundle):
+    """Verify immutable bytes, safely materialize captures, then run the full gate."""
+    global EVIDENCE_ROOT
+    if summary.get("schemaVersion") != 1 or summary.get("passed") is not True:
+        raise ValueError("missing or invalid concise acceptance summary")
+    descriptor = summary["bundle"]
+    expected = descriptor["sha256"]
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        raise ValueError("bundle checksum must be a SHA-256 digest")
+    if not isinstance(descriptor.get("sourceCommit"), str) or not re.fullmatch(r"[0-9a-f]{40}", descriptor["sourceCommit"]):
+        raise ValueError("bundle source must be an immutable Git commit")
+    if (not bundle.is_file() or bundle.stat().st_size > 64 * 1024 * 1024 or
+        hashlib.sha256(bundle.read_bytes()).hexdigest() != expected):
+        raise ValueError("missing evidence bundle or checksum mismatch; reproduce/download the pinned bundle")
+    amendments = summary.get("packagingSourcesSHA256", {})
+    if set(amendments) != PACKAGING_SOURCES:
+        raise ValueError("missing packaging verification fingerprints")
+    with tempfile.TemporaryDirectory(prefix="rmq-v23-evidence-") as folder:
+        base = Path(folder).resolve()
+        seen = set()
+        total = 0
+        with tarfile.open(bundle, "r:gz") as archive:
+            for member in archive:
+                name = member.name
+                path = PurePosixPath(name)
+                if (not member.isfile() or path.is_absolute() or ".." in path.parts or "\\" in name or
+                    name != path.as_posix() or name in seen or
+                    not name.startswith(("tests/e2e-v2/results/", "tests/feasibility/results/"))):
+                    raise ValueError("unsafe, duplicate or out-of-scope bundle member")
+                total += member.size
+                if not 0 <= member.size <= 64 * 1024 * 1024 or total > 128 * 1024 * 1024 or len(seen) >= 5000:
+                    raise ValueError("evidence bundle exceeds extraction bounds")
+                seen.add(name)
+                destination = base / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with archive.extractfile(member) as source:
+                    destination.write_bytes(source.read())
+        report_path = "tests/e2e-v2/results/acceptance.json"
+        if descriptor.get("bytes") != bundle.stat().st_size or descriptor.get("files") != len(seen):
+            raise ValueError("bundle size/member count differs from its concise descriptor")
+        report = json.loads((base / report_path).read_text())
+        if seen != set(report.get("artifactSHA256", {})) | {report_path}:
+            raise ValueError("bundle member set differs from the acceptance manifest")
+        if report.get("finalImageDigest") != summary.get("imageDigest"):
+            raise ValueError("summary image differs from the tested bundle")
+        full = json.loads((base / "tests/e2e-v2/results/full-acceptance.json").read_text())
+        coverage = {name: {"passed": record["passed"], "source": record["source"]}
+                    for name, record in full["cases"].items()}
+        if (summary.get("requirements") != len(coverage) or summary.get("coverage") != coverage or
+            summary.get("runtimeGroups") != sorted(full["runs"]) or summary.get("gates") != report.get("gates") or
+            summary.get("boundaries") != full.get("boundaries")):
+            raise ValueError("concise coverage summary differs from the full evidence")
+        times = {}
+        for label, record in full["timing"].items():
+            measured = json.loads((base / record["evidence"]).read_text())
+            start = dt.datetime.fromisoformat(measured["up"]["episodeStart"].replace("Z", "+00:00"))
+            end = dt.datetime.fromisoformat(measured["upConfirmedAt"].replace("Z", "+00:00"))
+            times[label] = (end - start).total_seconds()
+        if summary.get("independentScaleUpSeconds") != times:
+            raise ValueError("concise timing summary differs from independent observations")
+        previous = EVIDENCE_ROOT
+        EVIDENCE_ROOT = base
+        try:
+            verify_evidence(report, amendments)
+        finally:
+            EVIDENCE_ROOT = previous
+
+
 def main():
-    version = sys.argv[1] if len(sys.argv) == 2 else ""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("version")
+    parser.add_argument("--bundle", type=Path)
+    args = parser.parse_args()
+    version = args.version
     if not re.match(r"^v?2\.3\.", version):
         print("Version is outside the 2.3 evidence gate.")
         return 0
-    path = ROOT / "tests/e2e-v2/results/acceptance.json"
-    report = json.loads(path.read_text())
-    missing = sorted(key for key in REQUIRED if report.get("gates", {}).get(key) is not True)
-    if report.get("releaseReady") is not True or missing:
-        print("2.3 publication blocked: " + (", ".join(missing) or "releaseReady is false"))
-        return 1
     try:
-        verify_evidence(report)
-    except (ValueError, TypeError, OSError, KeyError, AttributeError) as error:
+        if (ROOT / SUMMARY).is_file() or args.bundle is not None:
+            summary = json.loads((ROOT / SUMMARY).read_text())
+            bundle = args.bundle or ROOT / summary["bundle"]["localPath"]
+            verify_bundle(summary, bundle)
+        else:
+            # Older report fixtures and explicit raw-evidence workspaces retain
+            # their strict source/image checks; a clean clone has no raw captures.
+            verify_evidence(json.loads((ROOT / "tests/e2e-v2/results/acceptance.json").read_text()))
+    except (ValueError, TypeError, OSError, KeyError, AttributeError, tarfile.TarError, EOFError) as error:
         print(f"2.3 publication blocked: {error}")
         return 1
-    print("2.3 acceptance evidence matches the reviewed sources and retained artifacts.")
+    print("2.3 acceptance evidence matches the tested controller and pinned verification sources.")
     return 0
 
 

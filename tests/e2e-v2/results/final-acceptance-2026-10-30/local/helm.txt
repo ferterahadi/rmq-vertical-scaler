@@ -1,7 +1,0 @@
-helm lint charts/rmq-vertical-scaler
-==> Linting charts/rmq-vertical-scaler
-[INFO] Chart.yaml: icon is recommended
-
-1 chart(s) linted, 0 chart(s) failed
-helm template rvs charts/rmq-vertical-scaler > /dev/null
-helm chart OK

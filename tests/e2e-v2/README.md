@@ -49,8 +49,9 @@ single-broker GKE native test used a different topology. A controlled comparison
 still requires rerunning native VPA on the same fixture. No throughput or cost
 benefit is inferred from a successful allocation cycle.
 
-Generated evidence stays ignored under `evidence/`. Review and retain sanitized
-results with checksums under `results/`. The runner leaves its namespace for
+Generated evidence stays ignored under `evidence/` and `results/`. Retain reviewed
+captures in a [checksummed evidence bundle](../../docs/v2.3-evidence-bundle.md);
+keep only the concise summary in Git. The runner leaves its namespace for
 inspection. `fullAcceptanceMatrix:false` explicitly prevents treating any one runner as
 proof of all restart, partial-write, missing-metric, fault and recovery cases in
 the [plan](../../docs/v2.3-implementation-plan.md#acceptance-matrix).
@@ -92,11 +93,13 @@ selected rate through the actual controller. Exact live rate ratios are not
 asserted because independently sampled rates need not align; aggregation is
 also covered by controlled HTTP tests. Temporary credentials are not retained.
 
-Before publication, the release guard requires complete canonical source
-fingerprints plus a fingerprinted `results/gates/<gate>.json` for every required
-gate. Each report contains `gate`, `passed:true` and a nonempty `evidence` list
-of retained, fingerprinted supporting files. `releaseReady` stays false until
-remaining acceptance and immutable-build provenance work is complete.
+Before publication, the release guard checks the pinned archive checksum, safely
+extracts the captures and verifies every source/image, message-accounting and
+acceptance assertion. Six narrowly scoped packaging/verification amendments are
+fingerprinted separately; production inputs must still match the accepted image.
+The [tracked summary](acceptance-summary.json) preserves the 31-row coverage and
+independent timing results without retaining raw captures in the file diff.
+
 
 ## Bounded coverage closure
 

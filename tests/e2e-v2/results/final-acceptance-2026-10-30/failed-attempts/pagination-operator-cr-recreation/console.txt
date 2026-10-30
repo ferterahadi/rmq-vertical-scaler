@@ -1,2 +1,0 @@
-Waiting: owned RabbitmqCluster finalized
-FAILED CLOSURE: timeout: owned RabbitmqCluster finalized; last error: None

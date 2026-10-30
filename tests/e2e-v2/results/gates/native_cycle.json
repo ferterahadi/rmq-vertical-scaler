@@ -1,9 +1,0 @@
-{
-  "gate": "native_cycle",
-  "passed": true,
-  "evidence": [
-    "tests/e2e-v2/results/final-acceptance-2026-10-30/native/result.json",
-    "tests/e2e-v2/results/final-acceptance-2026-10-30/native/running-image.json"
-  ],
-  "boundary": "Final immutable-build acceptance on the declared pinned local deployment. See docs/v2.3-rolling-latency.md for explicit rolling prerequisites."
-}

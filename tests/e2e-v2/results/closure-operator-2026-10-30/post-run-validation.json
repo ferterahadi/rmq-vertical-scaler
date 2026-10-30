@@ -1,9 +1,0 @@
-{
-  "sixOperatorCasesPassed": true,
-  "confirmedIDs": 300,
-  "consumedIDs": 300,
-  "duplicates": 0,
-  "terminalIdentitiesMatchLiveCensus": true,
-  "replacementTimestampsNotReused": true,
-  "boundary": "Checksum explicitly supplied by test override; Operator-generated configuration and actual template annotations captured separately."
-}
