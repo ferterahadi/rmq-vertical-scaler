@@ -45,4 +45,5 @@ jobs:
       - name: Record immutable artifact location
         env:
           ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
-        run: echo "Verified evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "Verified evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
