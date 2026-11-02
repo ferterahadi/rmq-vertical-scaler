@@ -55,7 +55,7 @@ func TestInfeasibleRefreshesAllBrokerOutcomesWithoutFurtherWrites(t *testing.T) 
 	core.ClearActions()
 	dyn.ClearActions()
 	for second := 0; second <= 30; second += 15 {
-		if err := c.Tick(context.Background(), at.Add(time.Duration(second)*time.Second)); err != nil {
+		if err := tickAt(c, at.Add(time.Duration(second)*time.Second)); err != nil {
 			t.Fatal(err)
 		}
 		state, _, err := c.load(context.Background())

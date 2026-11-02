@@ -91,6 +91,15 @@ class EvidenceBundleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.gate.verify_bundle(self.summary, self.bundle)
 
+    def test_historical_bundle_cannot_clear_current_source_release_block(self):
+        self.summary["currentSourceAccepted"] = False
+        with self.assertRaisesRegex(ValueError, "current sources await"):
+            self.gate.verify_bundle(self.summary, self.bundle)
+        self.summary["currentSourceAccepted"] = True
+        self.summary["releaseBlockers"] = ["new controller requires final-image runtime acceptance"]
+        with self.assertRaisesRegex(ValueError, "current sources await"):
+            self.gate.verify_bundle(self.summary, self.bundle)
+
     def test_missing_or_extra_member_blocks_even_with_new_archive_hash(self):
         name = next(p for p in self.files if p.endswith("proof.json"))
         content = self.files.pop(name)

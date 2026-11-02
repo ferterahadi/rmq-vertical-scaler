@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "passed": true,
+  "currentSourceAccepted": false,
+  "releaseBlockers": [
+    "Collector fixes change the production binary; repeat the complete acceptance matrix on a new immutable build."
+  ],
   "date": "2026-10-30",
   "imageDigest": "sha256:5bec6039f6cd43dc829f2141007a113af5487fa61b6782fb824a905bca41a2b9",
   "requirements": 31,
@@ -45,11 +49,11 @@
     "files": 713
   },
   "packagingSourcesSHA256": {
-    ".github/workflows/acceptance-evidence.yml": "cf2a783c68bbaab6db0c51c8eee2eb3e3152009ada261d015c492581f0950cf4",
+    ".github/workflows/acceptance-evidence.yml": "8035abe2608037322e18f2529ef28207beee9351071fcef7bd168128b781b484",
     ".github/workflows/release.yml": "be19774cd08bf6241d02eabc5a06709011e85ae1e800765e68696774ecbdf1c7",
-    "scripts/check-v23-release-evidence.py": "ecfe1da80cd6226c605e4b48558e186b01a85a834bab81dd82bffca5d978b68d",
+    "scripts/check-v23-release-evidence.py": "0534ba381ea9bb5c1db7740b89e7dd6692adb95890edbd41d72c2904a05eb78e",
     "scripts/package-v23-evidence.py": "761dfd629afc22ba2734dd42c0b86c8d25e7d902cb48de131b9062ac8628727d",
-    "tests/e2e-v2/test_evidence_bundle.py": "f31d3559c698bbf8ad5bb429654f17d7d6d08e4595d148db017839b65695437c",
+    "tests/e2e-v2/test_evidence_bundle.py": "8e40628ed8ec0d17920f130a99d9e57efcda629368670698ec9b429be90d9f19",
     "tests/e2e-v2/test_release_gate.py": "148de50e79014bdf28405f2d87a60502eef5e58ef8b0b19f2d2c1add12f531bd"
   },
   "coverage": {

@@ -45,7 +45,7 @@ func TestReviewCompletionStartsFreshDownWindow(t *testing.T) {
 	}
 	core.ClearActions()
 	dyn.ClearActions()
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	cm, _ = core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})
@@ -63,7 +63,7 @@ func TestReviewCompletionStartsFreshDownWindow(t *testing.T) {
 			m.Object["containers"].([]any)[0].(map[string]any)["usage"].(map[string]any)["cpu"] = "10m"
 			dyn.Resource(metricsGVR).Namespace("test").Update(context.Background(), &m, metav1.UpdateOptions{})
 		}
-		if err := c.Tick(context.Background(), stamp); err != nil {
+		if err := tickAt(c, stamp); err != nil {
 			t.Fatal(err)
 		}
 		latest, _ := core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})

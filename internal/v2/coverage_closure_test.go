@@ -86,7 +86,7 @@ func TestClosurePartialQueuePagesCannotDecreaseWithHealthyMemory(t *testing.T) {
 			metric.Object["timestamp"] = stamp.Format(time.RFC3339)
 			dyn.Resource(metricsGVR).Namespace("test").Update(context.Background(), &metric, metav1.UpdateOptions{})
 		}
-		if err := c.Tick(context.Background(), stamp); err != nil {
+		if err := tickAt(c, stamp); err != nil {
 			t.Fatal(err)
 		}
 		state, _, err := c.load(context.Background())
@@ -105,7 +105,7 @@ func TestClosurePartialQueuePagesCannotDecreaseWithHealthyMemory(t *testing.T) {
 			metric.Object["timestamp"] = stamp.Format(time.RFC3339)
 			dyn.Resource(metricsGVR).Namespace("test").Update(context.Background(), &metric, metav1.UpdateOptions{})
 		}
-		if err := c.Tick(context.Background(), stamp); err != nil {
+		if err := tickAt(c, stamp); err != nil {
 			t.Fatal(err)
 		}
 		if second < 165 {
@@ -146,7 +146,7 @@ func TestClosureFilteredRateFlowsThroughControllerWithExactScope(t *testing.T) {
 		b.Policy.Triggers[i].Metadata.Thresholds["HIGH"] = 10
 	}
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	state, _, err := c.load(context.Background())
@@ -187,7 +187,7 @@ func TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize(t *tes
 			dyn.ClearActions()
 			c := NewController(b, "status", quietLog(), at)
 			for second := 0; second <= 90; second += 15 {
-				if err := c.Tick(context.Background(), at.Add(time.Duration(second)*time.Second)); err != nil {
+				if err := tickAt(c, at.Add(time.Duration(second)*time.Second)); err != nil {
 					t.Fatal(err)
 				}
 				state, _, err := c.load(context.Background())
@@ -206,7 +206,7 @@ func TestClosureCollectorCachedStaleAndOldContainerSamplesCannotStabilize(t *tes
 					metric.Object["window"] = "10s"
 					dyn.Resource(metricsGVR).Namespace("test").Update(context.Background(), &metric, metav1.UpdateOptions{})
 				}
-				if err := c.Tick(context.Background(), now); err != nil {
+				if err := tickAt(c, now); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -49,15 +49,26 @@ type Broker struct {
 	Started           time.Time                   `json:"started"`
 }
 type Observation struct {
-	At       time.Time `json:"at"`
-	Identity string    `json:"identity"`
-	Complete bool      `json:"complete"`
-	Reason   string    `json:"reason,omitempty"`
-	Brokers  []Broker  `json:"brokers"`
-	Samples  []Sample  `json:"samples"`
-	Signals  []Signal  `json:"signals"`
-	Current  int       `json:"currentProfileIndex"`
+	At         time.Time `json:"at"`
+	ObservedAt time.Time `json:"observedAt,omitempty"`
+	Identity   string    `json:"identity"`
+	Complete   bool      `json:"complete"`
+	Reason     string    `json:"reason,omitempty"`
+	Brokers    []Broker  `json:"brokers"`
+	Samples    []Sample  `json:"samples"`
+	Signals    []Signal  `json:"signals"`
+	Current    int       `json:"currentProfileIndex"`
 }
+
+// freshnessTime separates receipt-time validation from poll/stabilization timing.
+// Pure-engine callers without collection metadata retain their supplied clock.
+func (o Observation) freshnessTime() time.Time {
+	if !o.ObservedAt.IsZero() {
+		return o.ObservedAt
+	}
+	return o.At
+}
+
 type Decision struct {
 	Recommended  int       `json:"recommendedProfileIndex"`
 	Target       int       `json:"eligibleProfileIndex"`
@@ -117,7 +128,7 @@ func ResourceSignal(p *policy.Config, index int, o Observation) Signal {
 	validCount := 0
 	for _, b := range o.Brokers {
 		m, ok := samples[b.Name]
-		if !ok || m.UID != b.UID || m.ContainerID != b.ContainerID || !Fresh(o.At, m.Timestamp, p.Behavior.Metrics.MaxAgeSeconds) || m.Timestamp.Before(b.Started) || m.Window <= 0 || m.Timestamp.Add(-m.Window).Before(b.Started) || !policy.Known(b.Effective) {
+		if !ok || m.UID != b.UID || m.ContainerID != b.ContainerID || !Fresh(o.freshnessTime(), m.Timestamp, p.Behavior.Metrics.MaxAgeSeconds) || m.Timestamp.Before(b.Started) || m.Window <= 0 || m.Timestamp.Add(-m.Window).Before(b.Started) || !policy.Known(b.Effective) {
 			s.Complete = false
 			continue
 		}
@@ -176,7 +187,7 @@ func (e *Engine) Evaluate(o Observation, pending bool) Decision {
 	d := Decision{Recommended: -1, Target: -1, Reason: "NoValidSignals"}
 	all := o.Complete && len(o.Signals) == len(e.Policy.Triggers)
 	for _, s := range o.Signals {
-		valid := s.Available && Fresh(o.At, s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds)
+		valid := s.Available && Fresh(o.freshnessTime(), s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds)
 		all = all && s.Complete && valid
 		if valid && s.Profile > d.Recommended {
 			d.Recommended = s.Profile
@@ -193,7 +204,7 @@ func (e *Engine) Evaluate(o Observation, pending bool) Decision {
 	for i := 1; i < len(e.Policy.Order); i++ {
 		stamp := time.Time{}
 		for _, s := range o.Signals {
-			if s.Available && s.Profile >= i && Fresh(o.At, s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) && s.Timestamp.After(stamp) {
+			if s.Available && s.Profile >= i && Fresh(o.freshnessTime(), s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) && s.Timestamp.After(stamp) {
 				stamp = s.Timestamp
 			}
 		}
@@ -278,7 +289,7 @@ func (e *Engine) DownReady(o Observation, target int) (bool, string) {
 		return false, "IncompleteSignalsBlockDecrease"
 	}
 	for _, s := range o.Signals {
-		if !s.Complete || s.Profile > target || !Fresh(o.At, s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) {
+		if !s.Complete || s.Profile > target || !Fresh(o.freshnessTime(), s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) {
 			e.ResetDown()
 			return false, "SignalsBlockDecrease"
 		}
@@ -299,7 +310,7 @@ func (e *Engine) DownReady(o Observation, target int) (bool, string) {
 	ceiling := r.Limits.Memory().AsApproximateFloat64() * float64(100-e.Policy.Behavior.ScaleDown.MemoryHeadroomPercent) / 100
 	for _, b := range o.Brokers {
 		s, ok := samples[b.Name]
-		if !ok || !b.Ready || s.MemoryUnavailable || s.Window <= 0 || s.Timestamp.Add(-s.Window).Before(b.Started) || !s.Timestamp.After(e.boot) || s.Timestamp.Add(-s.Window).Before(e.boot) || !Fresh(o.At, s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) || s.UID != b.UID || s.ContainerID != b.ContainerID || s.Timestamp.Before(b.Started) || s.Memory < 0 || math.IsNaN(s.Memory) || math.IsInf(s.Memory, 0) {
+		if !ok || !b.Ready || s.MemoryUnavailable || s.Window <= 0 || s.Timestamp.Add(-s.Window).Before(b.Started) || !s.Timestamp.After(e.boot) || s.Timestamp.Add(-s.Window).Before(e.boot) || !Fresh(o.freshnessTime(), s.Timestamp, e.Policy.Behavior.Metrics.MaxAgeSeconds) || s.UID != b.UID || s.ContainerID != b.ContainerID || s.Timestamp.Before(b.Started) || s.Memory < 0 || math.IsNaN(s.Memory) || math.IsInf(s.Memory, 0) {
 			e.ResetDown()
 			return false, "FreshMemoryRequired"
 		}

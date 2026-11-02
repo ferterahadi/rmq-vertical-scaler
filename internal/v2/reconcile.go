@@ -414,7 +414,7 @@ func (c *Controller) recoveryReady(s Snapshot, op *Operation) bool {
 	}
 	latest := time.Time{}
 	for _, signal := range s.Signals {
-		if signal.Available && Fresh(s.At, signal.Timestamp, c.Backend.Policy.Behavior.Metrics.MaxAgeSeconds) && signal.Timestamp.After(latest) {
+		if signal.Available && Fresh(s.freshnessTime(), signal.Timestamp, c.Backend.Policy.Behavior.Metrics.MaxAgeSeconds) && signal.Timestamp.After(latest) {
 			latest = signal.Timestamp
 		}
 	}

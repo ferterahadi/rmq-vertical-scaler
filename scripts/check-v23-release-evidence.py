@@ -304,6 +304,8 @@ def verify_bundle(summary, bundle):
     global EVIDENCE_ROOT
     if summary.get("schemaVersion") != 1 or summary.get("passed") is not True:
         raise ValueError("missing or invalid concise acceptance summary")
+    if summary.get("currentSourceAccepted", True) is not True or summary.get("releaseBlockers"):
+        raise ValueError("current sources await final-image acceptance: " + "; ".join(summary.get("releaseBlockers", [])))
     descriptor = summary["bundle"]
     expected = descriptor["sha256"]
     if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):

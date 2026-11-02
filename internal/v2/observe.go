@@ -43,6 +43,7 @@ type Backend struct {
 	HTTP     *http.Client
 	User     string
 	Password string
+	Now      func() time.Time
 }
 
 func owner(meta metav1.Object, kind string, uid types.UID) bool {
@@ -259,6 +260,10 @@ func (b *Backend) Collect(ctx context.Context, s Snapshot) Snapshot {
 		}()
 	}
 	wg.Wait()
+	s.ObservedAt = time.Now()
+	if b.Now != nil {
+		s.ObservedAt = b.Now()
+	}
 	s.Samples = samples
 	for i, t := range b.Policy.Triggers {
 		if t.Type == "cpu" || t.Type == "memory" {
@@ -323,9 +328,7 @@ func selected(q queue, s *policy.Selector) bool {
 	}
 	return s.QueueNameRegex == "" || regexp.MustCompile(s.QueueNameRegex).MatchString(q.Name)
 }
-func (b *Backend) queueSignals(ctx context.Context, at time.Time) []Signal {
-	// Queue lists are scoped to this API user's visibility. For overview publish
-	// rates, require verified global visibility rather than silently mixing scopes.
+func (b *Backend) queueInventory(ctx context.Context) (map[string]queue, bool, bool) {
 	allQueues := map[string]queue{}
 	complete := true
 	available := false
@@ -383,6 +386,25 @@ func (b *Backend) queueSignals(ctx context.Context, at time.Time) []Signal {
 	if expectedCount >= 0 && expectedCount != len(allQueues) {
 		complete = false
 	}
+	return allQueues, complete, available
+}
+
+func (b *Backend) queueSignals(ctx context.Context, at time.Time) []Signal {
+	// Overview and selected-queue data are independent sources. Pagination must
+	// neither be required for overview-only policies nor consume its request budget.
+	var needQueues, needOverview bool
+	for _, trigger := range b.Policy.Triggers {
+		if trigger.Type != "rabbitmq" {
+			continue
+		}
+		if trigger.Metadata.Mode == "MessageRate" && trigger.Metadata.Selector == nil {
+			needOverview = true
+		} else {
+			needQueues = true
+		}
+	}
+	var allQueues map[string]queue
+	var complete, available bool
 	var out []Signal
 	var overview struct {
 		MessageStats struct {
@@ -393,7 +415,24 @@ func (b *Backend) queueSignals(ctx context.Context, at time.Time) []Signal {
 		} `json:"message_stats"`
 	}
 	overviewOK := false
-	overviewRead := false
+	var wg sync.WaitGroup
+	if needQueues {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			allQueues, complete, available = b.queueInventory(ctx)
+		}()
+	}
+	if needOverview {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Retain global-visibility checks; never replace cluster ingress with
+			// the visible user's selected-queue publish copies.
+			overviewOK = b.overviewVisible(ctx) && b.get(ctx, "/api/overview", &overview) == nil
+		}()
+	}
+	wg.Wait()
 	for i, t := range b.Policy.Triggers {
 		if t.Type != "rabbitmq" {
 			continue
@@ -401,10 +440,6 @@ func (b *Backend) queueSignals(ctx context.Context, at time.Time) []Signal {
 		s := Signal{Trigger: i, Type: t.Metadata.Mode, Timestamp: at, Profile: 0, Source: "RabbitMQ selected queues", Available: available, Complete: complete}
 		if t.Metadata.Mode == "MessageRate" && t.Metadata.Selector == nil {
 			s.Source = "RabbitMQ overview cluster ingress"
-			if !overviewRead {
-				overviewRead = true
-				overviewOK = b.overviewVisible(ctx) && b.get(ctx, "/api/overview", &overview) == nil
-			}
 			s.Available = overviewOK
 			s.Complete = overviewOK
 			if overviewOK && overview.MessageStats.Details.Rate != nil && validValue(*overview.MessageStats.Details.Rate) {

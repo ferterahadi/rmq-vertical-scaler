@@ -66,7 +66,7 @@ func fakeBackend(t *testing.T, at time.Time) (*Backend, *kubefake.Clientset, *dy
 		}
 	}
 
-	return &Backend{Policy: p, Core: core, Dynamic: dyn}, core, dyn
+	return &Backend{Policy: p, Core: core, Dynamic: dyn, Now: func() time.Time { return at }}, core, dyn
 }
 func quietLog() *slog.Logger { return slog.New(slog.NewJSONHandler(io.Discard, nil)) }
 func assertNoBrokerWrites(t *testing.T, core *kubefake.Clientset, dyn *dynamicfake.FakeDynamicClient) {
@@ -81,7 +81,7 @@ func TestOffWritesOnlyControllerStatus(t *testing.T) {
 	at := time.Unix(10000, 0)
 	b, core, dyn := fakeBackend(t, at)
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	assertNoBrokerWrites(t, core, dyn)
@@ -103,7 +103,7 @@ func TestUnsupportedMemoryLimitBlocksBeforeStrategyAndResources(t *testing.T) {
 	high.Limits.Memory = "1536Mi"
 	b.Policy.Profiles["HIGH"] = high
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	assertNoBrokerWrites(t, core, dyn)
@@ -122,7 +122,7 @@ func TestFailedIntentPersistencePreventsAllBrokerWrites(t *testing.T) {
 		return true, nil, errors.New("injected persistence failure")
 	})
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err == nil {
+	if err := tickAt(c, at); err == nil {
 		t.Fatal("persistence failure swallowed")
 	}
 	assertNoBrokerWrites(t, core, dyn)
@@ -397,7 +397,7 @@ func TestNewOperationRevisionAdvancesPastTerminalHistory(t *testing.T) {
 	if err := c.save(context.Background(), state, &cm, s); err != nil {
 		t.Fatal(err)
 	}
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	cm, err = core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})
@@ -447,7 +447,7 @@ func TestCompletionDoesNotCreateASecondCurrentProfileOperation(t *testing.T) {
 	}
 	core.ClearActions()
 	dyn.ClearActions()
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	cm, _ = core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})
@@ -494,7 +494,7 @@ func TestTemplateWriteFailureRetainsIntentAndRetriesWithoutPodWrites(t *testing.
 		}
 		return false, nil, nil
 	})
-	if err := c.Tick(context.Background(), at); err == nil {
+	if err := tickAt(c, at); err == nil {
 		t.Fatal("failed CR write reported success")
 	}
 	cm, _ := core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})
@@ -509,7 +509,7 @@ func TestTemplateWriteFailureRetainsIntentAndRetriesWithoutPodWrites(t *testing.
 		}
 	}
 	failed = false
-	if err := c.Tick(context.Background(), at.Add(15*time.Second)); err != nil {
+	if err := tickAt(c, at.Add(15*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 	cr, _ := dyn.Resource(clusterGVR).Namespace("test").Get(context.Background(), "rabbit", metav1.GetOptions{})
@@ -523,4 +523,10 @@ func TestTemplateWriteFailureRetainsIntentAndRetriesWithoutPodWrites(t *testing.
 			t.Fatal("submitted before owned StatefulSet reflected target")
 		}
 	}
+}
+
+// tickAt advances both the poll clock and the fake receipt clock.
+func tickAt(c *Controller, at time.Time) error {
+	c.Backend.Now = func() time.Time { return at }
+	return c.Tick(context.Background(), at)
 }

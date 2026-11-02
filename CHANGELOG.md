@@ -2,6 +2,12 @@
 
 ## [2.3.0] - Unreleased
 
+- Fix collector receipt-time freshness for recommendations, memory safety and
+  retained-operation recovery; keep poll time for stabilization. Collect overview
+  rates independently from selected queues and skip unused queue enumeration.
+  Current source regressions pass; refreshed final-image runtime acceptance is
+  required before release. Earlier acceptance remains historical image evidence.
+
 - Add opt-in configVersion2 JSON/Helm policies with explicit paired requests/limits,
   queue/rate and busiest-broker CPU/memory triggers, and recommendation-only Off.
 - Separate observations, recommendations and durable asynchronous reconciliation;

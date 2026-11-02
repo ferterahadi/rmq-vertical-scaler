@@ -7,6 +7,7 @@ Operator in Kubernetes.
 **2.3.x:** opt into queue/rate and CPU/memory policies with explicit requests and
 limits. New policies start in recommendation-only `Off`; existing configurations
 keep their behavior. See the [2.3 policy guide](docs/v2.3-policy.md).
+2.3 remains unreleased; the latest collector fixes await refreshed runtime acceptance.
 
 Strict in-place policies currently require a fixed memory limit. Changing that
 limit requires explicitly enabling rolling fallback, which restarts brokers.

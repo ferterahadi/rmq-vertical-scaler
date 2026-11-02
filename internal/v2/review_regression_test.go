@@ -20,7 +20,7 @@ func TestReviewFailedReadInterruptsStabilization(t *testing.T) {
 	b, core, dyn := fakeBackend(t, at)
 	b.Policy.Behavior.ScaleUp.StabilizationSeconds = 30
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	failed := true
@@ -30,7 +30,7 @@ func TestReviewFailedReadInterruptsStabilization(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	if err := c.Tick(context.Background(), at.Add(15*time.Second)); err == nil {
+	if err := tickAt(c, at.Add(15*time.Second)); err == nil {
 		t.Fatal("expected read failure")
 	}
 	failed = false
@@ -39,7 +39,7 @@ func TestReviewFailedReadInterruptsStabilization(t *testing.T) {
 		m.Object["timestamp"] = at.Add(30 * time.Second).Format(time.RFC3339)
 		dyn.Resource(metricsGVR).Namespace("test").Update(context.Background(), &m, metav1.UpdateOptions{})
 	}
-	if err := c.Tick(context.Background(), at.Add(30*time.Second)); err != nil {
+	if err := tickAt(c, at.Add(30*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 	cm, _ := core.CoreV1().ConfigMaps("test").Get(context.Background(), "status", metav1.GetOptions{})
@@ -59,7 +59,7 @@ func TestReviewMissingStateMixedPodsBlockWrites(t *testing.T) {
 	pod.Status.ContainerStatuses[0].Resources = &r
 	core.CoreV1().Pods("test").Update(context.Background(), pod, metav1.UpdateOptions{})
 	c := NewController(b, "status", quietLog(), at)
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	assertNoBrokerWrites(t, core, dyn)
@@ -119,7 +119,7 @@ func TestReviewSupersessionDoesNotAdoptExternalCR(t *testing.T) {
 	}
 	core.ClearActions()
 	dyn.ClearActions()
-	if err := c.Tick(context.Background(), at); err != nil {
+	if err := tickAt(c, at); err != nil {
 		t.Fatal(err)
 	}
 	assertNoBrokerWrites(t, core, dyn)
