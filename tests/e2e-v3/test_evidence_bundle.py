@@ -192,5 +192,66 @@ class EvidenceBundleTests(unittest.TestCase):
             self.gate.verify_bundle(self.summary, self.bundle)
 
 
+    def test_download_actions_bundle_uses_pinned_id_and_normal_auth(self):
+        from unittest.mock import patch
+        import zipfile
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, "w") as archive:
+            archive.writestr("rmq-v3-evidence.tar.gz", b"pinned bytes")
+        target = self.root / "downloaded.tar.gz"
+        def download(command, stdout, check):
+            self.assertEqual(command, ["gh", "api", "repos/ferterahadi/rmq-vertical-scaler/actions/artifacts/123/zip"])
+            self.assertTrue(check)
+            stdout.write(payload.getvalue())
+        with patch.object(self.package.subprocess, "run", side_effect=download):
+            self.package.download_actions_bundle(123, target)
+        self.assertEqual(target.read_bytes(), b"pinned bytes")
+
+    def test_download_actions_bundle_rejects_invalid_ids_and_members(self):
+        from unittest.mock import patch
+        import zipfile
+        target = self.root / "downloaded.tar.gz"
+        for value in (0, -1, True, "123", "123/zip?other=456"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.package.download_actions_bundle(value, target)
+        for names in (["../escape"], ["unexpected"], ["rmq-v3-evidence.tar.gz", "extra"]):
+            payload = io.BytesIO()
+            with zipfile.ZipFile(payload, "w") as archive:
+                for name in names:
+                    archive.writestr(name, b"content")
+            def download(command, stdout, check):
+                stdout.write(payload.getvalue())
+            with self.subTest(names=names), patch.object(self.package.subprocess, "run", side_effect=download):
+                with self.assertRaisesRegex(ValueError, "unexpected evidence"):
+                    self.package.download_actions_bundle(123, target)
+            self.assertFalse(target.exists())
+
+    def test_downloaded_bundle_checksums_without_git_history(self):
+        from contextlib import redirect_stdout
+        from unittest.mock import patch
+        original = self.bundle.read_bytes()
+        self.summary["bundle"].update(storage="github-actions", artifactId=123,
+                                      localPath="downloaded.tar.gz")
+        path = self.root / "tests/e2e-v3/acceptance-summary.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(self.summary))
+        for data, valid in ((original, True), (b"corrupt bytes", False)):
+            def download(artifact, output):
+                self.assertEqual(artifact, 123)
+                output.write_bytes(data)
+            with self.subTest(valid=valid), patch.object(self.package, "ROOT", self.root), \
+                    patch.object(self.package, "download_actions_bundle", side_effect=download), \
+                    patch.object(self.package, "require_source_history") as history, \
+                    patch("sys.argv", ["package-v3-evidence.py"]), redirect_stdout(io.StringIO()):
+                if valid:
+                    self.package.main()
+                    self.assertEqual((self.root / "downloaded.tar.gz").read_bytes(), original)
+                else:
+                    with self.assertRaisesRegex(ValueError, "checksum"):
+                        self.package.main()
+                    self.assertFalse((self.root / "downloaded.tar.gz").exists())
+                history.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

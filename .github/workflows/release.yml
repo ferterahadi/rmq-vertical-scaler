@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write # required to create the GitHub Release
+  actions: read # retrieve immutable acceptance evidence
 
 jobs:
   release:
@@ -16,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # evidence is reproducible from its pinned historical commit
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -47,6 +48,8 @@ jobs:
 
       - name: Reproduce pinned 3.x evidence bundle
         if: startsWith(github.ref_name, 'v3.')
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 scripts/package-v3-evidence.py
 
       - name: Require verified 3.x acceptance evidence

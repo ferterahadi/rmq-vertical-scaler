@@ -27,9 +27,10 @@
 - Add source-timestamped safety windows, memory headroom, partial-source handling,
   restart recovery, scoped status, strict schemas and versioned examples.
 - Add pinned feasibility/API probes, actual-controller AMQP harness and Astra
-  regressions. Final immutable-build acceptance covers 31 requirements on the
-  pinned local platform; rolling meets 120 seconds with explicit startup/readiness/DNS
-  tuning. See `docs/v2.3-acceptance-results.md` for evidence and support boundaries.
+  regressions. Historical development acceptance covered 31 requirements on the
+  pinned local platform, with explicit startup/readiness/DNS tuning for rolling.
+  See [historical results](docs/history/v2.3/acceptance-results.md); current v3
+  acceptance is tracked separately and remains required before publication.
 
 
 All notable changes to this project will be documented in this file.
