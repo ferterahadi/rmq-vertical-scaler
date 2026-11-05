@@ -1,8 +1,7 @@
 # Switch to RabbitMQ Vertical Scaler v3
 
-The next release is **v3.0.0**, followed by the **3.0.x** patch series. It replaces
-the unpublished 2.3.x release plan. `v3.0.0x` is not a release tag; use `v3.0.0`,
-`v3.0.1`, and so on. No v3 image or release has been published yet.
+The released baseline is **v2.2.x**. The next release is **v3.0.0**, followed by
+**3.0.x** patch releases. No v3 image or release has been published yet.
 
 ## One version vocabulary
 
@@ -21,7 +20,7 @@ unversioned JSON/environment behavior remains supported; upgrading the image alo
 does not enable the v3 policy or its safer defaults. No KEDA or VPA installation is
 required. Third-party dependency major versions are unrelated to this product rename.
 
-## From a released v2 installation
+## From v2.2.x
 
 1. Keep your existing configuration and status backed up. Declare v3 profiles matching
    the brokers' actual requests **and limits**. Recalibrate queue thresholds: v3 defaults
@@ -41,22 +40,19 @@ which also affects later Operator upgrades. Coordinate those separately. Full
 memory-limit changes require explicit rolling fallback on the measured platform;
 rolling needs at least three healthy brokers and the Operator's quorum-aware guards.
 
-## From the unpublished v2.3 development draft
+## Existing development installations
 
-Change `configVersion: 2` to `configVersion: 3`, update example/schema paths and Go
-imports, and regenerate the manifests with the v3 CLI. The draft discriminator is
-rejected rather than silently interpreted as legacy configuration.
-
-The controller status format is also version 3. Stop the draft controller and inspect
-pending operations before migration. Use a new status ConfigMap; do not edit an old
-status version number or erase an unresolved operation to force migration. Wait for
-accepted work to converge and resolve mixed resources before enabling v3 `Auto`.
+Use `configVersion: 3`, regenerate manifests with the v3 CLI, and update Go imports
+to `/v3`. Stop any existing controller and inspect pending operations first. Use a
+distinct status ConfigMap; never rewrite a stored status version or erase unresolved
+work to force migration. Wait for accepted work to converge before enabling `Auto`.
 
 ## Evidence and release
 
-Historical reports, image digests, artifact names and capture paths keep their v2.3
-identity under `docs/history/v2.3/`. They are not v3 acceptance. The original source
-commit remains necessary for historical reconstruction; retain it with a merge commit.
+Development captures remain reproducible from pinned source commits. They are not
+v3 acceptance and are not a released product version. The source commit remains
+necessary for reconstruction; retain it with a merge commit. See
+[validation status](v3-validation.md).
 
 The v3 release gate applies to all `v3.*` tags. It stays blocked until a new immutable
 v3 image completes the eight-group acceptance matrix and its source/image fingerprints
@@ -66,7 +62,7 @@ and reviewed evidence are recorded. Current unit checks cannot replace that run.
 python3 scripts/check-v3-release-evidence.py v3.0.0
 # Expected to fail while R3 remains open.
 python3 scripts/package-v3-evidence.py --historical
-# Reproduces the original v2.3 bundle only; cannot clear the v3 gate.
+# Reproduces development evidence only; cannot clear the v3 gate.
 ```
 
 Rollback requires stopping v3, inspecting effective resources and pending operations,

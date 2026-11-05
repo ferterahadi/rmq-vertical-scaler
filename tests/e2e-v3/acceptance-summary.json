@@ -2,8 +2,10 @@
   "schemaVersion": 1,
   "releaseVersion": "3.0.0",
   "passed": true,
-  "currentSourceAccepted": true,
-  "releaseBlockers": [],
+  "currentSourceAccepted": false,
+  "releaseBlockers": [
+    "Refresh controlled-check source snapshots after concurrent documentation/test-only cleanup."
+  ],
   "date": "2026-11-06",
   "imageDigest": "sha256:4f05710ecb2ebf8823fbd9d5c91ed965a86dbb01e0fe7e11d435f6e8d8519628",
   "requirements": 31,
@@ -188,5 +190,5 @@
       "source": "live"
     }
   },
-  "historicalSummary": "tests/e2e-v3/historical-v23-acceptance-summary.json"
+  "developmentEvidence": "tests/e2e-v3/development-evidence.json"
 }

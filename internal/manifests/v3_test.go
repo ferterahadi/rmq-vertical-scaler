@@ -38,7 +38,7 @@ func TestVersion3DoesNotDefaultToAnOlderImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, version := range []string{"", "dev", "2.2.1", "2.3.0", "4.0.0"} {
+	for _, version := range []string{"", "dev", "2.2.1", "4.0.0"} {
 		if _, _, err := Generate(Flags{Version: version}, data); err == nil {
 			t.Fatalf("unsupported default image for %s", version)
 		}

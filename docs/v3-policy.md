@@ -5,8 +5,8 @@ requests and limits. New policies start in **`Off`**, which reports recommendati
 without changing brokers. Existing environment configurations and unversioned
 JSON keep their previous defaults and behavior.
 
-This branch is under verification. Consult the [runtime evidence](history/v2.3/feasibility.md)
-and [runtime results](history/v2.3/runtime-results.md) before using `Auto`. A successful resize request is not proof of
+This branch is under verification. Consult the [runtime evidence](v3-validation.md)
+and [runtime results](v3-validation.md) before using `Auto`. A successful resize request is not proof of
 completion. Infrastructure savings are unmeasured.
 
 See [Switch to v3](v3-migration.md) for migration from released v2 or the unpublished draft.
@@ -144,7 +144,7 @@ On tested Kubernetes 1.35 / Operator 2.16.1 / RabbitMQ 4.4.0, changing a memory
 limit in place leaves the running RabbitMQ memory budget stale. Strict mode
 therefore reports **`MemoryLimitRequiresBrokerBudgetReload` before resource or
 strategy writes**. Removing watermark triggers does not remove this broker
-behavior. See the [measured report](history/v2.3/feasibility.md).
+behavior. See the [platform constraints](v3-validation.md).
 
 Set `allowRollingFallback: true` only when broker restarts are acceptable. The
 controller keeps the full target profile and delegates rolling to the Operator's
@@ -156,7 +156,7 @@ change memory watermark configuration.
 
 Rolling latency also depends on broker startup and DNS settings. The default
 Operator startup delay did not meet the 120-second objective. See the
-[explicit low-latency deployment and measured failures](history/v2.3/rolling-latency.md)
+[rolling constraints](v3-validation.md)
 before relying on that objective for rolling fallback.
 
 Partial/deferred work retains its target and successful changes. The controller

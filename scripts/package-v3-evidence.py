@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retrieve the pinned v3 evidence artifact or reconstruct historical evidence."""
+"""Retrieve pinned v3 acceptance or reconstruct archived development evidence."""
 import argparse
 import gzip
 import hashlib
@@ -39,6 +39,42 @@ def write_bundle(files, output):
                     archive.addfile(info, io.BytesIO(data))
 
 
+def development_summary():
+    descriptor = json.loads((ROOT / "tests/e2e-v3/development-evidence.json").read_text())
+    commit = descriptor["summaryCommit"]
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ValueError("development summary requires an immutable commit")
+    require_source_history(ROOT, commit)
+    data = subprocess.check_output(["git", "show", commit + ":" + descriptor["summaryPath"]], cwd=ROOT)
+    if hashlib.sha256(data).hexdigest() != descriptor["summarySHA256"]:
+        raise ValueError("development summary checksum mismatch")
+    summary = json.loads(data)
+    if (summary["bundle"]["sourceCommit"] != descriptor["sourceCommit"] or
+        summary["bundle"]["sha256"] != descriptor["bundleSHA256"]):
+        raise ValueError("development evidence descriptor differs from recorded source")
+    return summary
+
+
+def verify_development(summary):
+    import tempfile
+    commit = summary["bundle"]["sourceCommit"]
+    require_source_history(ROOT, commit)
+    with tempfile.TemporaryDirectory(prefix="rmq-development-source-") as folder:
+        raw = subprocess.check_output(["git", "archive", "--format=tar", commit], cwd=ROOT)
+        subprocess.run(["tar", "-xf", "-", "-C", folder], input=raw, check=True)
+        base = Path(folder)
+        verifiers = list((base / "scripts").glob("check-*-release-evidence.py"))
+        version = re.search(r'^appVersion: *["\']?([^"\'\s]+)',
+                            (base / "charts/rmq-vertical-scaler/Chart.yaml").read_text(), re.M)
+        if len(verifiers) != 1 or version is None:
+            raise ValueError("recorded source has no unambiguous acceptance verifier/version")
+        result = subprocess.run(["python3", str(verifiers[0]), version.group(1)], cwd=base,
+                                capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError("development acceptance verification failed: " + result.stdout + result.stderr)
+    print("Development evidence verified against its recorded source.")
+
+
 def download_actions_bundle(artifact, output):
     if type(artifact) is not int or artifact <= 0:
         raise ValueError("evidence requires a pinned GitHub Actions artifact ID")
@@ -60,16 +96,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--historical", action="store_true", help="Reproduce the pre-v3 evidence; never authorize a v3 release")
+    parser.add_argument("--verify-historical", action="store_true", help="Verify development evidence against its recorded source")
     args = parser.parse_args()
-    summary_path = "tests/e2e-v3/historical-v23-acceptance-summary.json" if args.historical else SUMMARY
+    if args.verify_historical:
+        verify_development(development_summary())
+        return
     prefixes = ("tests/e2e-v2/results/", "tests/feasibility/results/") if args.historical else PREFIXES
-    summary = json.loads((ROOT / summary_path).read_text())
+    summary = development_summary() if args.historical else json.loads((ROOT / SUMMARY).read_text())
     if "bundle" not in summary:
         raise ValueError("v3 has no accepted immutable-image evidence bundle yet")
     commit = summary["bundle"]["sourceCommit"]
     if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("evidence requires a full immutable source commit")
-    output = args.output or ROOT / summary["bundle"]["localPath"]
+    output = args.output or ROOT / ("dist/evidence/development.tar.gz" if args.historical else summary["bundle"]["localPath"])
     descriptor = summary["bundle"]
     if descriptor.get("storage") == "github-actions":
         download_actions_bundle(descriptor.get("artifactId"), output)

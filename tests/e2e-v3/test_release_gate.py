@@ -150,7 +150,8 @@ class ReleaseGateTests(unittest.TestCase):
                 self.assertIn("publication blocked", result.stdout)
 
     def test_historical_summary_cannot_authorize_v3(self):
-        summary = json.loads((ROOT / "tests/e2e-v3/historical-v23-acceptance-summary.json").read_text())
+        summary = {"schemaVersion": 1, "passed": True, "currentSourceAccepted": False,
+                   "releaseBlockers": ["Development evidence cannot authorize the current image"]}
         (self.root / "tests/e2e-v3/acceptance-summary.json").write_text(json.dumps(summary))
         result = subprocess.run([sys.executable, str(self.script), "v3.0.0"], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)

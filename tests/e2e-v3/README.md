@@ -50,7 +50,7 @@ still requires rerunning native VPA on the same fixture. No throughput or cost
 benefit is inferred from a successful allocation cycle.
 
 Generated evidence stays ignored under `evidence/` and `results/`. Retain reviewed
-captures in a [checksummed evidence bundle](../../docs/history/v2.3/evidence-bundle.md);
+captures in a [checksummed evidence bundle](../../docs/v3-validation.md);
 keep only the concise summary in Git. The runner leaves its namespace for
 inspection. `fullAcceptanceMatrix:false` explicitly prevents treating any one runner as
 proof of all restart, partial-write, missing-metric, fault and recovery cases in
@@ -67,7 +67,7 @@ do not prove that production clients automatically recover.
 ## Release identity
 
 `acceptance-summary.json` records v3 readiness and currently blocks publication.
-`historical-v23-acceptance-summary.json` is an unchanged pre-v3 record. Use
+`development-evidence.json` pins the recorded development evidence without claiming a release. Use
 `python3 scripts/package-v3-evidence.py --historical` only to reconstruct that older
 bundle. Its result paths and image digest must never be relabelled as v3 evidence.
 A fresh v3 run must record new fingerprints and a new immutable image/bundle.
@@ -105,7 +105,7 @@ Before publication, the release guard checks the pinned archive checksum, safely
 extracts the captures and verifies every source/image, message-accounting and
 acceptance assertion. Six narrowly scoped packaging/verification amendments are
 fingerprinted separately; production inputs must still match the accepted image.
-The [historical summary](historical-v23-acceptance-summary.json) preserves the earlier
+The [development evidence descriptor](development-evidence.json) preserves the earlier
 31-row coverage and timing results. The [v3 summary](acceptance-summary.json) records
 current release blockers; it has no accepted v3 image yet.
 
@@ -113,7 +113,7 @@ current release blockers; it has no accepted v3 image yet.
 ## Bounded coverage closure
 
 `closure.py` executes the named platform, Operator and pagination cases in the
-[closure checklist](../../docs/history/v2.3/coverage-closure.md). It requires exactly
+[closure checklist](../../docs/v3-validation.md). It requires exactly
 `kind-rmq-v3-closure` with a loopback API endpoint. It creates/replaces only its
 labeled namespace, and uses fresh fixtures for incompatible policies. The
 Operator group creates temporary admission denials restricted to that namespace
@@ -135,7 +135,7 @@ python tests/e2e-v3/closure.py \
 Replace `operator` with `platform` or `metrics` for the other groups. Platform
 also accepts `--platform-case qos|restart|infeasible` for affected-case reruns.
 Rebuild/load the v3 source and supply its own immutable image reference and ID.
-Do not reuse the historical v2.3 image digest. The harness verifies
+Do not reuse the earlier development image digest. The harness verifies
 the actual running digest and fails immediately on a different image or live
 replica overlap. The image must already be available to the disposable cluster.
 
@@ -143,7 +143,7 @@ The metrics group uses 502 selected durable classic queues across two vhosts
 to require real pagination, with exact sum37/max20 and confirmed/consumed IDs.
 These classic fixtures do not constitute quorum replication evidence.
 Controlled collector/controller tests supply exact partial/stale/rate responses
-separately. See [coverage results](../../docs/history/v2.3/coverage-results.md) for tested
+separately. See [coverage results](../../docs/v3-validation.md) for tested
 scope, artifact links and source-to-image provenance.
 
 Cleanup removes the disposable kind cluster and all its test data:

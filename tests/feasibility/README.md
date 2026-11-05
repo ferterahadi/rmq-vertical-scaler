@@ -106,7 +106,7 @@ not commands in the current harness.
 ## Evidence and cleanup
 
 Generated output and reviewed captures are ignored under `evidence/` and
-`results/`. Retained proof is in the [immutable bundle](../../docs/history/v2.3/evidence-bundle.md); [the feasibility report](../../docs/history/v2.3/feasibility.md) explains
+`results/`. Retained proof is in the [immutable bundle](../../docs/v3-validation.md); [the feasibility report](../../docs/v3-validation.md) explains
 their scope. Output contains no management passwords or Secret data.
 
 The fixture remains running for inspection. Remove this disposable kind cluster
