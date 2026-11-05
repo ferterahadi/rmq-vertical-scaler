@@ -9,7 +9,7 @@ import (
 
 func fixture(t *testing.T) []byte {
 	t.Helper()
-	b, e := os.ReadFile("../../examples/v2/resources.json")
+	b, e := os.ReadFile("../../examples/v3/resources.json")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -41,8 +41,9 @@ func TestDefaultsAndStrictBoundary(t *testing.T) {
 }
 func TestValidationRejectsUnsafeAndMalformedPolicy(t *testing.T) {
 	tests := map[string]func(map[string]any){
-		"unknown-version": func(m map[string]any) { m["configVersion"] = 3 },
-		"string-version":  func(m map[string]any) { m["configVersion"] = "2" },
+		"draft-version":   func(m map[string]any) { m["configVersion"] = 2 },
+		"unknown-version": func(m map[string]any) { m["configVersion"] = 4 },
+		"string-version":  func(m map[string]any) { m["configVersion"] = "3" },
 		"unknown-key":     func(m map[string]any) { m["trigers"] = []any{} },
 		"null":            func(m map[string]any) { m["behavior"] = nil },
 		"too-fast-down": func(m map[string]any) {
@@ -77,14 +78,14 @@ func TestValidationRejectsUnsafeAndMalformedPolicy(t *testing.T) {
 			}
 		})
 	}
-	duplicate := strings.Replace(string(fixture(t)), `"configVersion": 2`, `"configVersion": 2, "configVersion": 2`, 1)
+	duplicate := strings.Replace(string(fixture(t)), `"configVersion": 3`, `"configVersion": 3, "configVersion": 3`, 1)
 	if _, e := Parse([]byte(duplicate)); e == nil {
 		t.Fatal("duplicate JSON key accepted")
 	}
 }
 func TestEveryShippedPolicyValidates(t *testing.T) {
 	for _, name := range []string{"queues", "resources", "combined"} {
-		b, e := os.ReadFile("../../examples/v2/" + name + ".json")
+		b, e := os.ReadFile("../../examples/v3/" + name + ".json")
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -103,7 +104,7 @@ func TestStructuralSchemaRejectsCaseAliasesBeforeAuto(t *testing.T) {
 	if _, err := Parse([]byte(data)); err == nil {
 		t.Fatal("case alias silently enabled Auto")
 	}
-	public, err := os.ReadFile("../../schema/config-v2-schema.json")
+	public, err := os.ReadFile("../../schema/config-v3-schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,16 +7,14 @@ on:
       - 'internal/**'
       - 'schema/**'
       - 'charts/**'
-      - 'examples/v2/**'
+      - 'examples/v3/**'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/acceptance-evidence.yml'
       - '.github/workflows/release.yml'
-      - 'scripts/package-v23-evidence.py'
-      - 'scripts/check-v23-release-evidence.py'
-      - 'tests/e2e-v2/acceptance-summary.json'
-      - 'tests/e2e-v2/test_evidence_bundle.py'
-      - 'tests/e2e-v2/test_release_gate.py'
+      - 'scripts/package-v3-evidence.py'
+      - 'scripts/check-v3-release-evidence.py'
+      - 'tests/e2e-v3/**'
   workflow_dispatch:
 
 permissions:
@@ -43,15 +41,15 @@ jobs:
           go vet ./...
       - name: Test evidence validation
         run: |
-          python3 -m pip install -r tests/e2e-v2/requirements.txt
-          python3 -m unittest discover -s tests/e2e-v2 -p 'test_*.py'
-      - name: Reproduce immutable evidence
-        run: python3 scripts/package-v23-evidence.py
+          python3 -m pip install -r tests/e2e-v3/requirements.txt
+          python3 -m unittest discover -s tests/e2e-v3 -p 'test_*.py'
+      - name: Reproduce historical v2.3 evidence
+        run: python3 scripts/package-v3-evidence.py --historical
       - name: Verify recorded acceptance against its original source
         run: |
           python3 - <<'PY'
           import json, pathlib, re, subprocess, tempfile
-          summary = json.loads(pathlib.Path('tests/e2e-v2/acceptance-summary.json').read_text())
+          summary = json.loads(pathlib.Path('tests/e2e-v3/historical-v23-acceptance-summary.json').read_text())
           commit = summary['bundle']['sourceCommit']
           if not re.fullmatch(r'[0-9a-f]{40}', commit):
               raise SystemExit('evidence source must be an immutable commit')
@@ -66,21 +64,22 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, pathlib, subprocess
-          summary = json.loads(pathlib.Path('tests/e2e-v2/acceptance-summary.json').read_text())
-          result = subprocess.run(['python3', 'scripts/check-v23-release-evidence.py', 'v2.3.0'])
+          summary = json.loads(pathlib.Path('tests/e2e-v3/acceptance-summary.json').read_text())
           if summary.get('currentSourceAccepted', True):
-              result.check_returncode()
+              subprocess.run(['python3', 'scripts/package-v3-evidence.py'], check=True)
+              subprocess.run(['python3', 'scripts/check-v3-release-evidence.py', 'v3.0.0'], check=True)
           else:
+              result = subprocess.run(['python3', 'scripts/check-v3-release-evidence.py', 'v3.0.0'])
               if not summary.get('releaseBlockers') or result.returncode == 0:
                   raise SystemExit('current source must remain release-blocked until new runtime evidence exists')
               with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
                   out.write('Current-source tests passed; historical evidence verified. **Release blocked:** ' + '; '.join(summary['releaseBlockers']) + '\n')
           PY
-      - name: Store approved evidence bundle
+      - name: Store historical evidence bundle
         id: evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rmq-v23-evidence
+          name: rmq-v23-historical-evidence
           path: dist/acceptance/2.3.0/rmq-v23-evidence.tar.gz
           if-no-files-found: error
           compression-level: 0
@@ -89,4 +88,4 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
         run: |
-          echo "Verified evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified historical v2.3 evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"

@@ -22,7 +22,7 @@ from urllib.request import Request, build_opener, ProxyHandler
 from urllib.error import URLError
 
 
-NAMESPACE = "rmq-v23-feasibility"
+NAMESPACE = "rmq-v3-feasibility"
 CLUSTER = "rmq-probe"
 BASELINE = {"requests": {"cpu": "100m", "memory": "256Mi"},
             "limits": {"cpu": "1", "memory": "1Gi"}}
@@ -152,7 +152,7 @@ class Probe:
                             text=True, capture_output=True, timeout=30)
         if ns.returncode == 0:
             if not self.args.reuse or json.loads(ns.stdout)["metadata"].get("labels", {}).get(
-                    "rmq-vertical-scaler-test") != "v23-feasibility":
+                    "rmq-vertical-scaler-test") != "v3-feasibility":
                 raise RuntimeError("test namespace already exists; inspect before using --reuse")
             if not equal_resources(self.get("rabbitmqcluster", CLUSTER)["spec"]["resources"], BASELINE) or not self.all_at(BASELINE):
                 raise RuntimeError("--reuse requires an unchanged, converged baseline; recreate the test namespace")

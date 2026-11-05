@@ -1,7 +1,7 @@
 // Package manifests generates the Kubernetes deployment YAML, porting the
 // generate logic of bin/rmq-vertical-scaler. Legacy values and environment order
 // remain compatible. The isolated Recreate rollout strategy prevents overlapping
-// scaler instances. Version-2 policies use a separate renderer.
+// scaler instances. Version-3 policies use a separate renderer.
 package manifests
 
 import (
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/policy"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/policy"
 )
 
 //go:embed deployment.tmpl
@@ -130,8 +130,8 @@ func Generate(flags Flags, configJSON []byte) (string, Summary, error) {
 	if err != nil {
 		return "", Summary{}, err
 	}
-	if v == 2 {
-		return GenerateV2(flags, configJSON)
+	if v == 3 {
+		return GenerateV3(flags, configJSON)
 	}
 	var top rawTop
 	if len(configJSON) > 0 {

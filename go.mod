@@ -1,4 +1,4 @@
-module github.com/ferterahadi/rmq-vertical-scaler/v2
+module github.com/ferterahadi/rmq-vertical-scaler/v3
 
 go 1.26.4
 

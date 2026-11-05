@@ -4,30 +4,27 @@ Installs the RabbitMQ Vertical Scaler controller. See the
 [project README](../../README.md) for what it does and the safety caveats
 (quorum queues, 3+ nodes).
 
-## Install
+## Switch to v3
 
-From a repo checkout:
-
-```bash
-helm install rvs charts/rmq-vertical-scaler \
-  --namespace production --create-namespace \
-  --set serviceName=my-rabbitmq
-```
-
-Or from a GitHub tag tarball (extract first — Helm needs the chart directory):
+v3.0.0 is unreleased. Build/load your image and edit the complete v3 example for
+your namespace and existing RabbitMQ cluster before installing:
 
 ```bash
-curl -sL https://github.com/ferterahadi/rmq-vertical-scaler/archive/refs/tags/v2.2.1.tar.gz | tar xz
-helm install rvs rmq-vertical-scaler-2.2.1/charts/rmq-vertical-scaler \
-  --namespace production --create-namespace
+helm upgrade --install rvs ./charts/rmq-vertical-scaler \
+  --namespace production -f charts/rmq-vertical-scaler/values-v3.example.yaml \
+  --set image.repository=rmq-vertical-scaler --set image.tag=local
 ```
 
-## Key values
+The example starts in `Off`. Follow [migration](../../docs/v3-migration.md) before
+enabling `Auto`. Omitted/null `policy` deliberately selects legacy behavior;
+the legacy values below do not become v3 policy fields.
+
+## Legacy and shared values
 
 | Value | Default | Meaning |
 |-|-|-|
 | `serviceName` | `rabbitmq` | RabbitmqCluster/service name (DNS, default secret, PDB selector) |
-| `image.tag` | chart appVersion | Controller image tag (pinned, never `latest`). Default `pullPolicy: IfNotPresent` suits pinned tags; if overriding to a mutable tag (e.g. `"2"`), set `image.pullPolicy: Always` |
+| `image.tag` | chart appVersion | Controller image tag (pinned, never `latest`). Default `pullPolicy: IfNotPresent` suits pinned tags; if overriding to a mutable tag (e.g. `"3"`), set `image.pullPolicy: Always` |
 | `rmq.host` | `<serviceName>.<ns>.svc.cluster.local` | Management API host override |
 | `auth.existingSecret` | `<serviceName>-default-user` | Credentials secret name override |
 | `auth.usernameKey` / `auth.passwordKey` | `username` / `password` | Secret key overrides |
@@ -40,12 +37,12 @@ helm install rvs rmq-vertical-scaler-2.2.1/charts/rmq-vertical-scaler \
 
 `values.schema.json` validates your overrides at install time.
 
-## Version-2 policies (2.3.x)
+## v3 policies
 
-Set `policy` to a complete configVersion2 object; omitted/null retains legacy
-values. New policies start in Off. See [values-v2.example.yaml](values-v2.example.yaml)
-and the [policy guide](../../docs/v2.3-policy.md). Use a locally built image until
-2.3 is published. Target namespace/serviceName must agree with the release.
+Set `policy` to a complete configVersion3 object; omitted/null retains legacy
+values. New policies start in Off. See [values-v3.example.yaml](values-v3.example.yaml)
+and the [policy guide](../../docs/v3-policy.md). Use a locally built image until
+3.0 is published. Target namespace/serviceName must agree with the release.
 
 The policy ConfigMap is read-only to the container and checksum changes restart
 the scaler through Recreate. Runtime status is created by the controller, not

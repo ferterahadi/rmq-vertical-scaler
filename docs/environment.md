@@ -105,14 +105,14 @@ Equivalent to this config file, which is the recommended way to author it:
 }
 ```
 
-## Version-2 policy files
+## Version-3 policy files
 
 The values above describe the legacy environment path. `run --config <file>`
-loads a strict configVersion2 policy and rejects legacy scaling environment
+loads a strict configVersion3 policy and rejects legacy scaling environment
 variables. New defaults are CPU60%, memory75%, polling15s, upward stabilization30s,
 downward interval300s (minimum60), memory headroom20%, and source max age60s.
 
 `STATUS_CONFIG_MAP` selects the separate controller-owned operation/status object
 (default `rmq-vertical-scaler-status`). RabbitMQ triggers require `RMQ_USER` and
 `RMQ_PASS` from a Secret. Resource-only policies do not need management credentials.
-See the [policy guide](v2.3-policy.md) for schema, modes and constraints.
+See the [policy guide](v3-policy.md) for schema, modes and constraints.

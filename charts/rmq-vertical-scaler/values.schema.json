@@ -171,7 +171,7 @@
           "type": "null"
         },
         {
-          "title": "RabbitMQ scaler version-2 policy",
+          "title": "RabbitMQ scaler version-3 policy",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -179,7 +179,7 @@
               "type": "string"
             },
             "configVersion": {
-              "const": 2
+              "const": 3
             },
             "profileOrder": {
               "type": "array",

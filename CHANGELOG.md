@@ -1,6 +1,15 @@
 # Changelog
 
-## [2.3.0] - Unreleased
+## [3.0.0] - Unreleased
+
+### Changed
+- Promote the unpublished 2.3.x policy release to v3.0.0. Use `configVersion: 3`,
+  `init --config-version 3`, the `/v3` Go module and v3 example/schema paths.
+- Preserve legacy unversioned configurations. The unpublished version-2 policy
+  and status formats are rejected; see [migration](docs/v3-migration.md).
+- Separate historical v2.3 evidence from current v3 acceptance. A complete new
+  immutable-image matrix remains required before publication.
+
 
 - Fix collector receipt-time freshness for recommendations, memory safety and
   retained-operation recovery; keep poll time for stabilization. Collect overview
@@ -8,7 +17,7 @@
   Current source regressions pass; refreshed final-image runtime acceptance is
   required before release. Earlier acceptance remains historical image evidence.
 
-- Add opt-in configVersion2 JSON/Helm policies with explicit paired requests/limits,
+- Add opt-in configVersion3 JSON/Helm policies with explicit paired requests/limits,
   queue/rate and busiest-broker CPU/memory triggers, and recommendation-only Off.
 - Separate observations, recommendations and durable asynchronous reconciliation;
   confirm effective resources rather than treating accepted patches as completion.

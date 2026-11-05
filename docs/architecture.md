@@ -85,15 +85,40 @@ rmq-vertical-scaler/
 └── Makefile                   # build / test / image / bench
 ```
 
-## Opt-in version-2 architecture
+## Opt-in version-3 architecture
 
-`internal/policy` validates and normalizes versioned policies; `internal/v2`
+`internal/policy` validates and normalizes versioned policies; `internal/v3`
 separates broker/resource observations, pure recommendations, and durable resize
 reconciliation. The existing modules above remain the legacy path.
 
 The new controller reads effective resources, owns a separate status ConfigMap,
 and persists intent before resource mutations. Strict mode blocks unsupported
 memory-limit transitions; explicitly configured rolling is a separate path.
-The [policy guide](v2.3-policy.md) explains operation and migration; the
-[feasibility report](v2.3-feasibility.md) distinguishes measured constraints from
+The [policy guide](v3-policy.md) explains operation and migration; the
+[feasibility report](history/v2.3/feasibility.md) distinguishes measured constraints from
 release acceptance. No broker exec permission is granted.
+
+## Repository structure
+
+```text
+cmd/rmq-vertical-scaler/   CLI and explicit legacy/v3 dispatch
+internal/policy/          v3 policy validation and shared defaults
+internal/v3/              observations, recommendation engine and reconciliation
+internal/config/          legacy configuration
+internal/controller/      legacy control loop
+internal/metrics/         legacy RabbitMQ collection
+internal/scaling/         legacy recommendations
+internal/k8s/             legacy Kubernetes adapter
+internal/manifests/       legacy and v3 manifest generation
+examples/v3/              queue, resource and combined policies
+schema/                   legacy schema and config-v3-schema.json
+charts/rmq-vertical-scaler/ Helm chart, v3 example and conditional templates
+tests/e2e-v3/              current acceptance harness and v3 readiness summary
+tests/feasibility/         platform probes
+scripts/                  v3 evidence packaging and release gate
+docs/history/v2.3/        historical development evidence; never v3 acceptance
+```
+
+The legacy packages remain separate to preserve released behavior. Historical
+capture paths, artifact hashes, previous release notes and dependency API versions
+retain their original names. See [v3 migration](v3-migration.md).

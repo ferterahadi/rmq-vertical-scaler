@@ -3,7 +3,7 @@
 The motivating requirement was a load-driven **100m → 800m → 100m CPU-request
 cycle within 15 minutes**. Two GKE Standard experiments on 26 October 2026
 informed the design. These historical observations are separate from the
-[final 2.3 controller acceptance](v2.3-acceptance-results.md).
+[final 2.3 controller acceptance](history/v2.3/acceptance-results.md).
 
 ## Native VPA observation
 
@@ -51,6 +51,6 @@ this PR's validated 2.3 scope. The experiment infrastructure was subsequently
 removed. Neither experiment ran this controller or the RabbitMQ Cluster Operator,
 or established throughput gains, lossless delivery or cost savings.
 
-The separate 2.3 acceptance uses three Operator-managed brokers and names its own
+The separate 3.x acceptance uses three Operator-managed brokers and names its own
 source, image, workload and timing evidence. Its baseline group named `native`
 runs this project's controller; it is not a new native GKE VPA comparison.

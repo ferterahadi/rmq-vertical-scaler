@@ -1,99 +1,66 @@
-# RabbitMQ Vertical Scaler
+# RabbitMQ Vertical Scaler v3
 
-Scale RabbitMQ resources from queue depth, publish rate, or CPU and memory usage,
-using profiles and timing you control. Runs alongside the RabbitMQ Cluster
-Operator in Kubernetes.
+Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilization,
+using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
+Cluster Operator in Kubernetes.
 
-**2.3.x:** opt into queue/rate and CPU/memory policies with explicit requests and
-limits. New policies start in recommendation-only `Off`; existing configurations
-keep their behavior. See the [2.3 policy guide](docs/v2.3-policy.md).
-2.3 remains unreleased; the latest collector fixes await refreshed runtime acceptance.
+**v3.0.0 is unreleased.** The v3 source still needs a complete acceptance run on one
+immutable image. Historical v2.3 development results do not validate this release.
 
-Strict in-place policies currently require a fixed memory limit. Changing that
-limit requires explicitly enabling rolling fallback, which restarts brokers.
-The [final local acceptance results](docs/v2.3-acceptance-results.md) cover the
-pinned platform; rolling within two minutes requires explicit deployment tuning.
+## What changes in v3
+
+- Declare CPU/memory requests and limits together, with queue/rate or resource triggers.
+- Start in recommendation-only `Off`; enable `Auto` when the policy is ready.
+- Scale up on sustained demand and down one profile at a time, with fresh memory checks.
+- Track desired and effective resources on every broker until the change completes.
+
+Defaults: CPU **60%**, memory **75%** of effective requests, **15-second** polling,
+**30-second** upward stabilization, and **5 minutes** per downward step.
+Strict in-place operation requires a fixed memory limit on the tested platform;
+changing it requires explicit rolling fallback and broker restarts.
+
+## Switch to v3
+
+Build this branch until v3.0.0 is published. Configure a policy for your existing
+Operator-managed RabbitMQ cluster, starting in `Off`:
+
+```bash
+make build VERSION=3.0.0
+dist/rmq-vertical-scaler init --config-version 3 --output policy.json
+# Edit the target namespace, cluster name, profiles and triggers.
+dist/rmq-vertical-scaler generate --config policy.json \
+  --image rmq-vertical-scaler:local --output scaler.yaml
+```
+
+Build/load the chosen image before applying the manifest. For Helm, start with
+[values-v3.example.yaml](charts/rmq-vertical-scaler/values-v3.example.yaml).
+Inspect recommendations before enabling `Auto`. Use one scaler installation per
+RabbitMQ cluster. See [migration](docs/v3-migration.md) and the
+[policy guide](docs/v3-policy.md) for prerequisites, safe rollout and recovery.
+
+Existing unversioned JSON and environment configurations retain their legacy
+behavior. An image upgrade alone does not switch them to the v3 policy.
+The unpublished `configVersion: 2` draft becomes `configVersion: 3`.
 
 ## Why this exists
 
 The motivating requirement was a load-driven CPU-request cycle:
-**100m → 800m → 100m within 15 minutes**.
+**100m → 800m → 100m within 15 minutes**. In a fixed-policy Google Kubernetes Engine
+(GKE) test, native Vertical Pod Autoscaler (VPA) recommended 800m but did not apply
+it during that window. VPA supports StatefulSets; the experiment established a timing
+limitation in that setup, not a lack of StatefulSet support.
 
-In a fixed-policy Google Kubernetes Engine (GKE) test, native Vertical Pod
-Autoscaler (VPA) recommended 800m but the applied request stayed at 100m for
-15 minutes. VPA supports StatefulSets; it did not complete this load-driven cycle
-within the test window.
+This controller provides explicit profiles, configurable timing and observable
+resize completion. Production compatibility, throughput gains and cost savings
+remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence).
 
-This project's answer is explicit RabbitMQ resource profiles with configurable
-up/down delays. The experiments did **not** run this controller or the Operator;
-its convergence, throughput benefit, and cost savings remain unproven by those
-results. See the [experiment evidence](docs/usage.md#experiment-evidence).
+## Documentation
 
-## Existing configuration behavior
-
-1. Polls the RabbitMQ management API every **5 seconds** by default.
-2. Selects the highest profile whose queue-depth **or** publish-rate threshold
-   is exceeded. Queue depth means the **deepest individual queue**, not the sum.
-3. Waits for that recommendation to hold: **30 seconds up / 120 seconds down**.
-4. Applies paired CPU/memory requests to the `RabbitmqCluster` and its brokers.
-
-Helm's default profiles run from `330m / 2Gi` to `2400m / 8Gi` per broker.
-**Limits stay unchanged.** A larger request does not raise an existing CPU or
-memory limit, or prove that more CPU became usable. A successful patch is not
-proof that every broker has finished resizing.
-
-## When to use it
-
-Use it for bursty workloads where explicit queue/rate thresholds suit your
-capacity policy. A steady workload may need only a fixed resource allocation.
-
-Before installing, have Kubernetes 1.24+ and:
-
-- A running `RabbitmqCluster` managed by the
-  [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator).
-- Reachable management API and credentials; the chart uses the Operator's
-  `<serviceName>-default-user` Secret by default.
-- Suitable resource limits and node capacity for your largest profile.
-  **Three or more brokers with quorum queues are recommended** for redundancy.
-
-**Restart warning:** default `auto` mode can fall back to Operator rolling
-restarts. In-place resizing requires `pods/resize` support and permission;
-container `resizePolicy` can still require a restart. It also sets `OnDelete`,
-which changes how Operator upgrades roll out. Read the
-[scale-mode trade-offs](docs/usage.md#scale-modes) before enabling it.
-
-## Start with Helm
-
-Requires Helm, kubectl, and access to the cluster above. From a checkout:
-
-```bash
-git clone https://github.com/ferterahadi/rmq-vertical-scaler.git
-cd rmq-vertical-scaler
-cp charts/rmq-vertical-scaler/values.yaml scaler-values.yaml
-```
-
-Edit `scaler-values.yaml`: set `serviceName` to your existing `RabbitmqCluster`
-name, then review `profiles`, `scaling.mode`, and timing for your workload.
-Installation starts automatic scaling immediately.
-
-```bash
-# Replace production with the namespace containing your RabbitmqCluster.
-helm upgrade --install rvs ./charts/rmq-vertical-scaler \
-  --namespace production -f scaler-values.yaml
-
-kubectl logs -f deployment/rmq-vertical-scaler -n production
-```
-
-Check the selected mode and profile in the logs, then inspect broker resources
-and resize status. See [verification steps](docs/usage.md#verify-a-deployment).
-
-## Go deeper
-
-- [Usage guide](docs/usage.md): profiles, credentials, resize operations,
-  CLI/Docker deployment, evidence, and documentation index.
-- [Helm chart reference](charts/rmq-vertical-scaler/README.md): chart values.
-- [2.3 policy guide](docs/v2.3-policy.md): configuration, safety, and migration.
-- [2.3 runtime results](docs/v2.3-runtime-results.md): measured behavior and
-  current verification limits.
+- [v3 policy](docs/v3-policy.md): configuration, metrics, safeguards and reconciliation.
+- [v3 migration](docs/v3-migration.md): version names, compatibility and release gates.
+- [Legacy usage](docs/usage.md): retained unversioned configuration and deployment behavior.
+- [Helm reference](charts/rmq-vertical-scaler/README.md): policy and legacy values.
+- [Repository structure](docs/architecture.md#repository-structure): code, tests and evidence.
+- [Historical acceptance](docs/history/v2.3/acceptance-results.md): earlier build results and limitations.
 
 Licensed under the [MIT License](LICENSE).

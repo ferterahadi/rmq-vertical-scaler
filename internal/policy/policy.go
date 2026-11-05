@@ -1,4 +1,4 @@
-// Package policy defines the opt-in version-2 policy. Legacy env configuration
+// Package policy defines the opt-in version-3 policy. Legacy env configuration
 // deliberately remains in internal/config.
 package policy
 
@@ -84,7 +84,7 @@ type Config struct {
 }
 
 func Defaults() Config {
-	c := Config{Version: 2, PollingInterval: 15, Update: UpdatePolicy{Mode: "Off"}}
+	c := Config{Version: 3, PollingInterval: 15, Update: UpdatePolicy{Mode: "Off"}}
 	c.Behavior.ScaleUp.StabilizationSeconds = 30
 	c.Behavior.ScaleDown.StepIntervalSeconds = 300
 	c.Behavior.ScaleDown.MemoryHeadroomPercent = 20
@@ -104,14 +104,14 @@ func Version(data []byte) (int, error) {
 	}
 	if raw, ok := top["configVersion"]; ok {
 		var v int
-		if err := json.Unmarshal(raw, &v); err != nil || v != 2 {
-			return 0, fmt.Errorf("configVersion must be integer 2")
+		if err := json.Unmarshal(raw, &v); err != nil || v != 3 {
+			return 0, fmt.Errorf("configVersion must be integer 3")
 		}
 		return v, nil
 	}
 	for _, key := range []string{"profileOrder", "triggers", "updatePolicy", "behavior", "pollingInterval"} {
 		if _, ok := top[key]; ok {
-			return 0, fmt.Errorf("%s requires configVersion: 2", key)
+			return 0, fmt.Errorf("%s requires configVersion: 3", key)
 		}
 	}
 	return 0, nil
@@ -122,8 +122,8 @@ func Parse(data []byte) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if v != 2 {
-		return nil, fmt.Errorf("configVersion: explicit integer 2 required")
+	if v != 3 {
+		return nil, fmt.Errorf("configVersion: explicit integer 3 required")
 	}
 	if err := uniqueJSON(data); err != nil {
 		return nil, err
@@ -239,8 +239,8 @@ func Known(r corev1.ResourceRequirements) bool {
 
 func (c *Config) Validate() error {
 	fail := func(path, msg string) error { return fmt.Errorf("%s: %s", path, msg) }
-	if c.Version != 2 {
-		return fail("configVersion", "must be 2")
+	if c.Version != 3 {
+		return fail("configVersion", "must be 3")
 	}
 	if len(c.Order) == 0 || len(c.Order) > 64 || len(c.Order) != len(c.Profiles) {
 		return fail("profileOrder", "must list every profile once (1 to 64 profiles)")

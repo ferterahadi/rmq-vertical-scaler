@@ -27,10 +27,10 @@ func helmOutput(t *testing.T, extra ...string) ([]byte, error) {
 	if err != nil {
 		t.Skip("Helm not installed")
 	}
-	args := []string{"template", "rvs", chartPath(t), "--namespace", "production", "-f", filepath.Join(chartPath(t), "values-v2.example.yaml")}
+	args := []string{"template", "rvs", chartPath(t), "--namespace", "production", "-f", filepath.Join(chartPath(t), "values-v3.example.yaml")}
 	return exec.Command(binary, append(args, extra...)...).CombinedOutput()
 }
-func TestHelmVersion2IsolationAndRecreate(t *testing.T) {
+func TestHelmVersion3IsolationAndRecreate(t *testing.T) {
 	output, err := helmOutput(t)
 	if err != nil {
 		t.Fatalf("helm: %v %s", err, output)
@@ -58,7 +58,7 @@ func TestHelmVersion2IsolationAndRecreate(t *testing.T) {
 		}
 	}
 	if deployment == nil || role == nil || configMaps != 1 {
-		t.Fatal("missing v2 objects or templated runtime status")
+		t.Fatal("missing v3 objects or templated runtime status")
 	}
 	spec := deployment["spec"].(map[string]any)
 	if spec["strategy"].(map[string]any)["type"] != "Recreate" || spec["replicas"] != 1 {
@@ -73,7 +73,7 @@ func TestHelmVersion2IsolationAndRecreate(t *testing.T) {
 		t.Fatal("policy changes do not restart the new runtime")
 	}
 }
-func TestHelmVersion2RejectsEmptyMixedAndContradictoryTargets(t *testing.T) {
+func TestHelmVersion3RejectsEmptyMixedAndContradictoryTargets(t *testing.T) {
 	for _, args := range [][]string{{"--set-json", "policy={}"}, {"--set", "scaling.mode=inplace"}, {"--set", "checkInterval=30"}, {"--set", "policy.kubernetes.namespace=other"}, {"--set", "policy.kubernetes.rmqServiceName=other"}} {
 		if output, err := helmOutput(t, args...); err == nil {
 			t.Fatalf("invalid Helm configuration rendered: %v %s", args, output)

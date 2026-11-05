@@ -77,6 +77,6 @@ serviceAccount:
 
 fullnameOverride: ""
 
-# Opt-in version-2 JSON-shaped policy. Omit/null preserves legacy behavior.
-# New policies default to Off. See examples/v2 and docs/v2.3-policy.md.
+# Opt-in version-3 JSON-shaped policy. Omit/null preserves legacy behavior.
+# New policies default to Off. See examples/v3 and docs/v3-policy.md.
 policy: null

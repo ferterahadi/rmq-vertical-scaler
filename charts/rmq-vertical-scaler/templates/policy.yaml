@@ -3,10 +3,10 @@
 {{- $legacy := .Files.Get "files/legacy-policy-defaults.json" | fromJson }}
 {{- range $key := list "profiles" "debounce" "checkInterval" "scaling" "rmq" }}
 {{- if ne (toJson (get $.Values $key)) (toJson (get $legacy $key)) }}
-{{- fail (printf "legacy value %s conflicts with policy; configure it inside the version-2 policy" $key) }}
+{{- fail (printf "legacy value %s conflicts with policy; configure it inside the version-3 policy" $key) }}
 {{- end }}
 {{- end }}
-{{- if ne (int .Values.policy.configVersion) 2 }}{{ fail "policy.configVersion must be 2" }}{{ end }}
+{{- if ne (int .Values.policy.configVersion) 3 }}{{ fail "policy.configVersion must be 3" }}{{ end }}
 {{- if ne .Values.policy.kubernetes.namespace .Release.Namespace }}{{ fail "policy.kubernetes.namespace must match the release namespace" }}{{ end }}
 {{- if ne .Values.policy.kubernetes.rmqServiceName .Values.serviceName }}{{ fail "policy target must match serviceName" }}{{ end }}
 apiVersion: v1

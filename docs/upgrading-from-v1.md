@@ -1,4 +1,7 @@
-# Upgrading from v1
+# Historical upgrade: v1 to v2
+
+For the new policy release, use [Switch to v3](v3-migration.md). This guide
+records the earlier Go rewrite and does not describe v3 policy migration.
 
 v2 is a **behaviour-identical rewrite** of the Node.js v1 in Go — same scaling
 decisions, same environment-variable contract, same generated manifests, smaller

@@ -1,6 +1,7 @@
 # Usage and operations
 
-This guide describes the current v2.2 controller. Start with the
+This guide describes the legacy unversioned controller retained in v3. For the new
+policy contract, see [Switch to v3](v3-migration.md). Start with the
 [README](../README.md) for the Helm installation path. Unreleased behavior lives
 in the implementation plan linked there.
 
@@ -158,7 +159,7 @@ Install the CLI with Go, or download a matching platform binary and checksums
 from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases):
 
 ```bash
-go install github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler@latest
+go install github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler@v2.2.1
 rmq-vertical-scaler init
 # Edit my-config.json: target namespace/name, profiles, timing, and mode.
 rmq-vertical-scaler generate -c my-config.json -o scaler.yaml
@@ -251,7 +252,7 @@ make image    # container image; requires Docker
 | [Local testing](local-testing.md) | Running against a kind cluster |
 | [Benchmarks](../research/benchmark.md) | v1/v2 measurements and methodology |
 | [Changelog](../CHANGELOG.md) | Release history |
-| [Go reference](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler) | Command package documentation |
+| [Go reference](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v3/cmd/rmq-vertical-scaler) | Command package documentation |
 | [Container images](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler) | Published images |
 
 Built on the RabbitMQ Cluster Operator and

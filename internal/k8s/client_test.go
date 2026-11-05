@@ -7,8 +7,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/scaling"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"

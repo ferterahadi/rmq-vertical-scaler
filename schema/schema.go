@@ -9,7 +9,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/policy"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/policy"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -17,8 +17,8 @@ import (
 //go:embed config-schema.json
 var ConfigSchema []byte
 
-//go:embed config-v2-schema.json
-var ConfigV2Schema []byte
+//go:embed config-v3-schema.json
+var ConfigV3Schema []byte
 
 // compiled is built at package load; a malformed embedded schema is a
 // programmer error and panics here rather than per-call (same convention as
@@ -48,7 +48,7 @@ func Validate(configJSON []byte) error {
 	if err != nil {
 		return err
 	}
-	if v == 2 {
+	if v == 3 {
 		_, err := policy.Parse(configJSON)
 		return err
 	}

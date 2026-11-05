@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "3.0.0",
+  "passed": false,
+  "currentSourceAccepted": false,
+  "releaseBlockers": [
+    "R3: v3 module, policy/status format and collector sources require a new immutable-image acceptance matrix across all eight runtime groups."
+  ],
+  "historicalSummary": "tests/e2e-v3/historical-v23-acceptance-summary.json"
+}
