@@ -3,7 +3,7 @@
 The motivating requirement was a load-driven **100m → 800m → 100m CPU-request
 cycle within 15 minutes**. Two GKE Standard experiments on 26 October 2026
 informed the design. These historical observations are separate from the
-[final 2.3 controller acceptance](history/v2.3/acceptance-results.md).
+[earlier controller experiments](v3-validation.md).
 
 ## Native VPA observation
 
@@ -47,7 +47,7 @@ are not a controlled performance comparison.
 
 This summary preserves the historical native-cycle and custom-cycle reports from
 the local GKE experiment. Raw cloud captures and experimental scripts are outside
-this PR's validated 2.3 scope. The experiment infrastructure was subsequently
+this PR's development validation scope. The experiment infrastructure was subsequently
 removed. Neither experiment ran this controller or the RabbitMQ Cluster Operator,
 or established throughput gains, lossless delivery or cost savings.
 

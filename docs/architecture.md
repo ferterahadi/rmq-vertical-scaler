@@ -95,7 +95,7 @@ The new controller reads effective resources, owns a separate status ConfigMap,
 and persists intent before resource mutations. Strict mode blocks unsupported
 memory-limit transitions; explicitly configured rolling is a separate path.
 The [policy guide](v3-policy.md) explains operation and migration; the
-[feasibility report](history/v2.3/feasibility.md) distinguishes measured constraints from
+[feasibility report](v3-validation.md) distinguishes measured constraints from
 release acceptance. No broker exec permission is granted.
 
 ## Repository structure
@@ -116,7 +116,7 @@ charts/rmq-vertical-scaler/ Helm chart, v3 example and conditional templates
 tests/e2e-v3/              current acceptance harness and v3 readiness summary
 tests/feasibility/         platform probes
 scripts/                  v3 evidence packaging and release gate
-docs/history/v2.3/        historical development evidence; never v3 acceptance
+docs/v3-validation.md    release requirements and support boundaries
 ```
 
 The legacy packages remain separate to preserve released behavior. Historical

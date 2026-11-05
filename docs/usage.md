@@ -231,7 +231,7 @@ Operator. Only CPU requests changed; CPU limits and memory stayed fixed. They
 establish neither this controller's convergence nor throughput, cost, or
 lossless-delivery benefits. The [historical summary](vpa-experiment-evidence.md)
 records the controls and evidence boundary; experimental scripts and raw cloud
-captures remain outside the validated 2.3 scope.
+captures remain outside the development validation scope.
 
 ## Development and further reading
 

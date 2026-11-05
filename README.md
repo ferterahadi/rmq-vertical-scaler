@@ -5,7 +5,7 @@ using explicit resource profiles and timing you control. Runs alongside the Rabb
 Cluster Operator in Kubernetes.
 
 **v3.0.0 is unreleased.** The v3 source still needs a complete acceptance run on one
-immutable image. Historical v2.3 development results do not validate this release.
+immutable image. Earlier development results do not validate this release.
 
 ## What changes in v3
 
@@ -40,7 +40,7 @@ RabbitMQ cluster. See [migration](docs/v3-migration.md) and the
 
 Existing unversioned JSON and environment configurations retain their legacy
 behavior. An image upgrade alone does not switch them to the v3 policy.
-The unpublished `configVersion: 2` draft becomes `configVersion: 3`.
+Use `configVersion: 3` to select the new policy.
 
 ## Why this exists
 
@@ -61,6 +61,6 @@ remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence
 - [Legacy usage](docs/usage.md): retained unversioned configuration and deployment behavior.
 - [Helm reference](charts/rmq-vertical-scaler/README.md): policy and legacy values.
 - [Repository structure](docs/architecture.md#repository-structure): code, tests and evidence.
-- [Historical acceptance](docs/history/v2.3/acceptance-results.md): earlier build results and limitations.
+- [Validation status](docs/v3-validation.md): release requirements and support boundaries.
 
 Licensed under the [MIT License](LICENSE).

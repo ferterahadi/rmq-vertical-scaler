@@ -3,11 +3,10 @@
 ## [3.0.0] - Unreleased
 
 ### Changed
-- Promote the unpublished 2.3.x policy release to v3.0.0. Use `configVersion: 3`,
+- Introduce v3.0.0 as the next major release after v2.2.x. Use `configVersion: 3`,
   `init --config-version 3`, the `/v3` Go module and v3 example/schema paths.
-- Preserve legacy unversioned configurations. The unpublished version-2 policy
-  and status formats are rejected; see [migration](docs/v3-migration.md).
-- Separate historical v2.3 evidence from current v3 acceptance. A complete new
+- Preserve legacy unversioned configurations. Use the version-3 policy and status formats; see [migration](docs/v3-migration.md).
+- Separate development evidence from current v3 acceptance. A complete new
   immutable-image matrix remains required before publication.
 
 
@@ -29,7 +28,7 @@
 - Add pinned feasibility/API probes, actual-controller AMQP harness and Astra
   regressions. Final immutable-build acceptance covers 31 requirements on the
   pinned local platform; rolling meets 120 seconds with explicit startup/readiness/DNS
-  tuning. See `docs/v2.3-acceptance-results.md` for evidence and support boundaries.
+  tuning. See `docs/v3-validation.md` for evidence and support boundaries.
 
 
 All notable changes to this project will be documented in this file.

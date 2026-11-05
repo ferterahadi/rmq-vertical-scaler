@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "summaryCommit": "b201ca82940e70996a42cc17b07f499ed3419969",
+  "summaryPath": "tests/e2e-v2/acceptance-summary.json",
+  "summarySHA256": "a99bbd9bf6b8bdb5c07a004415fdd6c89e3a8b565d82d1f11381b13b2c30e87a",
+  "sourceCommit": "44e4a1a3e088c53966f7c5e085ffe6080cb1a7a1",
+  "bundleSHA256": "a2b3d0d18b105b7bd000a16dd23bc5e52efa2a1e0844f49265eb6d73c4652b35"
+}

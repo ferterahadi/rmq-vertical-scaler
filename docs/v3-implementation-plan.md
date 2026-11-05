@@ -1,12 +1,12 @@
 # Version 3.0 implementation plan
 
 Status: v3.0.0 release alignment, 6 November 2026. Implementation derives from
-historically completed v2.3 development work. Collector fixes and the v3 module,
+earlier development work. Collector fixes and the v3 module,
 policy/status contract and packaging require a new immutable-image acceptance run.
 R3 remains open; no release is authorized by the historical checkboxes below.
-See [migration](v3-migration.md) and the [historical receipt](history/v2.3/acceptance-results.md).
+See [migration](v3-migration.md) and the [validation requirements](v3-validation.md).
 
-The [measured feasibility report](history/v2.3/feasibility.md) records a three-broker
+The [platform constraints](v3-validation.md) records a three-broker
 Kubernetes 1.35 / Operator 2.16.1 / RabbitMQ 4.4.0 cycle: effective requests and
 limits changed without restarts, but the running broker memory budget stayed
 fixed. After reduction, its alarm threshold exceeded the container limit.
@@ -128,8 +128,8 @@ runtime support from API discovery alone.
 - [x] **0.2 In-place limits:** test CPU and memory request/limit increases and
   decreases, runtime errors, quality-of-service (QoS) constraints, and
   `resizePolicy`. Fill a tested platform matrix before claiming support.
-  **Result:** [measured support/rejection matrix](history/v2.3/coverage-results.md#task-02-platform-constraints-complete)
-  records real QoS/restart-policy rejection and kubelet Infeasible behavior;
+  **Result:** development support/rejection matrix (see [validation status](v3-validation.md))
+  recorded real QoS/restart-policy rejection and kubelet Infeasible behavior;
   full in-place memory-limit support remains failed.
 - [x] **0.3 Operator behavior:** verify that an `OnDelete` override prevents
   unintended broker replacement while requests and limits propagate through
@@ -138,8 +138,8 @@ runtime support from API discovery alone.
   generated StatefulSet strategy before changing resources; an accepted custom
   resource patch does not prove the Operator has applied it. Include generated
   configuration/checksum changes and broker replacement during reconciliation.
-  **Result:** [six live interruption/recovery cases](history/v2.3/coverage-results.md#task-03-operator-recovery-complete)
-  passed, including explicit checksum override propagation, replacement identity
+  **Result:** six live interruption/recovery cases
+  passed in development (see [validation status](v3-validation.md)), including explicit checksum override propagation, replacement identity
   and external-writer blocking; 300 confirmed IDs were accounted for.
 - [x] **0.4 RabbitMQ behavior:** inspect generated memory configuration and
   broker behavior after limit changes. Verify whether the running broker adopts
@@ -151,7 +151,8 @@ runtime support from API discovery alone.
 - [x] **0.5 Metrics and rate scope:** verify the live resource-metric shape,
   source timestamps, CPU windows, memory working set, queue enumeration, and
   selected-queue publish rates before freezing schemas and fixtures.
-  **Result:** [live provider/pagination and controlled failure/arithmetic proof](history/v2.3/coverage-results.md#task-05-metrics-and-counting-complete).
+  **Result:** development live provider/pagination and controlled failure/arithmetic proof;
+  see [validation status](v3-validation.md).
 
 ### Version constraint already established
 
@@ -779,9 +780,9 @@ survives packaging updates without restoring old observation timers.
   evidence without credentials. Add the integration gate before release image
   publication; the current release workflow's unit/Helm checks alone are insufficient.
 
-Completed on 30 October 2026: [final immutable-build results](history/v2.3/acceptance-results.md)
-map all 31 requirements to live/controlled/local evidence, retain timing failures
-and explicit rolling prerequisites, and link the passing release-evidence gate.
+Development acceptance completed on 30 October 2026 mapped all 31 requirements
+to live/controlled/local evidence and retained timing failures and explicit rolling
+prerequisites. See [current validation requirements](v3-validation.md).
 That closed the earlier image’s verification only. R3 requires a fresh complete v3 matrix before publication.
 
 ### Acceptance matrix

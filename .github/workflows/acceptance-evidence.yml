@@ -43,23 +43,10 @@ jobs:
         run: |
           python3 -m pip install -r tests/e2e-v3/requirements.txt
           python3 -m unittest discover -s tests/e2e-v3 -p 'test_*.py'
-      - name: Reproduce historical v2.3 evidence
+      - name: Reproduce development evidence
         run: python3 scripts/package-v3-evidence.py --historical
-      - name: Verify recorded acceptance against its original source
-        run: |
-          python3 - <<'PY'
-          import json, pathlib, re, subprocess, tempfile
-          summary = json.loads(pathlib.Path('tests/e2e-v3/historical-v23-acceptance-summary.json').read_text())
-          commit = summary['bundle']['sourceCommit']
-          if not re.fullmatch(r'[0-9a-f]{40}', commit):
-              raise SystemExit('evidence source must be an immutable commit')
-          # This checks only the recorded image. Current-source readiness is
-          # checked independently below and cannot inherit this historical pass.
-          with tempfile.TemporaryDirectory() as folder:
-              source = subprocess.check_output(['git', 'archive', '--format=tar', commit])
-              subprocess.run(['tar', '-xf', '-', '-C', folder], input=source, check=True)
-              subprocess.run(['python3', 'scripts/check-v23-release-evidence.py', 'v2.3.0'], cwd=folder, check=True)
-          PY
+      - name: Verify development acceptance against its recorded source
+        run: python3 scripts/package-v3-evidence.py --verify-historical
       - name: Check current release readiness
         run: |
           python3 - <<'PY'
@@ -79,8 +66,8 @@ jobs:
         id: evidence
         uses: actions/upload-artifact@v4
         with:
-          name: rmq-v23-historical-evidence
-          path: dist/acceptance/2.3.0/rmq-v23-evidence.tar.gz
+          name: rmq-development-evidence
+          path: dist/evidence/development.tar.gz
           if-no-files-found: error
           compression-level: 0
           retention-days: 90
@@ -88,4 +75,4 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
         run: |
-          echo "Verified historical v2.3 evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified development evidence bundle (90-day retention): ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"
