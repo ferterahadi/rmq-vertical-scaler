@@ -1,9 +1,9 @@
 # Version 3.0 implementation plan
 
-Status: v3.0.0 release alignment, 6 November 2026. Implementation derives from
-earlier development work. Collector fixes and the v3 module,
-policy/status contract and packaging require a new immutable-image acceptance run.
-R3 remains open; no release is authorized by the historical checkboxes below.
+Status: v3.0.0 acceptance verified, 6 November 2026. The fresh immutable-image run
+includes the collector corrections and v3 module/policy/status contract. All eight
+runtime groups and 31 requirements passed; R3 is verified. See the
+[acceptance results](v3-acceptance-results.md). Merge and publication remain separate.
 See [migration](v3-migration.md) and the [validation requirements](v3-validation.md).
 
 The [platform constraints](v3-validation.md) records a three-broker
@@ -783,7 +783,8 @@ survives packaging updates without restoring old observation timers.
 Development acceptance completed on 30 October 2026 mapped all 31 requirements
 to live/controlled/local evidence and retained timing failures and explicit rolling
 prerequisites. See [current validation requirements](v3-validation.md).
-That closed the earlier image’s verification only. R3 requires a fresh complete v3 matrix before publication.
+That closed the earlier image’s verification only. R3 subsequently passed a fresh
+complete v3 matrix on 6 November; see [current results](v3-acceptance-results.md).
 
 ### Acceptance matrix
 

@@ -1,8 +1,9 @@
 # v3 validation and release requirements
 
-**v2.2.x is the released baseline. v3.0.0 is not released.** Local source checks
-have passed, but R3 requires a complete new runtime acceptance matrix on one
-immutable v3 image. Earlier development experiments do not validate this build.
+**v2.2.x is the released baseline. v3.0.0 is not released.** The fresh v3 immutable-image
+run passed all eight runtime groups and 31 requirements on 6 November 2026. R3 is
+verified. See [measured results](v3-acceptance-results.md) and the
+[retained bundle](v3-evidence-bundle.md); production compatibility remains unverified.
 
 ## Required acceptance
 
@@ -15,7 +16,7 @@ runtime evidence; they do not replace it. The current readiness record is
 
 ## Platform constraints
 
-Development measurements used Kubernetes 1.35.0, RabbitMQ Cluster Operator 2.16.1,
+Current acceptance used Kubernetes 1.35.0, RabbitMQ Cluster Operator 2.16.1,
 RabbitMQ 4.4.0 and Metrics Server 0.8.0 on Linux/arm64. Other platforms and production
 compatibility remain unverified.
 
@@ -44,5 +45,6 @@ python3 scripts/check-v3-release-evidence.py v3.0.0
 
 The first command recreates `dist/evidence/development.tar.gz` and checks its original
 checksum. The second verifies the recorded source/image linkage against the original
-source export. The third must remain blocked until the v3 matrix passes. Keep the
-pinned commits in history with a merge commit; do not relabel old captures as v3 proof.
+source export. The third verifies the fresh v3 evidence after retrieving its
+[bundle](v3-evidence-bundle.md); it cannot use development captures instead. Keep the
+pinned development commits in history with a merge commit; do not relabel old captures as v3 proof.

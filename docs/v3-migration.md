@@ -54,13 +54,15 @@ v3 acceptance and are not a released product version. The source commit remains
 necessary for reconstruction; retain it with a merge commit. See
 [validation status](v3-validation.md).
 
-The v3 release gate applies to all `v3.*` tags. It stays blocked until a new immutable
-v3 image completes the eight-group acceptance matrix and its source/image fingerprints
-and reviewed evidence are recorded. Current unit checks cannot replace that run.
+The v3 release gate applies to all `v3.*` tags. The fresh immutable-image run passed
+the eight-group matrix, source/image fingerprints and reviewed evidence checks.
+See [results and support boundaries](v3-acceptance-results.md). The gate repeats on
+the current checkout; a changed binary needs new runtime evidence.
 
 ```bash
+python3 scripts/package-v3-evidence.py
 python3 scripts/check-v3-release-evidence.py v3.0.0
-# Expected to fail while R3 remains open.
+# Retrieve and verify the pinned current v3 acceptance.
 python3 scripts/package-v3-evidence.py --historical
 # Reproduces development evidence only; cannot clear the v3 gate.
 ```

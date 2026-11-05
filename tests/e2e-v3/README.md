@@ -66,7 +66,9 @@ do not prove that production clients automatically recover.
 
 ## Release identity
 
-`acceptance-summary.json` records v3 readiness and currently blocks publication.
+`acceptance-summary.json` records the passed fresh v3 acceptance and pins its artifact.
+See [results](../../docs/v3-acceptance-results.md) and the
+[bundle guide](../../docs/v3-evidence-bundle.md). v3 remains unpublished.
 `development-evidence.json` pins the recorded development evidence without claiming a release. Use
 `python3 scripts/package-v3-evidence.py --historical` only to reconstruct that older
 bundle. Its result paths and image digest must never be relabelled as v3 evidence.
@@ -107,7 +109,7 @@ acceptance assertion. Six narrowly scoped packaging/verification amendments are
 fingerprinted separately; production inputs must still match the accepted image.
 The [development evidence descriptor](development-evidence.json) preserves the earlier
 31-row coverage and timing results. The [v3 summary](acceptance-summary.json) records
-current release blockers; it has no accepted v3 image yet.
+the accepted v3 image, source linkage and current artifact pin.
 
 
 ## Bounded coverage closure

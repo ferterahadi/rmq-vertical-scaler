@@ -1,37 +1,36 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
 ## [3.0.0] - Unreleased
 
+### Added
+- Opt-in `configVersion: 3` JSON and Helm policies with paired CPU/memory requests
+  and limits, queue depth/publish rate and busiest-broker utilization triggers.
+- Recommendation-only `Off`, configurable stabilization and conservative downward
+  steps, fresh memory safety checks, and durable asynchronous resize reconciliation.
+- Confirm desired and effective resources on every broker; retain targets and
+  successful partial changes across deferred operations and controller restarts.
+
 ### Changed
-- Introduce v3.0.0 as the next major release after v2.2.x. Use `configVersion: 3`,
-  `init --config-version 3`, the `/v3` Go module and v3 example/schema paths.
-- Preserve legacy unversioned configurations. Use the version-3 policy and status formats; see [migration](docs/v3-migration.md).
-- Separate development evidence from current v3 acceptance. A complete new
-  immutable-image matrix remains required before publication.
+- Publish the new policy/status contract, `/v3` Go module, CLI, examples and schema
+  as v3.0.0, the next major release after v2.2.x. Legacy unversioned behavior remains
+  supported. See [migration](docs/v3-migration.md).
+- Require in-place operation by default. Strict mode blocks unsupported memory-limit
+  changes before writes; rolling fallback requires explicit configuration. No broker exec.
+- Use one scaler replica with `Recreate`; separate controller-owned status from Helm policy.
 
+### Fixed
+- Judge metric freshness at collection completion while keeping poll time for
+  stabilization. Collect overview rates independently from queue pagination and
+  skip unused enumeration.
 
-- Fix collector receipt-time freshness for recommendations, memory safety and
-  retained-operation recovery; keep poll time for stabilization. Collect overview
-  rates independently from selected queues and skip unused queue enumeration.
-  Current source regressions pass; refreshed final-image runtime acceptance is
-  required before release. Earlier acceptance remains historical image evidence.
-
-- Add opt-in configVersion3 JSON/Helm policies with explicit paired requests/limits,
-  queue/rate and busiest-broker CPU/memory triggers, and recommendation-only Off.
-- Separate observations, recommendations and durable asynchronous reconciliation;
-  confirm effective resources rather than treating accepted patches as completion.
-- Preserve legacy defaults and decisions. Use Recreate for scaler rollout on both paths.
-- Require in-place by default, block memory-limit changes before writes on the
-  tested platform, and keep Operator rolling fallback explicit. No broker exec.
-- Add source-timestamped safety windows, memory headroom, partial-source handling,
-  restart recovery, scoped status, strict schemas and versioned examples.
-- Add pinned feasibility/API probes, actual-controller AMQP harness and Astra
-  regressions. Final immutable-build acceptance covers 31 requirements on the
-  pinned local platform; rolling meets 120 seconds with explicit startup/readiness/DNS
-  tuning. See `docs/v3-validation.md` for evidence and support boundaries.
-
-
-All notable changes to this project will be documented in this file.
+### Validation
+- Fresh immutable-image acceptance passed all eight runtime groups and 31 requirements
+  on the pinned local platform. Rolling scale-up took 110.23 seconds with explicit
+  startup/readiness/DNS tuning; default rolling timing is not established by this run.
+  Strict memory-limit changes remain unsupported. See [results](docs/v3-acceptance-results.md)
+  and the [retained evidence](docs/v3-evidence-bundle.md). No release has been published.
 
 ## [2.2.1] - 2026-07-10
 

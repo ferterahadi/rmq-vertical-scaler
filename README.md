@@ -4,8 +4,9 @@ Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilizat
 using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
 Cluster Operator in Kubernetes.
 
-**v3.0.0 is unreleased.** The v3 source still needs a complete acceptance run on one
-immutable image. Earlier development results do not validate this release.
+**v3.0.0 is unreleased.** The pinned local acceptance run passed all eight runtime
+groups and 31 requirements. See [results and support boundaries](docs/v3-acceptance-results.md)
+before adopting it; other platforms and production behavior remain unverified.
 
 ## What changes in v3
 
@@ -61,6 +62,7 @@ remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence
 - [Legacy usage](docs/usage.md): retained unversioned configuration and deployment behavior.
 - [Helm reference](charts/rmq-vertical-scaler/README.md): policy and legacy values.
 - [Repository structure](docs/architecture.md#repository-structure): code, tests and evidence.
-- [Validation status](docs/v3-validation.md): release requirements and support boundaries.
+- [Acceptance results](docs/v3-acceptance-results.md): measured behavior and support boundaries.
+- [Evidence bundle](docs/v3-evidence-bundle.md): retrieve and verify retained captures.
 
 Licensed under the [MIT License](LICENSE).
