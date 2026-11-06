@@ -45,13 +45,17 @@
   "bundle": {
     "storage": "github-actions",
     "sourceCommit": "d669c5ae15f1dfdbb6eaa30848b61e9e5ea25eca",
-    "artifactId": null,
+    "artifactId": 13496691411,
     "localPath": "dist/acceptance/3.0.0/rmq-v3-evidence.tar.gz",
     "sha256": "e97243218e820ba53728620951650222edbe2040dde5038cdd2fe71ec26e0c1c",
     "bytes": 894763,
     "files": 271,
     "retentionDays": 90,
-    "retentionStatus": "local verification complete; upload pending"
+    "retentionStatus": "uploaded, downloaded and fully verified",
+    "uploadRunId": 42205168722,
+    "artifactUrl": "https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42205168722/artifacts/13496691411",
+    "expiresAt": "2027-02-04T10:46:06Z",
+    "verifiedAt": "2026-11-06T10:47:17.138292+00:00"
   },
   "packagingSourcesSHA256": {
     ".github/workflows/acceptance-evidence.yml": "0e656acae3d8b264f45092b1d31ea6d00ccc27cae6b864c8e96ad9026c2558a8",
