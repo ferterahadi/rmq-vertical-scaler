@@ -6,12 +6,12 @@ and [results](v3-acceptance-results.md).
 
 ## Current archive
 
-- [Download artifact 13496691411](https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42205168722/artifacts/13496691411),
-  uploaded by successful [run 42205168722](https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42205168722).
-- Inner file: `rmq-v3-evidence.tar.gz`, **271 members**, **894,763 bytes**.
-- SHA-256: `e97243218e820ba53728620951650222edbe2040dde5038cdd2fe71ec26e0c1c`.
-- Retention: **90 days**, expires **04 February 2027 at 10:46:06 UTC**
-  (04 February at 18:46:06 Singapore time).
+- [Download artifact 13496229874](https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42206703768/artifacts/13496229874),
+  uploaded by successful [run 42206703768](https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42206703768).
+- Inner file: `rmq-v3-evidence.tar.gz`, **277 members**, **923,633 bytes**.
+- SHA-256: `e62667674d176f3b868a166884d03b3bb8883ac94230b571f1913edbdccb4c61`.
+- Retention: **90 days**, expires **04 February 2027 at 10:58:32 UTC**
+  (04 February at 18:58:32 Singapore time).
 
 The checksum covers the inner gzip archive, not GitHub's transport ZIP. Local and
 independently downloaded copies matched byte-for-byte and passed the full gate.
