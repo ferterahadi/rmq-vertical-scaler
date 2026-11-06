@@ -329,6 +329,14 @@ func selected(q queue, s *policy.Selector) bool {
 	return s.QueueNameRegex == "" || regexp.MustCompile(s.QueueNameRegex).MatchString(q.Name)
 }
 func (b *Backend) queueInventory(ctx context.Context) (map[string]queue, bool, bool) {
+	// Queue totals remain available before detailed statistics are populated.
+	// Selected-queue rates still require the detailed statistics response.
+	totalsOnly := true
+	for _, trigger := range b.Policy.Triggers {
+		if trigger.Type == "rabbitmq" && trigger.Metadata.Mode == "MessageRate" && trigger.Metadata.Selector != nil {
+			totalsOnly = false
+		}
+	}
 	allQueues := map[string]queue{}
 	complete := true
 	available := false
@@ -336,7 +344,11 @@ func (b *Backend) queueInventory(ctx context.Context) (map[string]queue, bool, b
 	expectedCount := -1
 	for page := 1; page <= 10000; page++ {
 		var raw json.RawMessage
-		if err := b.get(ctx, fmt.Sprintf("/api/queues?page=%d&page_size=500&pagination=true", page), &raw); err != nil {
+		path := fmt.Sprintf("/api/queues?page=%d&page_size=500&pagination=true", page)
+		if totalsOnly {
+			path += "&disable_stats=true&enable_queue_totals=true"
+		}
+		if err := b.get(ctx, path, &raw); err != nil {
 			complete = false
 			break
 		}

@@ -1,9 +1,11 @@
 {
   "schemaVersion": 1,
   "releaseVersion": "3.0.0",
-  "passed": true,
-  "currentSourceAccepted": true,
-  "releaseBlockers": [],
+  "passed": false,
+  "currentSourceAccepted": false,
+  "releaseBlockers": [
+    "R3: explicit queue-total collection changes production sources; the retained predecessor-image acceptance cannot authorize this source. Run a fresh complete immutable-image matrix before public release."
+  ],
   "date": "2026-11-06",
   "imageDigest": "sha256:4f05710ecb2ebf8823fbd9d5c91ed965a86dbb01e0fe7e11d435f6e8d8519628",
   "requirements": 31,
@@ -34,6 +36,7 @@
     "rolling": 110.227682
   },
   "boundaries": [
+    "The retained bundle describes the predecessor image. Private deployment checks of the queue-total fix do not replace the full release matrix.",
     "Pinned local Kubernetes1.35.0/Operator2.16.1/RabbitMQ4.4.0/MetricsServer0.8.0 on Linux/arm64 only.",
     "Current v3 rolling timing uses explicit startup/readiness/DNS tuning; default rolling timing failures are earlier development diagnostics.",
     "Strict memory-limit changes remain unsupported; explicitly configured rolling reloads broker budgets.",
