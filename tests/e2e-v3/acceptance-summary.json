@@ -1,13 +1,11 @@
 {
   "schemaVersion": 1,
   "releaseVersion": "3.0.0",
-  "passed": false,
-  "currentSourceAccepted": false,
-  "releaseBlockers": [
-    "R3: explicit queue-total collection changes production sources; the retained predecessor-image acceptance cannot authorize this source. Run a fresh complete immutable-image matrix before public release."
-  ],
+  "passed": true,
+  "currentSourceAccepted": true,
+  "releaseBlockers": [],
   "date": "2026-11-06",
-  "imageDigest": "sha256:4f05710ecb2ebf8823fbd9d5c91ed965a86dbb01e0fe7e11d435f6e8d8519628",
+  "imageDigest": "sha256:7b3ef6c21c7ddc905848fb68e2e02ad9084e42d03949c4d498505da0bfa8409a",
   "requirements": 31,
   "runtimeGroups": [
     "deferred",
@@ -31,43 +29,37 @@
     "strict_memory_block": true
   },
   "independentScaleUpSeconds": {
-    "native": 77.532247,
-    "paired": 78.452323,
-    "rolling": 110.227682
+    "native": 79.642344,
+    "paired": 64.599429,
+    "rolling": 92.540565
   },
   "boundaries": [
-    "The retained bundle describes the predecessor image. Private deployment checks of the queue-total fix do not replace the full release matrix.",
-    "Pinned local Kubernetes1.35.0/Operator2.16.1/RabbitMQ4.4.0/MetricsServer0.8.0 on Linux/arm64 only.",
-    "Current v3 rolling timing uses explicit startup/readiness/DNS tuning; default rolling timing failures are earlier development diagnostics.",
-    "Strict memory-limit changes remain unsupported; explicitly configured rolling reloads broker budgets.",
-    "Live resource projections used low targets inOff; resource-driven Auto load cycles were not tested.",
-    "Availability is sampled; uncertain publish retries and accounted IDs do not establish exactly-once delivery.",
-    "Live provider mapping was independently retaken after pagination drain; no simultaneous queue-total claim.",
-    "Controlled API/client regressions establish failure/arithmetic semantics; they do not claim real provider failures.",
-    "No production deployment, cost/throughput claim, image publication or release."
+    "Pinned local Kubernetes 1.35.0 / Operator 2.16.1 / RabbitMQ 4.4.0 / Metrics Server 0.8.0 on Linux/arm64; three brokers on one disposable node.",
+    "Healthy rolling timing uses explicitly configured startup delay 0, readiness period 2 seconds and DNS TTL/cache 5; the scaler does not apply this tuning.",
+    "Strict memory-limit changes remain unsupported; explicit rolling validates broker budget reload.",
+    "The eight-group local matrix tests resource projections in Off; separate private runtime trials are not included in this public evidence.",
+    "Availability is sampled. Confirmed/consumed IDs and uncertain publish retries do not establish exactly-once delivery.",
+    "Controlled API/client regressions establish failure and arithmetic semantics; they do not claim real provider failures.",
+    "This acceptance makes no production latency, cost savings or throughput guarantee. No public image or release is published by this run."
   ],
   "bundle": {
     "storage": "github-actions",
-    "sourceCommit": "f0d92a661fdae91ad6db03411239da9e7cf7623a",
-    "artifactId": 13444131144,
+    "sourceCommit": "d669c5ae15f1dfdbb6eaa30848b61e9e5ea25eca",
+    "artifactId": null,
     "localPath": "dist/acceptance/3.0.0/rmq-v3-evidence.tar.gz",
-    "sha256": "69a0525d50c6dbf3574221e1c9eb067f9837151f793c31f24eba00f858e62620",
-    "bytes": 859239,
-    "files": 296,
+    "sha256": "e97243218e820ba53728620951650222edbe2040dde5038cdd2fe71ec26e0c1c",
+    "bytes": 894763,
+    "files": 271,
     "retentionDays": 90,
-    "retentionStatus": "uploaded, downloaded and fully verified",
-    "runId": 42087605789,
-    "artifactUrl": "https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42087605789/artifacts/13444131144",
-    "expiresAt": "2027-02-03T18:47:21Z",
-    "verifiedAt": "2026-11-05T18:50:58.202175+00:00"
+    "retentionStatus": "local verification complete; upload pending"
   },
   "packagingSourcesSHA256": {
+    ".github/workflows/acceptance-evidence.yml": "0e656acae3d8b264f45092b1d31ea6d00ccc27cae6b864c8e96ad9026c2558a8",
+    ".github/workflows/release.yml": "cce72933e069009c686f3f5d046dac2918dd79c15a0689fa37302eb90cfdd06e",
     "scripts/check-v3-release-evidence.py": "e01c8d0d6e44dab419b9cd01a4c670a11ce69dffe922b6afda0d04ee90df4ea7",
     "scripts/package-v3-evidence.py": "6c4e64fcdbf2a98c632ae152d3147c70ca3319f80e74d6b29764420d8ed81f24",
-    ".github/workflows/release.yml": "cce72933e069009c686f3f5d046dac2918dd79c15a0689fa37302eb90cfdd06e",
-    ".github/workflows/acceptance-evidence.yml": "0e656acae3d8b264f45092b1d31ea6d00ccc27cae6b864c8e96ad9026c2558a8",
-    "tests/e2e-v3/test_release_gate.py": "eea5ae9cf916841edc9c91bf58283f81209b5fffcaf0dca0d89cf0e1e412587a",
-    "tests/e2e-v3/test_evidence_bundle.py": "9c4c80551daa6304ac31c7366a7b71fce11c36819b11de685890fe94995a7633"
+    "tests/e2e-v3/test_evidence_bundle.py": "9c4c80551daa6304ac31c7366a7b71fce11c36819b11de685890fe94995a7633",
+    "tests/e2e-v3/test_release_gate.py": "eea5ae9cf916841edc9c91bf58283f81209b5fffcaf0dca0d89cf0e1e412587a"
   },
   "coverage": {
     "broker_census": {
@@ -196,5 +188,5 @@
     }
   },
   "developmentEvidence": "tests/e2e-v3/development-evidence.json",
-  "validatedSourceCommit": "049f57d988970593b7ec20a2895f166448aa2cc3"
+  "validatedSourceCommit": "d669c5ae15f1dfdbb6eaa30848b61e9e5ea25eca"
 }

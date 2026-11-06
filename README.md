@@ -4,10 +4,10 @@ Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilizat
 using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
 Cluster Operator in Kubernetes.
 
-**v3.0.0 is unreleased.** An earlier immutable image passed the eight-group runtime
-acceptance matrix. The subsequent collector fix requires fresh full acceptance
-before release. See the [current release gate](docs/v3-validation.md) and
-[earlier results and support boundaries](docs/v3-acceptance-results.md).
+**v3.0.0 is unreleased.** The latest source has passed the fresh eight-group
+immutable-image acceptance matrix. Merge and publication remain separate steps.
+See the [release gate](docs/v3-validation.md) and
+[measured results and support boundaries](docs/v3-acceptance-results.md).
 
 ## What changes in v3
 
@@ -46,33 +46,43 @@ Use `configVersion: 3` to select the new policy.
 
 ## Configuration example
 
-This complete [combined policy](examples/v3/combined.json) enables queue depth,
+This complete [four-profile policy](docs/examples/v3-four-profile.json) combines queue depth,
 publish rate, CPU and memory triggers. Adapt the example profiles to your brokers
 and platform minimum requests before deploying; these are illustrative sizes.
 
 ```json
 {
   "configVersion": 3,
-  "profileOrder": ["LOW", "HIGH"],
+  "profileOrder": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   "profiles": {
     "LOW": {
-      "requests": {"cpu": "100m", "memory": "256Mi"},
-      "limits": {"cpu": "1", "memory": "1Gi"}
+      "requests": {"cpu": "500m", "memory": "1Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    },
+    "MEDIUM": {
+      "requests": {"cpu": "1000m", "memory": "2Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
     },
     "HIGH": {
-      "requests": {"cpu": "800m", "memory": "512Mi"},
-      "limits": {"cpu": "2", "memory": "1Gi"}
+      "requests": {"cpu": "2000m", "memory": "4Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    },
+    "CRITICAL": {
+      "requests": {"cpu": "4000m", "memory": "8Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
     }
   },
   "triggers": [
     {"type": "rabbitmq", "metadata": {
-      "mode": "QueueLength", "aggregation": "sum", "thresholds": {"HIGH": 2000}
+      "mode": "QueueLength", "aggregation": "max",
+      "thresholds": {"MEDIUM": 2000, "HIGH": 10000, "CRITICAL": 50000}
     }},
     {"type": "rabbitmq", "metadata": {
-      "mode": "MessageRate", "thresholds": {"HIGH": 200}
+      "mode": "MessageRate",
+      "thresholds": {"MEDIUM": 200, "HIGH": 1000, "CRITICAL": 5000}
     }},
-    {"type": "cpu", "metricType": "Utilization", "metadata": {}},
-    {"type": "memory", "metricType": "Utilization", "metadata": {}}
+    {"type": "cpu", "metricType": "Utilization", "aggregation": "max", "metadata": {"value": "60"}},
+    {"type": "memory", "metricType": "Utilization", "aggregation": "max", "metadata": {"value": "75"}}
   ],
   "pollingInterval": 15,
   "updatePolicy": {"mode": "Off", "allowRollingFallback": false},
@@ -86,11 +96,36 @@ and platform minimum requests before deploying; these are illustrative sizes.
 }
 ```
 
-The highest recommendation wins, and each profile applies CPU and memory together
-**per broker**. CPU and memory use the busiest broker's Kubernetes Metrics API
-usage against its effective requests, with default targets of 60% and 75%.
-Set `metadata.value` to a percentage string to change either target. Queue/rate
-thresholds use strict `>` comparison; this example sums visible queue depths.
+Set CPU `metadata.value` to `"60"` for a 60% utilization target and memory to
+`"75"` for 75%. These are percentage strings; omitting them uses the same defaults.
+Utilization is the busiest broker's Kubernetes Metrics API usage divided by its
+**effective resource request**, not its limit or the node's capacity. With a 500m
+CPU request, 400m of sustained usage is 80%; the example therefore recommends MEDIUM
+to bring utilization within the 60% target. Exactly 60% does not exceed the target.
+
+**Triggers have no fixed priority, and their order in the array does not matter.**
+Each independently recommends a profile. The highest recommendation wins
+according to `profileOrder`, and that profile applies CPU and memory together
+**per broker**. CPU and memory each choose the smallest profile whose request
+can keep the measured usage within the configured utilization target.
+
+With the publish-rate trigger recommending LOW:
+
+| Queue recommendation | CPU recommendation | Memory recommendation | Selected profile |
+|---|---|---|---|
+| LOW | MEDIUM | LOW | MEDIUM |
+| HIGH | MEDIUM | LOW | HIGH |
+| LOW | LOW | CRITICAL | CRITICAL |
+| MEDIUM | HIGH | HIGH | HIGH; CPU and memory tie |
+| LOW | LOW | LOW | LOW recommendation; decrease one step at a time |
+
+See the [four-profile decision walkthrough](docs/v3-policy-simulation.md) for
+worked examples, threshold boundaries and the step-by-step decrease path.
+
+The same rule includes the publish-rate trigger. Any enabled trigger can require
+an increase; a decrease requires **all** enabled triggers to permit the smaller
+profile. Increases must satisfy the configured 30-second stabilization window.
+Queue/rate thresholds use strict `>` comparison; this example uses the deepest visible queue.
 
 Start in `Off` to inspect recommendations. After verification, `Auto` permits
 resource changes. Decreases require all enabled signals to permit the lower

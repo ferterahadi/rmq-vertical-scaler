@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [3.0.0] - Unreleased
 
 ### Added
+- Four-profile configuration example with explicit CPU/memory targets, trigger priority
+  and a worked decision simulation.
 - Opt-in `configVersion: 3` JSON and Helm policies with paired CPU/memory requests
   and limits, queue depth/publish rate and busiest-broker utilization triggers.
 - Recommendation-only `Off`, configurable stabilization and conservative downward
@@ -23,11 +25,12 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Judge metric freshness at collection completion while keeping poll time for
   stabilization. Collect overview rates independently from queue pagination and
-  skip unused enumeration.
+  skip unused enumeration. Request explicit queue totals when detailed statistics
+  have not initialized, while retaining selected-queue publish-rate statistics.
 
 ### Validation
 - Fresh immutable-image acceptance passed all eight runtime groups and 31 requirements
-  on the pinned local platform. Rolling scale-up took 110.23 seconds with explicit
+  on the pinned local platform. Rolling scale-up took 92.54 seconds with explicit
   startup/readiness/DNS tuning; default rolling timing is not established by this run.
   Strict memory-limit changes remain unsupported. See [results](docs/v3-acceptance-results.md)
   and the [retained evidence](docs/v3-evidence-bundle.md). No release has been published.

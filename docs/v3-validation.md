@@ -1,10 +1,10 @@
 # v3 validation and release requirements
 
-**v2.2.x is the released baseline. v3.0.0 is not released.** The recorded predecessor
-image passed all eight runtime groups and 31 requirements on 6 November 2026.
-The subsequent queue-total collector fix changes production sources, so R3 is open
-again for that fix. Private deployment tests do not replace a fresh full matrix.
-See the predecessor [measured results](v3-acceptance-results.md) and
+**v2.2.x is the released baseline. v3.0.0 is not released.** The latest collector
+source passed a fresh immutable-image run of all eight groups and 31 requirements
+on 6 November 2026. R3 is verified against that image; any subsequent production
+source change requires renewed acceptance. Private deployment tests do not replace
+the matrix. See [measured results](v3-acceptance-results.md) and the
 [retained bundle](v3-evidence-bundle.md).
 
 ## Required acceptance
