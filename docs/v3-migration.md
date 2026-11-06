@@ -1,14 +1,15 @@
 # Switch to RabbitMQ Vertical Scaler v3
 
-The released baseline is **v2.2.x**. The next release is **v3.0.0**, followed by
-**3.0.x** patch releases. No v3 image or release has been published yet.
+**v3.0.0** is the next major release after **v2.2.x**, followed by **3.0.x** patch
+releases. Download the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0)
+and use the versioned Docker image below.
 
 ## One version vocabulary
 
 | Surface | v3 name |
 |---|---|
 | Product and release | RabbitMQ Vertical Scaler v3; tag `v3.0.0` |
-| Container image | `ferterahadi/rmq-vertical-scaler:3.0.0` once published; major alias `:3` |
+| Container image | `ferterahadi/rmq-vertical-scaler:3.0.0`; major alias `:3` |
 | Go module | `github.com/ferterahadi/rmq-vertical-scaler/v3` |
 | New policy / CLI scaffold | `configVersion: 3` / `init --config-version 3` |
 | Policy guide and examples | `docs/v3-policy.md` / `examples/v3/` |
@@ -25,7 +26,7 @@ required. Third-party dependency major versions are unrelated to this product re
 1. Keep your existing configuration and status backed up. Declare v3 profiles matching
    the brokers' actual requests **and limits**. Recalibrate queue thresholds: v3 defaults
    to summed backlog, while legacy behavior uses the deepest queue.
-2. Build/load a v3 image, or use a published v3 image once available. Generate a complete
+2. Use `ferterahadi/rmq-vertical-scaler:3.0.0` or your own tested v3 image. Generate a complete
    v3 policy or use the Helm v3 example. Resource-only triggers need Kubernetes Metrics
    API access; queue/rate triggers need RabbitMQ credentials too. Every decrease needs
    fresh memory metrics.

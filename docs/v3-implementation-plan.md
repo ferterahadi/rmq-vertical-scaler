@@ -3,7 +3,7 @@
 Status: v3.0.0 acceptance refreshed and verified, 6 November 2026. The latest-source immutable-image run
 includes the collector corrections and v3 module/policy/status contract. All eight
 runtime groups and 31 requirements passed; R3 is verified. See the
-[acceptance results](v3-acceptance-results.md). Merge and publication remain separate.
+[acceptance results](v3-acceptance-results.md).
 See [migration](v3-migration.md) and the [validation requirements](v3-validation.md).
 
 The [platform constraints](v3-validation.md) records a three-broker

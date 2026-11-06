@@ -4,8 +4,9 @@ Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilizat
 using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
 Cluster Operator in Kubernetes.
 
-**v3.0.0 is unreleased.** The latest source has passed the fresh eight-group
-immutable-image acceptance matrix. Merge and publication remain separate steps.
+**v3.0.0** passed the eight-group immutable-image acceptance matrix.
+Get the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0)
+and use `ferterahadi/rmq-vertical-scaler:3.0.0` for the controller.
 See the [release gate](docs/v3-validation.md) and
 [measured results and support boundaries](docs/v3-acceptance-results.md).
 
@@ -23,18 +24,18 @@ changing it requires explicit rolling fallback and broker restarts.
 
 ## Switch to v3
 
-Build this branch until v3.0.0 is published. Configure a policy for your existing
-Operator-managed RabbitMQ cluster, starting in `Off`:
+Download and extract the CLI for your platform from the release. Rename the
+executable to `rmq-vertical-scaler` and put it on your `PATH`. Configure a policy
+for your existing Operator-managed RabbitMQ cluster, starting in `Off`:
 
 ```bash
-make build VERSION=3.0.0
-dist/rmq-vertical-scaler init --config-version 3 --output policy.json
+rmq-vertical-scaler init --config-version 3 --output policy.json
 # Edit the target namespace, cluster name, profiles and triggers.
-dist/rmq-vertical-scaler generate --config policy.json \
-  --image rmq-vertical-scaler:local --output scaler.yaml
+rmq-vertical-scaler generate --config policy.json \
+  --image ferterahadi/rmq-vertical-scaler:3.0.0 --output scaler.yaml
 ```
 
-Build/load the chosen image before applying the manifest. For Helm, start with
+The versioned image is available from Docker Hub. For Helm, start with
 [values-v3.example.yaml](charts/rmq-vertical-scaler/values-v3.example.yaml).
 Inspect recommendations before enabling `Auto`. Use one scaler installation per
 RabbitMQ cluster. See [migration](docs/v3-migration.md) and the

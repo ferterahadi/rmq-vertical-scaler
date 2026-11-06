@@ -5,27 +5,26 @@ requests and limits. New policies start in **`Off`**, which reports recommendati
 without changing brokers. Existing environment configurations and unversioned
 JSON keep their previous defaults and behavior.
 
-This branch is under verification. Consult the [runtime evidence](v3-validation.md)
-and [runtime results](v3-validation.md) before using `Auto`. A successful resize request is not proof of
+Consult the [validation requirements](v3-validation.md)
+and [runtime results](v3-acceptance-results.md) before using `Auto`. A successful resize request is not proof of
 completion. Infrastructure savings are unmeasured.
 
-See [Switch to v3](v3-migration.md) for migration from released v2 or the unpublished draft.
+See [Switch to v3](v3-migration.md) for migration from v2.2.x or a development installation.
 
 ## Start with recommendations
 
-From a binary built from this source:
+Using the v3.0.0 release binary:
 
 ```bash
 rmq-vertical-scaler init --config-version 3 --output policy.json
 # Edit kubernetes.namespace, kubernetes.rmqServiceName and the resource profiles.
 rmq-vertical-scaler generate --config policy.json \
-  --image rmq-vertical-scaler:local --output scaler.yaml
+  --image ferterahadi/rmq-vertical-scaler:3.0.0 --output scaler.yaml
 kubectl apply -f scaler.yaml
 ```
 
-Build/load the example `rmq-vertical-scaler:local` image for your cluster, or use
-your own tested 3.0 image. Unreleased CLI builds require `--image`; release
-binaries pin their matching release image.
+The release binary pins its matching release image by default. The explicit
+`--image` above makes that choice visible; development builds require an image override.
 
 The starter enables CPU and memory triggers. It does not require management API
 credentials. Queue/rate policies take `RMQ_USER` and `RMQ_PASS` from a Kubernetes
@@ -48,8 +47,7 @@ helm upgrade --install rvs ./charts/rmq-vertical-scaler \
 ```
 
 The example's target namespace must match the release namespace, and its cluster
-name must match `serviceName`. Use an image built from this branch until a 3.0
-image is published. Setting `policy: {}` is an error; omitted/null `policy` selects
+name must match `serviceName`. The chart defaults to its versioned release image. Setting `policy: {}` is an error; omitted/null `policy` selects
 legacy values. Remove customized legacy `profiles`, `debounce`, `checkInterval`,
 `scaling`, and `rmq` values when switching to `policy`; inherited defaults are
 ignored. New policy fields never become legacy scaling environment variables.

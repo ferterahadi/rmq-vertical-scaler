@@ -2,7 +2,7 @@
 
 **The refreshed 6 November 2026 run passed all eight runtime groups and 31
 requirements on the latest collector source.** The source-linked release gate is
-verified. Public v3.0.0 remains unpublished; merge and publication are separate.
+verified. These measurements were collected before publication of v3.0.0.
 
 ## Build and platform
 
@@ -95,3 +95,8 @@ and independently verified bundle replace the earlier release pin.
 The full archive retains setup logs and any interrupted or failed attempts,
 with successful qualification clearly distinguished. Evidence retrieval and
 retention details are in the [bundle guide](v3-evidence-bundle.md).
+
+Publication preparation updated installation documentation only. The chart README
+fingerprint was refreshed after review and fresh local checks; all 28 production
+inputs and captured runtime drivers still match the tested image. The eight
+runtime groups above were retained unchanged, not represented as new runs.

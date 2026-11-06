@@ -1,6 +1,6 @@
 # v3 validation and release requirements
 
-**v2.2.x is the released baseline. v3.0.0 is not released.** The latest collector
+**v3.0.0 introduces the new policy contract after v2.2.x.** The latest collector
 source passed a fresh immutable-image run of all eight groups and 31 requirements
 on 6 November 2026. R3 is verified against that image; any subsequent production
 source change requires renewed acceptance. Private deployment tests do not replace

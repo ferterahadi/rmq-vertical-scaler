@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.0.0] - Unreleased
+## [3.0.0] - 2026-11-06
 
 ### Added
 - Four-profile configuration example with explicit CPU/memory targets, trigger priority
@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
   on the pinned local platform. Rolling scale-up took 92.54 seconds with explicit
   startup/readiness/DNS tuning; default rolling timing is not established by this run.
   Strict memory-limit changes remain unsupported. See [results](docs/v3-acceptance-results.md)
-  and the [retained evidence](docs/v3-evidence-bundle.md). No release has been published.
+  and the [retained evidence](docs/v3-evidence-bundle.md).
 
 ## [2.2.1] - 2026-07-10
 

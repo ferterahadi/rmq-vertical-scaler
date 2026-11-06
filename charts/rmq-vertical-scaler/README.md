@@ -6,13 +6,12 @@ Installs the RabbitMQ Vertical Scaler controller. See the
 
 ## Switch to v3
 
-v3.0.0 is unreleased. Build/load your image and edit the complete v3 example for
-your namespace and existing RabbitMQ cluster before installing:
+Edit the complete v3 example for your namespace and existing RabbitMQ cluster
+before installing. The chart uses `ferterahadi/rmq-vertical-scaler:3.0.0` by default:
 
 ```bash
 helm upgrade --install rvs ./charts/rmq-vertical-scaler \
-  --namespace production -f charts/rmq-vertical-scaler/values-v3.example.yaml \
-  --set image.repository=rmq-vertical-scaler --set image.tag=local
+  --namespace production -f charts/rmq-vertical-scaler/values-v3.example.yaml
 ```
 
 The example starts in `Off`. Follow [migration](../../docs/v3-migration.md) before
@@ -41,8 +40,8 @@ the legacy values below do not become v3 policy fields.
 
 Set `policy` to a complete configVersion3 object; omitted/null retains legacy
 values. New policies start in Off. See [values-v3.example.yaml](values-v3.example.yaml)
-and the [policy guide](../../docs/v3-policy.md). Use a locally built image until
-3.0 is published. Target namespace/serviceName must agree with the release.
+and the [policy guide](../../docs/v3-policy.md). Target namespace/serviceName
+must agree with the release.
 
 The policy ConfigMap is read-only to the container and checksum changes restart
 the scaler through Recreate. Runtime status is created by the controller, not
