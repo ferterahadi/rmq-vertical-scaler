@@ -1,5 +1,7 @@
 # RabbitMQ Vertical Scaler v3
 
+[Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases) · [Docker Hub](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler) · [Go documentation](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v3)
+
 Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilization,
 using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
 Cluster Operator in Kubernetes.
@@ -35,7 +37,7 @@ rmq-vertical-scaler generate --config policy.json \
   --image ferterahadi/rmq-vertical-scaler:3.0.0 --output scaler.yaml
 ```
 
-The versioned image is available from Docker Hub. For Helm, start with
+The versioned image is available from [Docker Hub](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler). For Helm, start with
 [values-v3.example.yaml](charts/rmq-vertical-scaler/values-v3.example.yaml).
 Inspect recommendations before enabling `Auto`. Use one scaler installation per
 RabbitMQ cluster. See [migration](docs/v3-migration.md) and the
