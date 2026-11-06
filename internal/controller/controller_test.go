@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/scaling"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/scaling"
 )
 
 type fakeMetrics struct {
@@ -41,14 +41,14 @@ type fakeKube struct {
 	tracking []trackCall
 	patchErr error // returned by ApplyPatch when set
 
-	mode       string      // returned by EffectiveScaleMode ("" -> rolling)
-	modeErr    error       // returned by EffectiveScaleMode when set (fail-fast)
-	resizes    [][2]string // ResizePods calls
-	resizeErr  error       // returned by ResizePods when set
-	ensures    []struct{}  // EnsureOnDeleteStrategy calls
-	ensureErr  error       // returned by EnsureOnDeleteStrategy when set
-	strategies  []string   // SetRollingUpdateStrategy calls
-	strategyErr error      // returned by SetRollingUpdateStrategy when set
+	mode        string      // returned by EffectiveScaleMode ("" -> rolling)
+	modeErr     error       // returned by EffectiveScaleMode when set (fail-fast)
+	resizes     [][2]string // ResizePods calls
+	resizeErr   error       // returned by ResizePods when set
+	ensures     []struct{}  // EnsureOnDeleteStrategy calls
+	ensureErr   error       // returned by EnsureOnDeleteStrategy when set
+	strategies  []string    // SetRollingUpdateStrategy calls
+	strategyErr error       // returned by SetRollingUpdateStrategy when set
 }
 
 func (f *fakeKube) GetCurrentProfile(context.Context) string                 { return f.current }

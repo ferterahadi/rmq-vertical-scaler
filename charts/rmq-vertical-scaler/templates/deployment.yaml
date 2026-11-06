@@ -1,3 +1,4 @@
+{{- if eq .Values.policy nil }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,6 +8,8 @@ metadata:
     {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ include "rmq-vertical-scaler.fullname" . }}
@@ -76,3 +79,5 @@ spec:
             - name: SCALE_MODE
               value: {{ .Values.scaling.mode | quote }}
       restartPolicy: Always
+
+{{- end }}

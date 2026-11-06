@@ -135,6 +135,13 @@ temp/
 dist/
 build/
 
+# Bulk captures live in a checksummed artifact bundle. Summaries stay outside these directories.
+/tests/e2e-v3/results/
+/tests/feasibility/results/
+/scripts/__pycache__/
+/tests/e2e-v3/__pycache__/
+/tests/feasibility/__pycache__/
+
 # Documentation build
 docs/build/
 
@@ -155,3 +162,8 @@ config.local.json
 *.test
 *.out
 vendor/
+
+# Original immutable bundle paths remain historical.
+/tests/e2e-v2/results/
+/tests/e2e-v2/evidence/
+/tests/e2e-v2/__pycache__/

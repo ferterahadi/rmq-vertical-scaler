@@ -1,0 +1,54 @@
+{{- if ne .Values.policy nil }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rmq-vertical-scaler.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rmq-vertical-scaler.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ include "rmq-vertical-scaler.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "rmq-vertical-scaler.fullname" . }}
+      annotations:
+        checksum/policy: {{ toJson .Values.policy | sha256sum | quote }}
+    spec:
+      serviceAccountName: {{ include "rmq-vertical-scaler.serviceAccountName" . }}
+      containers:
+        - name: scaler
+          image: {{ include "rmq-vertical-scaler.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["run", "--config", "/etc/rmq-scaler/policy.json"]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: STATUS_CONFIG_MAP
+              value: {{ include "rmq-vertical-scaler.fullname" . }}-status
+            {{- if eq (include "rmq-vertical-scaler.needsRabbitMQ" .) "true" }}
+            - name: RMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rmq-vertical-scaler.secretName" . }}
+                  key: {{ .Values.auth.usernameKey | quote }}
+            - name: RMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rmq-vertical-scaler.secretName" . }}
+                  key: {{ .Values.auth.passwordKey | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: policy
+              mountPath: /etc/rmq-scaler
+              readOnly: true
+      volumes:
+        - name: policy
+          configMap:
+            name: {{ include "rmq-vertical-scaler.fullname" . }}-policy
+{{- end }}

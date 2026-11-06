@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-11-06
+
+### Added
+- Four-profile configuration example with explicit CPU/memory targets, trigger priority
+  and a worked decision simulation.
+- Opt-in `configVersion: 3` JSON and Helm policies with paired CPU/memory requests
+  and limits, queue depth/publish rate and busiest-broker utilization triggers.
+- Recommendation-only `Off`, configurable stabilization and conservative downward
+  steps, fresh memory safety checks, and durable asynchronous resize reconciliation.
+- Confirm desired and effective resources on every broker; retain targets and
+  successful partial changes across deferred operations and controller restarts.
+
+### Changed
+- Publish the new policy/status contract, `/v3` Go module, CLI, examples and schema
+  as v3.0.0, the next major release after v2.2.x. Legacy unversioned behavior remains
+  supported. See [migration](docs/v3-migration.md).
+- Require in-place operation by default. Strict mode blocks unsupported memory-limit
+  changes before writes; rolling fallback requires explicit configuration. No broker exec.
+- Use one scaler replica with `Recreate`; separate controller-owned status from Helm policy.
+
+### Fixed
+- Judge metric freshness at collection completion while keeping poll time for
+  stabilization. Collect overview rates independently from queue pagination and
+  skip unused enumeration. Request explicit queue totals when detailed statistics
+  have not initialized, while retaining selected-queue publish-rate statistics.
+
+### Validation
+- Fresh immutable-image acceptance passed all eight runtime groups and 31 requirements
+  on the pinned local platform. Rolling scale-up took 92.54 seconds with explicit
+  startup/readiness/DNS tuning; default rolling timing is not established by this run.
+  Strict memory-limit changes remain unsupported. See [results](docs/v3-acceptance-results.md)
+  and the [retained evidence](docs/v3-evidence-bundle.md).
+
 ## [2.2.1] - 2026-07-10
 
 ### Added

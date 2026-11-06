@@ -1,4 +1,4 @@
-// Command rmq-vertical-scaler is the v2 (Go) entry point. It exposes two
+// Command rmq-vertical-scaler is the v3 (Go) entry point. It exposes two
 // subcommands: `generate` (the local manifest generator, port of
 // bin/rmq-vertical-scaler) and `run` (the in-cluster control loop, the default
 // container command).
@@ -14,13 +14,15 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/examples"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/config"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/controller"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/k8s"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/manifests"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/internal/metrics"
-	"github.com/ferterahadi/rmq-vertical-scaler/v2/schema"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/examples"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/config"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/controller"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/k8s"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/manifests"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/metrics"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/internal/policy"
+	scalerV3 "github.com/ferterahadi/rmq-vertical-scaler/v3/internal/v3"
+	"github.com/ferterahadi/rmq-vertical-scaler/v3/schema"
 
 	"github.com/spf13/cobra"
 )
@@ -98,11 +100,19 @@ func generateCmd() *cobra.Command {
 
 func initCmd() *cobra.Command {
 	var output string
+	var configVersion int
 
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Scaffold a starter configuration file for `generate`",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if configVersion != 0 && configVersion != 3 {
+				return fmt.Errorf("--config-version must be 3, or omit it for legacy")
+			}
+			data := examples.TemplateConfig
+			if configVersion == 3 {
+				data = examples.V3TemplateConfig
+			}
 			f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 			if err != nil {
 				if os.IsExist(err) {
@@ -110,7 +120,7 @@ func initCmd() *cobra.Command {
 				}
 				return fmt.Errorf("write %s: %w", output, err)
 			}
-			if _, err := f.Write(examples.TemplateConfig); err != nil {
+			if _, err := f.Write(data); err != nil {
 				f.Close()
 				return fmt.Errorf("write %s: %w", output, err)
 			}
@@ -127,6 +137,7 @@ func initCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().IntVar(&configVersion, "config-version", 0, "Use 3 for an opt-in recommendation-only policy; omit for legacy")
 	cmd.Flags().StringVarP(&output, "output", "o", "my-config.json", "File name for the scaffolded config")
 	return cmd
 }
@@ -153,10 +164,27 @@ func resolveVersion() string {
 }
 
 func runCmd() *cobra.Command {
-	return &cobra.Command{
+	var configPath string
+	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the in-cluster vertical scaling controller",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if cmd.Flags().Changed("config") {
+				if configPath == "" {
+					return fmt.Errorf("--config requires a version-3 policy file")
+				}
+				data, err := os.ReadFile(configPath)
+				if err != nil {
+					return fmt.Errorf("read version-3 policy: %w", err)
+				}
+				p, err := policy.Parse(data)
+				if err != nil {
+					return err
+				}
+				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+				defer stop()
+				return scalerV3.Run(ctx, p)
+			}
 			logger := log.New(os.Stdout, "", 0)
 			logger.Println("🐰 RabbitMQ Vertical Scaler")
 			logger.Println("==============================")
@@ -174,9 +202,16 @@ func runCmd() *cobra.Command {
 			return controller.New(cfg, collector, kube, logger).Run(ctx)
 		},
 	}
+	cmd.Flags().StringVar(&configPath, "config", "", "Read an explicit version-3 policy file; never fall back to legacy env")
+	return cmd
 }
 
 func printSummary(out io.Writer, s manifests.Summary) {
+	if s.ConfigVersion == 3 {
+		fmt.Fprintf(out, "Version-3 policy (%s): generated %s for %s/%s\n", s.UpdateMode, s.Output, s.Namespace, s.ServiceName)
+		fmt.Fprintln(out, "Profiles declare requests and limits. Review the generated policy and platform constraints before enabling Auto.")
+		return
+	}
 	fmt.Fprintln(out, "🔧 Generating Kubernetes manifests...")
 	fmt.Fprintf(out, "📝 Namespace: %s\n", s.Namespace)
 	fmt.Fprintf(out, "🐰 RabbitMQ Service: %s\n", s.ServiceName)

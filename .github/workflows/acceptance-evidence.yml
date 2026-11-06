@@ -1,0 +1,95 @@
+name: Acceptance evidence bundle
+
+on:
+  pull_request:
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'schema/**'
+      - 'charts/**'
+      - 'examples/v3/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/acceptance-evidence.yml'
+      - '.github/workflows/release.yml'
+      - 'scripts/package-v3-evidence.py'
+      - 'scripts/check-v3-release-evidence.py'
+      - 'tests/e2e-v3/acceptance-summary.json'
+      - 'tests/e2e-v3/test_evidence_bundle.py'
+      - 'tests/e2e-v3/**'
+      - 'tests/e2e-v3/test_release_gate.py'
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: Unique label for an isolated one-job local evidence runner (blank verifies the pinned artifact)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.runner_label == '' }}
+    name: Current tests and immutable evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+      - uses: azure/setup-helm@v4
+      - name: Test current source
+        run: |
+          go test -race ./...
+          go vet ./...
+      - name: Test evidence validation
+        run: |
+          python3 -m pip install -r tests/e2e-v3/requirements.txt
+          python3 -m unittest discover -s tests/e2e-v3 -p 'test_*.py'
+      - name: Reproduce immutable evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/package-v3-evidence.py
+      - name: Check current release readiness
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          summary = json.loads(pathlib.Path('tests/e2e-v3/acceptance-summary.json').read_text())
+          result = subprocess.run(['python3', 'scripts/check-v3-release-evidence.py', 'v3.0.0'])
+          if summary.get('currentSourceAccepted', True):
+              result.check_returncode()
+          else:
+              if not summary.get('releaseBlockers') or result.returncode == 0:
+                  raise SystemExit('current source must remain release-blocked until new runtime evidence exists')
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+                  out.write('Current-source tests passed; historical evidence verified. **Release blocked:** ' + '; '.join(summary['releaseBlockers']) + '\n')
+          PY
+  store:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.runner_label != '' }}
+    runs-on: ${{ inputs.runner_label }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify final-image acceptance bundle
+        run: python3 scripts/check-v3-release-evidence.py v3.0.0 --bundle /evidence/rmq-v3-evidence.tar.gz
+      - uses: actions/upload-artifact@v4
+        id: evidence
+        with:
+          name: rmq-v3-evidence
+          path: /evidence/rmq-v3-evidence.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record immutable artifact location
+        env:
+          ARTIFACT_URL: ${{ steps.evidence.outputs.artifact-url }}
+        run: |
+          echo "Verified local acceptance bundle: ${ARTIFACT_URL}" >> "$GITHUB_STEP_SUMMARY"

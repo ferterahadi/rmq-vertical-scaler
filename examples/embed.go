@@ -6,3 +6,6 @@ import _ "embed"
 
 //go:embed template-config.json
 var TemplateConfig []byte
+
+//go:embed v3/resources.json
+var V3TemplateConfig []byte

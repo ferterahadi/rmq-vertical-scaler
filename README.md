@@ -1,244 +1,174 @@
-# RabbitMQ Vertical Scaler
+# RabbitMQ Vertical Scaler v3
 
-[![Docker Image](https://img.shields.io/docker/v/ferterahadi/rmq-vertical-scaler?label=docker)](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler)
-[![Go Reference](https://pkg.go.dev/badge/github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler.svg)](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ferterahadi/rmq-vertical-scaler/v2)](https://goreportcard.com/report/github.com/ferterahadi/rmq-vertical-scaler/v2)
+Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilization,
+using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
+Cluster Operator in Kubernetes.
 
-Right-sizes a RabbitMQ cluster's CPU and memory in Kubernetes, automatically, from live queue metrics — with **zero pod restarts** on Kubernetes 1.33+.
+**v3.0.0** passed the eight-group immutable-image acceptance matrix.
+Get the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0)
+and use `ferterahadi/rmq-vertical-scaler:3.0.0` for the controller.
+See the [release gate](docs/v3-validation.md) and
+[measured results and support boundaries](docs/v3-acceptance-results.md).
 
-## What it does
+## What changes in v3
 
-Every few seconds the scaler reads queue depth and message rate from the RabbitMQ
-management API, picks the matching resource profile, and applies it to your
-`RabbitmqCluster`. Quiet cluster → small requests. Backlog building → bigger
-requests, before consumers fall behind.
+- Declare CPU/memory requests and limits together, with queue/rate or resource triggers.
+- Start in recommendation-only `Off`; enable `Auto` when the policy is ready.
+- Scale up on sustained demand and down one profile at a time, with fresh memory checks.
+- Track desired and effective resources on every broker until the change completes.
 
-```
-LOW       330m / 2Gi    ← floor, no thresholds
-MEDIUM    800m / 3Gi    ← queue > 2 000   or rate > 200 msg/s
-HIGH     1600m / 4Gi    ← queue > 10 000  or rate > 1 000 msg/s
-CRITICAL 2400m / 8Gi    ← queue > 50 000  or rate > 2 000 msg/s
-```
+Defaults: CPU **60%**, memory **75%** of effective requests, **15-second** polling,
+**30-second** upward stabilization, and **5 minutes** per downward step.
+Strict in-place operation requires a fixed memory limit on the tested platform;
+changing it requires explicit rolling fallback and broker restarts.
 
-A change only lands after the target profile has held for a debounce window (30s
-up, 120s down by default), so a traffic spike does not thrash the cluster.
+## Switch to v3
 
-It ships as one static Go binary in a `distroless` container: ~13 MB image,
-~10–15 MB idle memory, no shell, no interpreter.
-
-## How the change reaches your pods
-
-This is the part that decides your restart and message-loss exposure. There are
-two mechanisms, and `auto` (the default) picks one for you at startup:
-
-| Your cluster | Mode chosen | Pods restart? | Risk to in-flight messages |
-|-|-|-|-|
-| Kubernetes ≥ 1.33 **and** `pods/resize` RBAC granted | **in-place** | No — resources change live | None |
-| Kubernetes < 1.33, **or** RBAC missing, **or** the node can't fit the new size | **rolling** | Yes — the operator rolls pods one at a time | Real on a single-node cluster |
-
-So "zero restarts" is a property of your cluster, not a promise of the tool.
-Watch the startup log line — `Scale mode: inplace (pods/resize permitted)` or
-`Scale mode: rolling (…)` — to see which one you actually got. Set
-`SCALE_MODE=inplace` to refuse to start rather than silently degrade. Details in
-[Scale modes](#scale-modes).
-
-## Requirements
-
-| | |
-|-|-|
-| Kubernetes | 1.24+ to run; **1.33+** for zero-restart in-place resize |
-| RabbitMQ | Deployed by the [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator) as a `RabbitmqCluster` |
-| Topology | **3+ nodes with quorum queues** — see below |
-
-⚠️ **Run RabbitMQ with 3 or more nodes and quorum queues. This still holds in
-v2.2.0+, even though in-place mode restarts nothing.** Three reasons:
-
-1. **In-place is conditional.** In `auto` mode any of the fallbacks in the table
-   above turns the next scale action into a rolling restart. On a single node a
-   restart means dropped messages.
-2. **Scaling down changes eviction priority.** The scaler lowers the pod's memory
-   *request*; under node memory pressure, a pod using more than its request is
-   evicted sooner. A single-node cluster has nowhere to fail over to.
-3. **Restarts happen anyway** — node drains, operator image bumps, OOM kills.
-   A single-node RabbitMQ has no redundancy for any of them.
-
-Vertical scaling suits **bursty or infrequent** workloads, where the resource
-saving is worth this trade-off. A steady, always-hot cluster gains little.
-
-## Install
+Download and extract the CLI for your platform from the release. Rename the
+executable to `rmq-vertical-scaler` and put it on your `PATH`. Configure a policy
+for your existing Operator-managed RabbitMQ cluster, starting in `Off`:
 
 ```bash
-# Container image — runs the controller, and the `generate` CLI
-docker pull ferterahadi/rmq-vertical-scaler:2
-
-# CLI only, as a local binary
-go install github.com/ferterahadi/rmq-vertical-scaler/v2/cmd/rmq-vertical-scaler@latest
+rmq-vertical-scaler init --config-version 3 --output policy.json
+# Edit the target namespace, cluster name, profiles and triggers.
+rmq-vertical-scaler generate --config policy.json \
+  --image ferterahadi/rmq-vertical-scaler:3.0.0 --output scaler.yaml
 ```
 
-Prebuilt `linux` and `darwin` binaries (amd64/arm64) with checksums are on the
-[Releases page](https://github.com/ferterahadi/rmq-vertical-scaler/releases).
+The versioned image is available from Docker Hub. For Helm, start with
+[values-v3.example.yaml](charts/rmq-vertical-scaler/values-v3.example.yaml).
+Inspect recommendations before enabling `Auto`. Use one scaler installation per
+RabbitMQ cluster. See [migration](docs/v3-migration.md) and the
+[policy guide](docs/v3-policy.md) for prerequisites, safe rollout and recovery.
 
-### Helm
+Existing unversioned JSON and environment configurations retain their legacy
+behavior. An image upgrade alone does not switch them to the v3 policy.
+Use `configVersion: 3` to select the new policy.
 
-```bash
-helm install rvs charts/rmq-vertical-scaler \
-  --namespace production --create-namespace \
-  --set serviceName=my-rabbitmq
-```
+## Configuration example
 
-Chart values: [charts/rmq-vertical-scaler/README.md](charts/rmq-vertical-scaler/README.md).
-
-## Quick start
-
-```bash
-rmq-vertical-scaler init                                    # writes my-config.json
-# edit my-config.json
-rmq-vertical-scaler generate -c my-config.json -o scaler.yaml
-kubectl apply -f scaler.yaml
-```
-
-`generate` validates the config against the JSON schema and fails with a list of
-violations — a typo never silently becomes a default.
-
-Without a local binary, use the image:
-
-```bash
-docker run --rm -v "$PWD:/work" -w /work \
-  ferterahadi/rmq-vertical-scaler:2 generate -c my-config.json -o scaler.yaml
-```
-
-## Configuration
-
-### Config file
-
-Start from [`examples/basic-config.json`](examples/basic-config.json) (or
-[`production-config.json`](examples/production-config.json) — higher ceilings,
-longer debounce, 5K–100K thresholds).
+This complete [four-profile policy](docs/examples/v3-four-profile.json) combines queue depth,
+publish rate, CPU and memory triggers. Adapt the example profiles to your brokers
+and platform minimum requests before deploying; these are illustrative sizes.
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/ferterahadi/rmq-vertical-scaler/master/schema/config-schema.json",
+  "configVersion": 3,
+  "profileOrder": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   "profiles": {
-    "LOW":      { "cpu": "330m",  "memory": "2Gi" },
-    "MEDIUM":   { "cpu": "800m",  "memory": "3Gi", "queue": 2000,  "rate": 200 },
-    "HIGH":     { "cpu": "1600m", "memory": "4Gi", "queue": 10000, "rate": 1000 },
-    "CRITICAL": { "cpu": "2400m", "memory": "8Gi", "queue": 50000, "rate": 2000 }
+    "LOW": {
+      "requests": {"cpu": "500m", "memory": "1Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    },
+    "MEDIUM": {
+      "requests": {"cpu": "1000m", "memory": "2Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    },
+    "HIGH": {
+      "requests": {"cpu": "2000m", "memory": "4Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    },
+    "CRITICAL": {
+      "requests": {"cpu": "4000m", "memory": "8Gi"},
+      "limits": {"cpu": "5", "memory": "8Gi"}
+    }
   },
-  "debounce":      { "scaleUpSeconds": 30, "scaleDownSeconds": 120 },
-  "checkInterval": 5,
-  "scaling":       { "mode": "auto" },
-  "rmq":           { "host": "rabbitmq.default.svc.cluster.local", "port": "15672" },
-  "kubernetes":    { "namespace": "default", "rmqServiceName": "rabbitmq" }
+  "triggers": [
+    {"type": "rabbitmq", "metadata": {
+      "mode": "QueueLength", "aggregation": "max",
+      "thresholds": {"MEDIUM": 2000, "HIGH": 10000, "CRITICAL": 50000}
+    }},
+    {"type": "rabbitmq", "metadata": {
+      "mode": "MessageRate",
+      "thresholds": {"MEDIUM": 200, "HIGH": 1000, "CRITICAL": 5000}
+    }},
+    {"type": "cpu", "metricType": "Utilization", "aggregation": "max", "metadata": {"value": "60"}},
+    {"type": "memory", "metricType": "Utilization", "aggregation": "max", "metadata": {"value": "75"}}
+  ],
+  "pollingInterval": 15,
+  "updatePolicy": {"mode": "Off", "allowRollingFallback": false},
+  "behavior": {
+    "scaleUp": {"stabilizationSeconds": 30},
+    "scaleDown": {"stepIntervalSeconds": 300, "memoryHeadroomPercent": 20},
+    "metrics": {"maxAgeSeconds": 60}
+  },
+  "kubernetes": {"namespace": "production", "rmqServiceName": "rabbitmq"},
+  "rmq": {"host": "rabbitmq.production.svc.cluster.local", "port": "15672"}
 }
 ```
 
-The first profile is the **floor** and takes no thresholds. Every later profile
-is selected when its `queue` **or** `rate` threshold is exceeded; the engine
-scans highest to lowest and takes the first match. The `$schema` line gives you
-autocomplete and validation in most editors.
+Set CPU `metadata.value` to `"60"` for a 60% utilization target and memory to
+`"75"` for 75%. These are percentage strings; omitting them uses the same defaults.
+Utilization is the busiest broker's Kubernetes Metrics API usage divided by its
+**effective resource request**, not its limit or the node's capacity. With a 500m
+CPU request, 400m of sustained usage is 80%; the example therefore recommends MEDIUM
+to bring utilization within the 60% target. Exactly 60% does not exceed the target.
 
-At runtime the controller reads plain environment variables (`PROFILE_*_CPU`,
-`QUEUE_THRESHOLD_*`, `SCALE_MODE`, `CHECK_INTERVAL_SECONDS`, …) — `generate`
-just writes them into the Deployment for you. The full list is in
-[docs/environment.md](docs/environment.md).
+**Triggers have no fixed priority, and their order in the array does not matter.**
+Each independently recommends a profile. The highest recommendation wins
+according to `profileOrder`, and that profile applies CPU and memory together
+**per broker**. CPU and memory each choose the smallest profile whose request
+can keep the measured usage within the configured utilization target.
 
-### Scale modes
+With the publish-rate trigger recommending LOW:
 
-`scaling.mode` in the config, or `SCALE_MODE` in the environment:
+| Queue recommendation | CPU recommendation | Memory recommendation | Selected profile |
+|---|---|---|---|
+| LOW | MEDIUM | LOW | MEDIUM |
+| HIGH | MEDIUM | LOW | HIGH |
+| LOW | LOW | CRITICAL | CRITICAL |
+| MEDIUM | HIGH | HIGH | HIGH; CPU and memory tie |
+| LOW | LOW | LOW | LOW recommendation; decrease one step at a time |
 
-| Mode | Behaviour |
-|-|-|
-| `auto` (default) | In-place when `pods/resize` is supported **and** permitted; rolling otherwise |
-| `inplace` | Always in-place. **Fails fast at startup** if RBAC is missing, naming the verbs to grant |
-| `rolling` | Always patch the `RabbitmqCluster` only, and let the operator roll pods (v2.0.0 behaviour) |
+See the [four-profile decision walkthrough](docs/v3-policy-simulation.md) for
+worked examples, threshold boundaries and the step-by-step decrease path.
 
-**How in-place works.** The scaler sets the cluster's StatefulSet override to
-`updateStrategy: OnDelete`, then on each scale action patches every pod's
-resource **requests** through the `pods/resize` subresource *and* patches the
-custom resource, so a pod recreated for any reason comes back at the current
-size. If the kubelet returns `Infeasible` (the node can never fit it), `auto`
-reverts the override and rolls instead.
+The same rule includes the publish-rate trigger. Any enabled trigger can require
+an increase; a decrease requires **all** enabled triggers to permit the smaller
+profile. Increases must satisfy the configured 30-second stabilization window.
+Queue/rate thresholds use strict `>` comparison; this example uses the deepest visible queue.
 
-Two things to know before enabling it:
+Start in `Off` to inspect recommendations. After verification, `Auto` permits
+resource changes. Decreases require all enabled signals to permit the lower
+profile and a full fresh memory window. Keep RabbitMQ credentials in a Kubernetes
+Secret, supplied through `RMQ_USER` and `RMQ_PASS`, outside this JSON.
+See the [policy guide](docs/v3-policy.md) for selectors, limits and safety rules.
 
-- **`OnDelete` trade-off.** While in-place is active, operator-driven template
-  changes (a RabbitMQ image bump, say) no longer roll pods automatically. Delete
-  pods one at a time to roll them, or switch to `scaling.mode: rolling`.
-- **Only requests change.** Limits you set on the `RabbitmqCluster` are never
-  touched. RabbitMQ derives its memory high-watermark from the *limit*, so the
-  watermark stays correct across resizes — no action needed.
+## Reduce overprovisioning on GKE Autopilot
 
-### RabbitMQ credentials
+Lower resource requests during quieter periods can reduce RabbitMQ compute costs.
+For general-purpose workloads using GKE Autopilot's **Pod-based billing**, Google
+charges for the CPU, memory and ephemeral storage that running Pods request.
+Scaling CPU and memory requests down can therefore reduce those billable resources
+while a lower profile is active. See [Google's pricing documentation](https://cloud.google.com/kubernetes-engine/pricing).
 
-The scaler reads the management API using a secret named
-`{serviceName}-default-user`, which the RabbitMQ Cluster Operator creates for
-you. For hand-rolled deployments, create it yourself:
+Lower utilization alone does not lower request-based charges. Savings depend on
+the time spent at each profile, applicable minimum requests, pricing and discounts,
+and the scaler's own resource cost. Autopilot also has node-based billing options;
+the same request reduction does not imply the same bill reduction there. Fixed
+storage and other charges remain. Actual billing savings from this controller
+are **unmeasured**, and capacity constraints can delay increases.
 
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rabbitmq-default-user     # {serviceName}-default-user
-  namespace: production
-data:
-  username: <base64>
-  password: <base64>
-```
+## Why this exists
 
-### CLI flags
+The motivating requirement was a load-driven CPU-request cycle:
+**100m → 800m → 100m within 15 minutes**. In a fixed-policy Google Kubernetes Engine
+(GKE) test, native Vertical Pod Autoscaler (VPA) recommended 800m but did not apply
+it during that window. VPA supports StatefulSets; the experiment established a timing
+limitation in that setup, not a lack of StatefulSet support.
 
-| Flag | Description |
-|-|-|
-| `-c, --config` | Path to the JSON config file |
-| `-o, --output` | Output YAML file name |
-| `-n, --namespace` | Kubernetes namespace |
-| `-s, --service-name` | RabbitMQ cluster name (drives DNS, secret, PDB selector) |
-| `--image` | Scaler container image (defaults to the CLI's own version, never `latest`) |
-| `--scaler-name` | Name for the generated ServiceAccount, Role, Deployment |
-| `--no-pdb` | Skip the PodDisruptionBudget for the RabbitMQ cluster |
-
-## Deploy
-
-```bash
-rmq-vertical-scaler generate -c examples/production-config.json -o production-scaler.yaml
-kubectl apply -f production-scaler.yaml
-
-kubectl logs -f deployment/rmq-vertical-scaler -n production
-```
-
-`generate` emits a ServiceAccount, a Role + RoleBinding (get/patch on
-`rabbitmqclusters` and `configmaps`, get on `secrets`, get/list on `pods`, patch
-on `pods/resize`), a state ConfigMap, a PodDisruptionBudget, and the Deployment.
-The container runs `rmq-vertical-scaler run` by default.
-
-The first log lines tell you the chosen scale mode and the starting profile —
-check them after every deploy.
+This controller provides explicit profiles, configurable timing and observable
+resize completion. Production compatibility, throughput gains and cost savings
+remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence).
 
 ## Documentation
 
-| | |
-|-|-|
-| [docs/environment.md](docs/environment.md) | Every environment variable the controller reads |
-| [docs/architecture.md](docs/architecture.md) | Package layout, control loop, project structure |
-| [docs/why-go.md](docs/why-go.md) | Why v2 is Go — footprint, not speed |
-| [docs/upgrading-from-v1.md](docs/upgrading-from-v1.md) | Drop-in upgrade from the Node.js v1 |
-| [docs/local-testing.md](docs/local-testing.md) | Running against a local kind cluster |
-| [research/benchmark.md](research/benchmark.md) | v1-vs-v2 measurements and methodology |
-| [CHANGELOG.md](CHANGELOG.md) | Release history |
-
-## Development
-
-Requires Go 1.26+.
-
-```bash
-make test     # unit tests, including the v1 YAML parity golden test
-make build    # static binary into dist/
-make image    # container image (requires Docker)
-```
-
-## Acknowledgments
-
-Built on the [RabbitMQ Cluster Operator](https://github.com/rabbitmq/cluster-operator)
-and [client-go](https://github.com/kubernetes/client-go).
+- [v3 policy](docs/v3-policy.md): configuration, metrics, safeguards and reconciliation.
+- [v3 migration](docs/v3-migration.md): version names, compatibility and release gates.
+- [Legacy usage](docs/usage.md): retained unversioned configuration and deployment behavior.
+- [Helm reference](charts/rmq-vertical-scaler/README.md): policy and legacy values.
+- [Repository structure](docs/architecture.md#repository-structure): code, tests and evidence.
+- [Acceptance results](docs/v3-acceptance-results.md): measured behavior and support boundaries.
+- [Evidence bundle](docs/v3-evidence-bundle.md): retrieve and verify retained captures.
 
 Licensed under the [MIT License](LICENSE).
