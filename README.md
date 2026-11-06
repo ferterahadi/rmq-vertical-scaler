@@ -4,9 +4,10 @@ Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilizat
 using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
 Cluster Operator in Kubernetes.
 
-**v3.0.0 is unreleased.** The pinned local acceptance run passed all eight runtime
-groups and 31 requirements. See [results and support boundaries](docs/v3-acceptance-results.md)
-before adopting it; other platforms and production behavior remain unverified.
+**v3.0.0 is unreleased.** An earlier immutable image passed the eight-group runtime
+acceptance matrix. The subsequent collector fix requires fresh full acceptance
+before release. See the [current release gate](docs/v3-validation.md) and
+[earlier results and support boundaries](docs/v3-acceptance-results.md).
 
 ## What changes in v3
 
@@ -42,6 +43,75 @@ RabbitMQ cluster. See [migration](docs/v3-migration.md) and the
 Existing unversioned JSON and environment configurations retain their legacy
 behavior. An image upgrade alone does not switch them to the v3 policy.
 Use `configVersion: 3` to select the new policy.
+
+## Configuration example
+
+This complete [combined policy](examples/v3/combined.json) enables queue depth,
+publish rate, CPU and memory triggers. Adapt the example profiles to your brokers
+and platform minimum requests before deploying; these are illustrative sizes.
+
+```json
+{
+  "configVersion": 3,
+  "profileOrder": ["LOW", "HIGH"],
+  "profiles": {
+    "LOW": {
+      "requests": {"cpu": "100m", "memory": "256Mi"},
+      "limits": {"cpu": "1", "memory": "1Gi"}
+    },
+    "HIGH": {
+      "requests": {"cpu": "800m", "memory": "512Mi"},
+      "limits": {"cpu": "2", "memory": "1Gi"}
+    }
+  },
+  "triggers": [
+    {"type": "rabbitmq", "metadata": {
+      "mode": "QueueLength", "aggregation": "sum", "thresholds": {"HIGH": 2000}
+    }},
+    {"type": "rabbitmq", "metadata": {
+      "mode": "MessageRate", "thresholds": {"HIGH": 200}
+    }},
+    {"type": "cpu", "metricType": "Utilization", "metadata": {}},
+    {"type": "memory", "metricType": "Utilization", "metadata": {}}
+  ],
+  "pollingInterval": 15,
+  "updatePolicy": {"mode": "Off", "allowRollingFallback": false},
+  "behavior": {
+    "scaleUp": {"stabilizationSeconds": 30},
+    "scaleDown": {"stepIntervalSeconds": 300, "memoryHeadroomPercent": 20},
+    "metrics": {"maxAgeSeconds": 60}
+  },
+  "kubernetes": {"namespace": "production", "rmqServiceName": "rabbitmq"},
+  "rmq": {"host": "rabbitmq.production.svc.cluster.local", "port": "15672"}
+}
+```
+
+The highest recommendation wins, and each profile applies CPU and memory together
+**per broker**. CPU and memory use the busiest broker's Kubernetes Metrics API
+usage against its effective requests, with default targets of 60% and 75%.
+Set `metadata.value` to a percentage string to change either target. Queue/rate
+thresholds use strict `>` comparison; this example sums visible queue depths.
+
+Start in `Off` to inspect recommendations. After verification, `Auto` permits
+resource changes. Decreases require all enabled signals to permit the lower
+profile and a full fresh memory window. Keep RabbitMQ credentials in a Kubernetes
+Secret, supplied through `RMQ_USER` and `RMQ_PASS`, outside this JSON.
+See the [policy guide](docs/v3-policy.md) for selectors, limits and safety rules.
+
+## Reduce overprovisioning on GKE Autopilot
+
+Lower resource requests during quieter periods can reduce RabbitMQ compute costs.
+For general-purpose workloads using GKE Autopilot's **Pod-based billing**, Google
+charges for the CPU, memory and ephemeral storage that running Pods request.
+Scaling CPU and memory requests down can therefore reduce those billable resources
+while a lower profile is active. See [Google's pricing documentation](https://cloud.google.com/kubernetes-engine/pricing).
+
+Lower utilization alone does not lower request-based charges. Savings depend on
+the time spent at each profile, applicable minimum requests, pricing and discounts,
+and the scaler's own resource cost. Autopilot also has node-based billing options;
+the same request reduction does not imply the same bill reduction there. Fixed
+storage and other charges remain. Actual billing savings from this controller
+are **unmeasured**, and capacity constraints can delay increases.
 
 ## Why this exists
 
