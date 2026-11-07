@@ -2,15 +2,12 @@
 
 [Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases) · [Docker Hub](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler) · [Go documentation](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v3)
 
-Scale RabbitMQ CPU and memory from queue depth, publish rate, or broker utilization,
-using explicit resource profiles and timing you control. Runs alongside the RabbitMQ
-Cluster Operator in Kubernetes.
+**RabbitMQ Vertical Scaler v3.0.0** scales RabbitMQ CPU and memory requests based on
+queue depth, message rate, CPU usage and memory usage. It runs alongside the RabbitMQ
+Cluster Operator in Kubernetes, using resource profiles and timing you control.
 
-**v3.0.0** passed the eight-group immutable-image acceptance matrix.
-Get the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0)
-and use `ferterahadi/rmq-vertical-scaler:3.0.0` for the controller.
-See the [release gate](docs/v3-validation.md) and
-[measured results and support boundaries](docs/v3-acceptance-results.md).
+Download the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0),
+or deploy the controller using `ferterahadi/rmq-vertical-scaler:3.0.0`.
 
 ## What changes in v3
 
@@ -163,6 +160,12 @@ This controller provides explicit profiles, configurable timing and observable
 resize completion. Production compatibility, throughput gains and cost savings
 remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence).
 
+## Compatibility and limitations
+
+See [tested platforms and limitations](docs/v3-acceptance-results.md) for
+compatibility details and measured behavior. The [release validation documentation](docs/v3-validation.md)
+describes the checks used to qualify a release.
+
 ## Documentation
 
 - [v3 policy](docs/v3-policy.md): configuration, metrics, safeguards and reconciliation.
@@ -170,7 +173,7 @@ remain unmeasured. See the [experiment record](docs/usage.md#experiment-evidence
 - [Legacy usage](docs/usage.md): retained unversioned configuration and deployment behavior.
 - [Helm reference](charts/rmq-vertical-scaler/README.md): policy and legacy values.
 - [Repository structure](docs/architecture.md#repository-structure): code, tests and evidence.
-- [Acceptance results](docs/v3-acceptance-results.md): measured behavior and support boundaries.
 - [Evidence bundle](docs/v3-evidence-bundle.md): retrieve and verify retained captures.
 
 Licensed under the [MIT License](LICENSE).
+
