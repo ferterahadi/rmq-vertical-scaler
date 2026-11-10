@@ -2,8 +2,10 @@
   "schemaVersion": 1,
   "releaseVersion": "3.0.0",
   "passed": true,
-  "currentSourceAccepted": true,
-  "releaseBlockers": [],
+  "currentSourceAccepted": false,
+  "releaseBlockers": [
+    "v3.0.1 source requires fresh immutable-image runtime acceptance and independent review; v3.0.0 evidence remains historical."
+  ],
   "date": "2026-11-06",
   "imageDigest": "sha256:7b3ef6c21c7ddc905848fb68e2e02ad9084e42d03949c4d498505da0bfa8409a",
   "requirements": 31,
