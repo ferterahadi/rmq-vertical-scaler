@@ -1,13 +1,11 @@
 {
   "schemaVersion": 1,
-  "releaseVersion": "3.0.0",
+  "releaseVersion": "3.0.1",
   "passed": true,
-  "currentSourceAccepted": false,
-  "releaseBlockers": [
-    "v3.0.1 source requires fresh immutable-image runtime acceptance and independent review; v3.0.0 evidence remains historical."
-  ],
-  "date": "2026-11-06",
-  "imageDigest": "sha256:7b3ef6c21c7ddc905848fb68e2e02ad9084e42d03949c4d498505da0bfa8409a",
+  "currentSourceAccepted": true,
+  "releaseBlockers": [],
+  "date": "2026-11-10",
+  "imageDigest": "sha256:1f2264e7d328dee36e609d0ebee061de6e6a67a855380226fedfc802f8d14b80",
   "requirements": 31,
   "runtimeGroups": [
     "deferred",
@@ -20,44 +18,40 @@
     "scope"
   ],
   "gates": {
-    "astra_review": true,
-    "explicit_rolling": true,
-    "full_acceptance": true,
     "local_checks": true,
+    "astra_review": true,
     "native_cycle": true,
     "paired_inplace": true,
-    "queue_rate_scope": true,
+    "strict_memory_block": true,
     "recovery": true,
-    "strict_memory_block": true
+    "queue_rate_scope": true,
+    "explicit_rolling": true,
+    "full_acceptance": true
   },
   "independentScaleUpSeconds": {
-    "native": 79.642344,
-    "paired": 64.599429,
-    "rolling": 92.540565
+    "native": 92.967967,
+    "paired": 62.528159,
+    "rolling": 78.665623
   },
   "boundaries": [
     "Pinned local Kubernetes 1.35.0 / Operator 2.16.1 / RabbitMQ 4.4.0 / Metrics Server 0.8.0 on Linux/arm64; three brokers on one disposable node.",
     "Healthy rolling timing uses explicitly configured startup delay 0, readiness period 2 seconds and DNS TTL/cache 5; the scaler does not apply this tuning.",
     "Strict memory-limit changes remain unsupported; explicit rolling validates broker budget reload.",
-    "The eight-group local matrix tests resource projections in Off; separate private runtime trials are not included in this public evidence.",
+    "The eight-group local matrix tests resource projections in Off; production debug logging is verified separately after publication.",
     "Availability is sampled. Confirmed/consumed IDs and uncertain publish retries do not establish exactly-once delivery.",
     "Controlled API/client regressions establish failure and arithmetic semantics; they do not claim real provider failures.",
-    "This acceptance makes no production latency, cost savings or throughput guarantee. No public image or release is published by this run."
+    "This local acceptance makes no production latency, cost savings or throughput guarantee."
   ],
   "bundle": {
     "storage": "github-actions",
-    "sourceCommit": "d669c5ae15f1dfdbb6eaa30848b61e9e5ea25eca",
-    "artifactId": 13496229874,
-    "localPath": "dist/acceptance/3.0.0/rmq-v3-evidence.tar.gz",
-    "sha256": "e62667674d176f3b868a166884d03b3bb8883ac94230b571f1913edbdccb4c61",
-    "bytes": 923633,
-    "files": 277,
+    "sourceCommit": "daea60d276ff29488529a747f29f7cc769cfeac3",
+    "artifactId": 0,
+    "localPath": "dist/acceptance/3.0.1/rmq-v3-evidence.tar.gz",
+    "sha256": "ef17a438489c30aa5e0b9bb0611f5ac118d718d9bfe68cfea36be236219a1719",
+    "bytes": 592095,
+    "files": 251,
     "retentionDays": 90,
-    "retentionStatus": "uploaded, downloaded and fully verified",
-    "uploadRunId": 42206703768,
-    "artifactUrl": "https://github.com/ferterahadi/rmq-vertical-scaler/actions/runs/42206703768/artifacts/13496229874",
-    "expiresAt": "2027-02-04T10:58:32Z",
-    "verifiedAt": "2026-11-06T10:59:38.597968+00:00"
+    "retentionStatus": "local bundle verified; upload pending"
   },
   "packagingSourcesSHA256": {
     ".github/workflows/acceptance-evidence.yml": "0e656acae3d8b264f45092b1d31ea6d00ccc27cae6b864c8e96ad9026c2558a8",
@@ -70,7 +64,7 @@
   "coverage": {
     "broker_census": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "committed_up_restart": {
       "passed": true,
@@ -86,7 +80,7 @@
     },
     "identity_changes": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "infeasible_permission": {
       "passed": true,
@@ -106,7 +100,7 @@
     },
     "missing_metrics": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "mixed_startup": {
       "passed": true,
@@ -114,7 +108,7 @@
     },
     "multiple_triggers": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "no_disruption": {
       "passed": true,
@@ -146,19 +140,19 @@
     },
     "partial_deferred": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "persistence": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "queue_scope": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "resource_triggers": {
       "passed": true,
-      "source": "live and controlled"
+      "source": "live"
     },
     "rolling": {
       "passed": true,
@@ -194,5 +188,5 @@
     }
   },
   "developmentEvidence": "tests/e2e-v3/development-evidence.json",
-  "validatedSourceCommit": "d669c5ae15f1dfdbb6eaa30848b61e9e5ea25eca"
+  "validatedSourceCommit": "daea60d276ff29488529a747f29f7cc769cfeac3"
 }
