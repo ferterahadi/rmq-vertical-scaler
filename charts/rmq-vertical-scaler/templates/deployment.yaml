@@ -1,3 +1,6 @@
+{{- if and .Values.logLevel (eq .Values.policy nil) }}
+{{- fail "logLevel requires a version-3 policy" }}
+{{- end }}
 {{- if eq .Values.policy nil }}
 apiVersion: apps/v1
 kind: Deployment

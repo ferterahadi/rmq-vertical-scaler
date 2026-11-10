@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/ferterahadi/rmq-vertical-scaler/v3/examples"
@@ -165,6 +167,7 @@ func resolveVersion() string {
 
 func runCmd() *cobra.Command {
 	var configPath string
+	var logLevel string
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the in-cluster vertical scaling controller",
@@ -172,6 +175,10 @@ func runCmd() *cobra.Command {
 			if cmd.Flags().Changed("config") {
 				if configPath == "" {
 					return fmt.Errorf("--config requires a version-3 policy file")
+				}
+				level, err := resolveLogLevel(logLevel, cmd.Flags().Changed("log-level"), os.Getenv("LOG_LEVEL"))
+				if err != nil {
+					return err
 				}
 				data, err := os.ReadFile(configPath)
 				if err != nil {
@@ -183,7 +190,10 @@ func runCmd() *cobra.Command {
 				}
 				ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 				defer stop()
-				return scalerV3.Run(ctx, p)
+				return scalerV3.Run(ctx, p, level)
+			}
+			if cmd.Flags().Changed("log-level") {
+				return fmt.Errorf("--log-level requires --config (version-3 policy runtime)")
 			}
 			logger := log.New(os.Stdout, "", 0)
 			logger.Println("🐰 RabbitMQ Vertical Scaler")
@@ -203,7 +213,30 @@ func runCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&configPath, "config", "", "Read an explicit version-3 policy file; never fall back to legacy env")
+	cmd.Flags().StringVar(&logLevel, "log-level", "info", "Version-3 JSON log level: debug, info, warn, error (overrides LOG_LEVEL); debug logs every poll")
 	return cmd
+}
+
+func resolveLogLevel(flagValue string, flagSet bool, envValue string) (slog.Level, error) {
+	value := "info"
+	if strings.TrimSpace(envValue) != "" {
+		value = envValue
+	}
+	if flagSet {
+		value = flagValue
+	}
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info":
+		return slog.LevelInfo, nil
+	case "warn":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return 0, fmt.Errorf("invalid log level %q: use debug, info, warn, or error", value)
+	}
 }
 
 func printSummary(out io.Writer, s manifests.Summary) {

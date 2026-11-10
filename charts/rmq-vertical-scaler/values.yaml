@@ -80,3 +80,7 @@ fullnameOverride: ""
 # Opt-in version-3 JSON-shaped policy. Omit/null preserves legacy behavior.
 # New policies default to Off. See examples/v3 and docs/v3-policy.md.
 policy: null
+
+# v3 runtime logging override; empty omits the flag (binary default: info).
+# debug requires an image containing diagnostic logging; v3.0.0 lacks this flag.
+logLevel: ""

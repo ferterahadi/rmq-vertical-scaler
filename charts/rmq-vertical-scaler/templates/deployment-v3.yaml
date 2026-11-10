@@ -25,7 +25,14 @@ spec:
         - name: scaler
           image: {{ include "rmq-vertical-scaler.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["run", "--config", "/etc/rmq-scaler/policy.json"]
+          args:
+            - run
+            - --config
+            - /etc/rmq-scaler/policy.json
+            {{- if .Values.logLevel }}
+            - --log-level
+            - {{ .Values.logLevel | quote }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:

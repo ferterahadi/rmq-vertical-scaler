@@ -47,3 +47,13 @@ The policy ConfigMap is read-only to the container and checksum changes restart
 the scaler through Recreate. Runtime status is created by the controller, not
 Helm. Off omits broker mutation/resize grants. Strict memory-limit transitions
 are blocked on the tested platform; rolling fallback requires explicit opt-in.
+
+### Diagnostic logging
+
+With a v3 policy, set `logLevel: debug` to add `--log-level debug` to the
+controller arguments. The empty default omits the flag and preserves compatibility
+with the chart's default 3.0.0 image. **3.0.0 does not support the logging flag:**
+also select an image containing diagnostic logging before setting this value.
+Use `info` to disable per-poll summaries on a supporting image. See
+[diagnostic logging](../../docs/environment.md#diagnostic-logging) for fields,
+level precedence, and how to interpret waiting windows.

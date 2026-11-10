@@ -80,6 +80,31 @@ func TestHelmVersion3RejectsEmptyMixedAndContradictoryTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestHelmDiagnosticLogging(t *testing.T) {
+	output, err := helmOutput(t)
+	if err != nil {
+		t.Fatalf("default chart: %v %s", err, output)
+	}
+	if strings.Contains(string(output), "--log-level") {
+		t.Fatal("default chart broke compatibility with the 3.0.0 image")
+	}
+	output, err = helmOutput(t, "--set", "logLevel=debug")
+	if err != nil {
+		t.Fatalf("debug chart: %v %s", err, output)
+	}
+	if !strings.Contains(string(output), "- --log-level\n            - \"debug\"") {
+		t.Fatalf("debug flag missing: %s", output)
+	}
+	for _, args := range [][]string{
+		{"--set", "logLevel=typo"},
+		{"--set", "logLevel=debug", "--set-json", "policy=null"},
+	} {
+		if output, err = helmOutput(t, args...); err == nil {
+			t.Fatalf("invalid logging configuration rendered: %v %s", args, output)
+		}
+	}
+}
 func TestLegacyChartDefaultsSnapshotMatchesInheritedValues(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(chartPath(t), "values.yaml"))
 	if err != nil {

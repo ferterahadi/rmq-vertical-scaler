@@ -321,7 +321,7 @@ func TestRecoveryFinishesCommittedIncreaseWithoutRenewedOverload(t *testing.T) {
 	for _, second := range []int{35, 50, 65} {
 		o := engineObservation(b.Policy, at.Add(time.Duration(second)*time.Second), 0)
 		s := Snapshot{Observation: o}
-		ready := c.recoveryReady(s, op)
+		ready, _ := c.recoveryReady(s, op)
 		if ready != (second == 65) {
 			t.Fatalf("retained repair depended on renewed overload or skipped stabilization at%d: %v", second, ready)
 		}
@@ -338,7 +338,7 @@ func TestPartialDecreaseRecoveryBuildsWindowWhileUnresolved(t *testing.T) {
 		o.Current = -1
 		o.Brokers[0].Desired = op.Resources
 		o.Brokers[0].Effective = op.Resources
-		ready := c.recoveryReady(Snapshot{Observation: o}, op)
+		ready, _ := c.recoveryReady(Snapshot{Observation: o}, op)
 		if ready != (second == 75) {
 			t.Fatalf("unresolved down repair deadlocked or resumed early at%d: %v", second, ready)
 		}

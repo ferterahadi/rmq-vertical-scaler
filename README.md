@@ -44,6 +44,12 @@ Existing unversioned JSON and environment configurations retain their legacy
 behavior. An image upgrade alone does not switch them to the v3 policy.
 Use `configVersion: 3` to select the new policy.
 
+For troubleshooting on builds containing diagnostic logging, use
+`run --config policy.json --log-level=debug` (or `LOG_LEVEL=debug`) to see each
+poll's decision, waiting reason, signal freshness, and observation windows.
+The released **3.0.0 image does not support this switch**; see
+[diagnostic logging](docs/environment.md#diagnostic-logging) before enabling it.
+
 ## Configuration example
 
 This complete [four-profile policy](docs/examples/v3-four-profile.json) combines queue depth,

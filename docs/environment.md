@@ -116,3 +116,47 @@ downward interval300s (minimum60), memory headroom20%, and source max age60s.
 (default `rmq-vertical-scaler-status`). RabbitMQ triggers require `RMQ_USER` and
 `RMQ_PASS` from a Secret. Resource-only policies do not need management credentials.
 See the [policy guide](v3-policy.md) for schema, modes and constraints.
+
+### Diagnostic logging
+
+The v3 runtime accepts `--log-level=debug` or `LOG_LEVEL=debug` for one JSON
+`controller observation` summary per poll, including status-only waiting paths.
+This is new functionality: the released **3.0.0 image does not support it**.
+Build/deploy an image containing this change before enabling it.
+
+```yaml
+args: ["run", "--config", "/etc/rmq-scaler/policy.json", "--log-level=debug"]
+```
+
+Alternatively add `LOG_LEVEL: debug` to the scaler's container environment.
+Accepted levels are `debug`, `info`, `warn`, and `error` (case-insensitive).
+The default is `info`; an unset/empty environment variable keeps the default.
+An explicit flag overrides the environment, including `--log-level=info`.
+Invalid levels fail startup. The flag requires `--config`; the legacy runtime
+ignores `LOG_LEVEL` and keeps its existing logging behavior.
+
+Each diagnostic summary includes:
+
+- `phase`, `reason`, and `decisionReason`; recovery also includes the underlying
+  `recoveryReason`, such as `FreshMemoryRequired` or `ObservingMemoryCoverage`.
+- Current, recommended, and eligible profile names. A null profile means unknown
+  or mixed current resources, no recommendation, or no eligible target respectively.
+- Signal values, availability, freshness, and age; CPU/memory values are utilization
+  percentages, QueueLength is a message count, and MessageRate is messages/second.
+- Configured observation durations, elapsed windows, and per-broker memory-sample
+  coverage. These are observations, not a completion countdown: stale samples,
+  demand changes, or identity changes can reset the windows.
+- Active operation stage and broker outcomes, plus completion/supersession details
+  on the poll that finishes an operation.
+
+Initial Kubernetes/status reads that fail still emit the existing ERROR
+`reconciliation held` message rather than a summary with fabricated observations.
+`reconciliationFailed: true` means a later step failed; inspect that ERROR and
+the status ConfigMap before treating the diagnostic decision as persisted.
+
+Logs go to standard output. Diagnostic records omit credentials, raw policy,
+queue names, message payloads, and full Kubernetes objects. Debug adds one
+summary every `pollingInterval` seconds (four per minute at the default 15s),
+in addition to existing resize/error logs. Revert to `info` when finished;
+changing container arguments/environment restarts the scaler through its
+Deployment strategy and rebuilds its in-memory observation windows.
