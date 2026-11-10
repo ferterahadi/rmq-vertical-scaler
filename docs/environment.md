@@ -121,8 +121,8 @@ See the [policy guide](v3-policy.md) for schema, modes and constraints.
 
 The v3 runtime accepts `--log-level=debug` or `LOG_LEVEL=debug` for one JSON
 `controller observation` summary per poll, including status-only waiting paths.
-This is new functionality: the released **3.0.0 image does not support it**.
-Build/deploy an image containing this change before enabling it.
+Available starting in **3.0.1**; the **3.0.0 image does not support it**.
+Upgrade the image before enabling it.
 
 ```yaml
 args: ["run", "--config", "/etc/rmq-scaler/policy.json", "--log-level=debug"]

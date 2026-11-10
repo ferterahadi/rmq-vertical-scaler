@@ -2,12 +2,12 @@
 
 [Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases) · [Docker Hub](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler) · [Go documentation](https://pkg.go.dev/github.com/ferterahadi/rmq-vertical-scaler/v3)
 
-**RabbitMQ Vertical Scaler v3.0.0** scales RabbitMQ CPU and memory requests based on
+**RabbitMQ Vertical Scaler v3.0.1** scales RabbitMQ CPU and memory requests based on
 queue depth, message rate, CPU usage and memory usage. It runs alongside the RabbitMQ
 Cluster Operator in Kubernetes, using resource profiles and timing you control.
 
-Download the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.0),
-or deploy the controller using `ferterahadi/rmq-vertical-scaler:3.0.0`.
+Download the CLI from [GitHub Releases](https://github.com/ferterahadi/rmq-vertical-scaler/releases/tag/v3.0.1),
+or deploy the controller using `ferterahadi/rmq-vertical-scaler:3.0.1`.
 
 ## What changes in v3
 
@@ -31,7 +31,7 @@ for your existing Operator-managed RabbitMQ cluster, starting in `Off`:
 rmq-vertical-scaler init --config-version 3 --output policy.json
 # Edit the target namespace, cluster name, profiles and triggers.
 rmq-vertical-scaler generate --config policy.json \
-  --image ferterahadi/rmq-vertical-scaler:3.0.0 --output scaler.yaml
+  --image ferterahadi/rmq-vertical-scaler:3.0.1 --output scaler.yaml
 ```
 
 The versioned image is available from [Docker Hub](https://hub.docker.com/r/ferterahadi/rmq-vertical-scaler). For Helm, start with
@@ -44,7 +44,7 @@ Existing unversioned JSON and environment configurations retain their legacy
 behavior. An image upgrade alone does not switch them to the v3 policy.
 Use `configVersion: 3` to select the new policy.
 
-For troubleshooting on builds containing diagnostic logging, use
+Starting in v3.0.1, use
 `run --config policy.json --log-level=debug` (or `LOG_LEVEL=debug`) to see each
 poll's decision, waiting reason, signal freshness, and observation windows.
 The released **3.0.0 image does not support this switch**; see

@@ -82,5 +82,5 @@ fullnameOverride: ""
 policy: null
 
 # v3 runtime logging override; empty omits the flag (binary default: info).
-# debug requires an image containing diagnostic logging; v3.0.0 lacks this flag.
+# debug requires v3.0.1 or newer; v3.0.0 lacks this flag.
 logLevel: ""
