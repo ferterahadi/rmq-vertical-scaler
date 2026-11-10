@@ -1,11 +1,10 @@
 # v3 validation and release requirements
 
-**v3.0.0 introduces the new policy contract after v2.2.x.** The latest collector
-source passed a fresh immutable-image run of all eight groups and 31 requirements
-on 6 November 2026. R3 is verified against that image; any subsequent production
-source change requires renewed acceptance. Private deployment tests do not replace
-the matrix. See [measured results](v3-acceptance-results.md) and the
-[retained bundle](v3-evidence-bundle.md).
+**v3.0.0 introduced the new policy contract after v2.2.x.** The v3.0.1
+diagnostic-logging source passed a fresh immutable-image run of all eight groups
+and 31 requirements on 10 November 2026. Subsequent production source changes
+require renewed acceptance. Private deployment tests do not replace the matrix.
+See [measured results](v3-acceptance-results.md) and the [retained bundle](v3-evidence-bundle.md).
 
 ## Required acceptance
 
@@ -42,7 +41,7 @@ as a versioned documentation directory or represented as a published release.
 ```bash
 python3 scripts/package-v3-evidence.py --historical
 python3 scripts/package-v3-evidence.py --verify-historical
-python3 scripts/check-v3-release-evidence.py v3.0.0
+python3 scripts/check-v3-release-evidence.py v3.0.1
 ```
 
 The first command recreates `dist/evidence/development.tar.gz` and checks its original

@@ -45,13 +45,15 @@
   "bundle": {
     "storage": "github-actions",
     "sourceCommit": "daea60d276ff29488529a747f29f7cc769cfeac3",
-    "artifactId": 0,
+    "artifactId": 13756809816,
     "localPath": "dist/acceptance/3.0.1/rmq-v3-evidence.tar.gz",
     "sha256": "ef17a438489c30aa5e0b9bb0611f5ac118d718d9bfe68cfea36be236219a1719",
     "bytes": 592095,
     "files": 251,
     "retentionDays": 90,
-    "retentionStatus": "local bundle verified; upload pending"
+    "retentionStatus": "uploaded; independent download checksum and full release gate verified",
+    "uploadRunId": 42805078698,
+    "expiresAt": "2027-02-08T11:09:02Z"
   },
   "packagingSourcesSHA256": {
     ".github/workflows/acceptance-evidence.yml": "0e656acae3d8b264f45092b1d31ea6d00ccc27cae6b864c8e96ad9026c2558a8",
