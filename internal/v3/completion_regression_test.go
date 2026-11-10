@@ -1,10 +1,12 @@
 package v3
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log/slog"
 	"testing"
 	"time"
 )
@@ -14,7 +16,8 @@ func TestReviewCompletionStartsFreshDownWindow(t *testing.T) {
 	b, core, dyn := fakeBackend(t, at)
 	b.Policy.Update.Mode = "Auto"
 	b.Policy.Behavior.ScaleDown.StepIntervalSeconds = 60
-	c := NewController(b, "status", quietLog(), at)
+	var logs bytes.Buffer
+	c := NewController(b, "status", slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug})), at)
 	s, err := b.Read(context.Background(), at)
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +56,10 @@ func TestReviewCompletionStartsFreshDownWindow(t *testing.T) {
 	json.Unmarshal([]byte(cm.Data["status.json"]), &state)
 	if state.Operation != nil || state.LastOperation == nil || state.LastOperation.Revision != 1 || state.Revision != 1 {
 		t.Fatal("completed HIGH spawned a redundant HIGH operation")
+	}
+	records := diagnosticRecords(t, &logs)
+	if len(records) != 1 || records[0]["phase"] != "Converged" || records[0]["finishedOperation"].(map[string]any)["stage"] != "Completed" {
+		t.Fatalf("completion was silent: %s", logs.String())
 	}
 	assertNoBrokerWrites(t, core, dyn)
 	for seconds := 15; seconds <= 75; seconds += 15 {

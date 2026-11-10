@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func Run(ctx context.Context, p *policy.Config) error {
+func Run(ctx context.Context, p *policy.Config, level slog.Level) error {
 	if err := policy.RejectLegacyEnv(); err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func Run(ctx context.Context, p *policy.Config) error {
 	if err != nil {
 		return err
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 	b := &Backend{Policy: p, Core: core, Dynamic: dyn, User: os.Getenv("RMQ_USER"), Password: os.Getenv("RMQ_PASS")}
 	return NewController(b, name, logger, time.Now()).Run(ctx)
 }

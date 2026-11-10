@@ -1,9 +1,10 @@
 # Version 3.0 implementation plan
 
-Status: v3.0.0 acceptance refreshed and verified, 6 November 2026. The latest-source immutable-image run
-includes the collector corrections and v3 module/policy/status contract. All eight
-runtime groups and 31 requirements passed; R3 is verified. See the
-[acceptance results](v3-acceptance-results.md).
+Status: v3.0.0 delivered the v3 module, policy and status contract. The v3.0.1
+diagnostic-logging patch passed fresh immutable-image acceptance on 10 November
+2026: all eight runtime groups and 31 requirements. See the current
+[acceptance results](v3-acceptance-results.md). The implementation milestones below
+retain their original v3 development context.
 See [migration](v3-migration.md) and the [validation requirements](v3-validation.md).
 
 The [platform constraints](v3-validation.md) records a three-broker

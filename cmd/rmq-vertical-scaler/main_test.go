@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,49 @@ import (
 	"github.com/ferterahadi/rmq-vertical-scaler/v3/examples"
 	"github.com/ferterahadi/rmq-vertical-scaler/v3/schema"
 )
+
+func TestResolveLogLevel(t *testing.T) {
+	for _, tc := range []struct {
+		name, flag, env string
+		flagSet         bool
+		want            slog.Level
+		invalid         bool
+	}{
+		{name: "default", want: slog.LevelInfo},
+		{name: "environment", env: "debug", want: slog.LevelDebug},
+		{name: "case insensitive", env: " WARN ", want: slog.LevelWarn},
+		{name: "flag overrides env", flag: "info", env: "debug", flagSet: true, want: slog.LevelInfo},
+		{name: "flag overrides invalid env", flag: "debug", env: "typo", flagSet: true, want: slog.LevelDebug},
+		{name: "error", flag: "error", flagSet: true, want: slog.LevelError},
+		{name: "invalid env", env: "verbose", invalid: true},
+		{name: "invalid flag", flag: "trace", flagSet: true, invalid: true},
+		{name: "explicit empty flag", flagSet: true, invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := resolveLogLevel(tc.flag, tc.flagSet, tc.env)
+			if (err != nil) != tc.invalid || (!tc.invalid && got != tc.want) {
+				t.Fatalf("level=%v err=%v; want %v invalid=%v", got, err, tc.want, tc.invalid)
+			}
+		})
+	}
+}
+
+func TestRunLogLevelValidation(t *testing.T) {
+	t.Setenv("LOG_LEVEL", "typo")
+	_, err := execute("run", "--config", "../../examples/v3/resources.json")
+	if err == nil || !strings.Contains(err.Error(), "invalid log level") {
+		t.Fatalf("invalid env was ignored: %v", err)
+	}
+	// Validation must happen before reading a policy or initializing Kubernetes.
+	_, err = execute("run", "--config", "/missing/policy.json", "--log-level=debug")
+	if err == nil || !strings.Contains(err.Error(), "read version-3 policy") {
+		t.Fatalf("explicit flag did not override invalid env: %v", err)
+	}
+	_, err = execute("run", "--log-level=debug")
+	if err == nil || !strings.Contains(err.Error(), "requires --config") {
+		t.Fatalf("legacy path silently accepted v3 logging: %v", err)
+	}
+}
 
 // execute runs the root command with args, capturing stdout/stderr into buf.
 func execute(args ...string) (string, error) {

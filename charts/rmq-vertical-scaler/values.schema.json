@@ -6,6 +6,10 @@
     "profiles"
   ],
   "properties": {
+    "logLevel": {
+      "description": "v3 runtime log level override; empty omits the flag",
+      "enum": ["", "debug", "info", "warn", "error"]
+    },
     "serviceName": {
       "type": "string",
       "minLength": 1

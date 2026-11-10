@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-11-10
+
+### Added
+- Opt-in v3 JSON diagnostic summaries via `run --config <file> --log-level=debug`
+  or `LOG_LEVEL=debug`. Explicit flags override the environment; the default
+  remains `info`. Helm supports `logLevel: debug`.
+- Per-poll profiles, waiting/blocked reasons, underlying recovery reasons,
+  signal freshness, observation-window progress, and resize outcomes, including
+  previously silent status-only and completion paths.
+
+### Compatibility
+- Scaling decisions, status persistence, and observation-window rules are unchanged.
+- The logging flag requires the v3 policy runtime and a 3.0.1 or newer image.
+  Debug adds one summary per poll; changing the setting restarts the scaler
+  and rebuilds its in-memory observation windows.
+
 ## [3.0.0] - 2026-11-06
 
 ### Added

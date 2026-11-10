@@ -223,7 +223,7 @@ func TestRecoveryUsesReceiptClockWithoutShorteningStabilization(t *testing.T) {
 				for i := range o.Signals {
 					o.Signals[i].Timestamp = poll.Add(time.Duration(offset) * time.Second)
 				}
-				ready := c.recoveryReady(Snapshot{Observation: o}, op)
+				ready, _ := c.recoveryReady(Snapshot{Observation: o}, op)
 				want := second == 30 && (offset == 0 || offset == 2)
 				if ready != want {
 					t.Fatalf("recovery clock/window mismatch at %ds: ready=%v want=%v", second, ready, want)

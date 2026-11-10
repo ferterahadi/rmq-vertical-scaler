@@ -7,7 +7,7 @@ Installs the RabbitMQ Vertical Scaler controller. See the
 ## Switch to v3
 
 Edit the complete v3 example for your namespace and existing RabbitMQ cluster
-before installing. The chart uses `ferterahadi/rmq-vertical-scaler:3.0.0` by default:
+before installing. The chart uses `ferterahadi/rmq-vertical-scaler:3.0.1` by default:
 
 ```bash
 helm upgrade --install rvs ./charts/rmq-vertical-scaler \
@@ -47,3 +47,13 @@ The policy ConfigMap is read-only to the container and checksum changes restart
 the scaler through Recreate. Runtime status is created by the controller, not
 Helm. Off omits broker mutation/resize grants. Strict memory-limit transitions
 are blocked on the tested platform; rolling fallback requires explicit opt-in.
+
+### Diagnostic logging
+
+With a v3 policy, set `logLevel: debug` to add `--log-level debug` to the
+controller arguments. The empty default omits the flag and uses the binary's `info` default.
+Diagnostic logging requires **3.0.1 or newer**; do not enable the flag when
+overriding the image to 3.0.0.
+Use `info` to disable per-poll summaries on a supporting image. See
+[diagnostic logging](../../docs/environment.md#diagnostic-logging) for fields,
+level precedence, and how to interpret waiting windows.

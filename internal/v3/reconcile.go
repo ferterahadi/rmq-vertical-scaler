@@ -139,7 +139,7 @@ func (c *Controller) Run(ctx context.Context) error {
 		}
 	}
 }
-func (c *Controller) Tick(ctx context.Context, at time.Time) error {
+func (c *Controller) Tick(ctx context.Context, at time.Time) (tickErr error) {
 	s, err := c.Backend.Read(ctx, at)
 	if err != nil {
 		c.resetContinuity(at)
@@ -167,6 +167,10 @@ func (c *Controller) Tick(ctx context.Context, at time.Time) error {
 	state.Decision = c.Engine.Evaluate(s.Observation, state.Operation != nil)
 	state.Phase = "Observing"
 	state.Reason = state.Decision.Reason
+	var recoveryReason string
+	// One diagnostic summary per poll, including all early status-only returns.
+	// The closure observes the final decision without evaluating the engine again.
+	defer func() { c.logObservation(ctx, state, recoveryReason, tickErr) }()
 	op := state.Operation
 	if op != nil && op.Direction == "up" && at.Sub(op.EpisodeStart) > 120*time.Second {
 		op.DeadlineMissed = true
@@ -264,10 +268,14 @@ func (c *Controller) Tick(ctx context.Context, at time.Time) error {
 			return c.save(ctx, state, &cm, s)
 		}
 		// Operations recorded before this process started require rebuilt observations.
-		if (op.Direction == "down" || op.Started.Before(c.boot) || c.recoveryRequired) && !c.recoveryReady(s, op) {
-			state.Phase = "Recovering"
-			state.Reason = "RebuildingObservationWindow"
-			return c.save(ctx, state, &cm, s)
+		if op.Direction == "down" || op.Started.Before(c.boot) || c.recoveryRequired {
+			var ready bool
+			ready, recoveryReason = c.recoveryReady(s, op)
+			if !ready {
+				state.Phase = "Recovering"
+				state.Reason = "RebuildingObservationWindow"
+				return c.save(ctx, state, &cm, s)
+			}
 		}
 	}
 	if op == nil {
@@ -396,11 +404,11 @@ func (c *Controller) newOperation(ctx context.Context, s Snapshot, d Decision, p
 	}
 	return op, reason
 }
-func (c *Controller) recoveryReady(s Snapshot, op *Operation) bool {
+func (c *Controller) recoveryReady(s Snapshot, op *Operation) (bool, string) {
 	if !s.Complete {
 		c.recoveryBoundary = boundary{}
 		c.Recovery.ResetDown()
-		return false
+		return false, "IncompleteBrokerCensus"
 	}
 	if op.Direction == "down" {
 		index := -1
@@ -409,8 +417,7 @@ func (c *Controller) recoveryReady(s Snapshot, op *Operation) bool {
 				index = i
 			}
 		}
-		ready, _ := c.Recovery.DownReady(s.Observation, index)
-		return ready
+		return c.Recovery.DownReady(s.Observation, index)
 	}
 	latest := time.Time{}
 	for _, signal := range s.Signals {
@@ -420,12 +427,12 @@ func (c *Controller) recoveryReady(s Snapshot, op *Operation) bool {
 	}
 	if latest.IsZero() {
 		c.recoveryBoundary = boundary{}
-		return false
+		return false, "NoFreshRecoverySignals"
 	}
 	for _, b := range s.Brokers {
 		if !policy.Dominates(op.Resources, b.Desired) || !policy.Dominates(op.Resources, b.Effective) {
 			c.recoveryBoundary = boundary{}
-			return false
+			return false, "RecoveryTargetWouldDecreaseResources"
 		}
 	}
 	r := &c.recoveryBoundary
@@ -436,7 +443,10 @@ func (c *Controller) recoveryReady(s Snapshot, op *Operation) bool {
 		r.LastSample = latest
 	}
 	duration := time.Duration(c.Backend.Policy.Behavior.ScaleUp.StabilizationSeconds) * time.Second
-	return s.At.Sub(r.Since) >= duration && r.LastSample.Sub(r.FirstSample) >= duration
+	if s.At.Sub(r.Since) < duration || r.LastSample.Sub(r.FirstSample) < duration {
+		return false, "ObservingRecoveryIncrease"
+	}
+	return true, "RecoveryWindowSatisfied"
 }
 func (c *Controller) preflight(ctx context.Context, s Snapshot, target corev1.ResourceRequirements) (string, string) {
 	unsupported := ""
